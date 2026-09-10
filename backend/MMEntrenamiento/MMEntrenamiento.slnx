@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/tests/">
+    <Project Path="MMEntrenamiento.IntegrationTests/MMEntrenamiento.IntegrationTests.csproj" />
+    <Project Path="MMEntrenamiento.UnitTests/MMEntrenamiento.UnitTests.csproj" />
+  </Folder>
+  <Project Path="MMEntrenamiento.Api/MMEntrenamiento.Api.csproj" />
+  <Project Path="MMEntrenamiento.Application/MMEntrenamiento.Application.csproj" />
+  <Project Path="MMEntrenamiento.Domain/MMEntrenamiento.Domain.csproj" />
+  <Project Path="MMEntrenamiento.Infrastructure/MMEntrenamiento.Infrastructure.csproj" />
+</Solution>
