@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
+﻿
 namespace MMEntrenamiento.Domain.Entities
 {
     public class OneDrivePlan
     {
+        public Guid Id { get; set; }
         public Guid UsuarioId { get; set; }
         public Usuario Usuario { get; set; } = null!;
         public string DriveItemId { get; set; } = null!;
