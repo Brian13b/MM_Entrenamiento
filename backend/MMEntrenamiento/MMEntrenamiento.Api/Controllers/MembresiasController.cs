@@ -51,7 +51,7 @@ namespace MMEntrenamiento.Api.Controllers
         }
 
         [HttpPost("otorgar-creditos")]
-        // [Authorize(Roles = "Admin, Profe")] <-- Comentá esto para probarlo ahora
+        // [Authorize(Roles = "Admin, Profe")]
         public async Task<IActionResult> OtorgarCreditos([FromBody] OtorgarCreditoDto request)
         {
             var success = await _membresiaService.OtorgarCreditosExtraAsync(request);
