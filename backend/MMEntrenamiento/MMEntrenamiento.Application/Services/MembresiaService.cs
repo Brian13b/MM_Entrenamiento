@@ -64,24 +64,13 @@ namespace MMEntrenamiento.Application.Services
 
             if (existeMesActual) return true;
 
-            var mesAnterior = fechaActual.AddMonths(-1);
-            var creditoAnterior = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
-                c => c.UsuarioId == usuarioId && c.Anio == mesAnterior.Year && c.Mes == mesAnterior.Month
-            );
-
-            int creditosParaArrastrar = 0;
-            if (creditoAnterior != null)
-            {
-                creditosParaArrastrar = Math.Max(0, creditoAnterior.CreditosBase - creditoAnterior.CreditosUsados);
-            }
-
             var nuevoMes = new CreditoMes
             {
                 UsuarioId = usuarioId,
                 Anio = fechaActual.Year,
                 Mes = fechaActual.Month,
                 CreditosBase = usuario.MembresiaActual.CreditosOtorgados,
-                CreditosArrastrados = creditosParaArrastrar,
+                CreditosArrastrados = 0,
                 CreditosUsados = 0
             };
 
