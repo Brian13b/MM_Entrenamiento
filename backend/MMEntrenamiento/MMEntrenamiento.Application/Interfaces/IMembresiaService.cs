@@ -4,9 +4,9 @@ namespace MMEntrenamiento.Application.Interfaces
 {
     public interface IMembresiaService
     {
-        Task<bool> AsignarMembresiaAsync(AsignarMembresiaDto request);
+        Task<(bool Exito, string Mensaje)> AsignarMembresiaAsync(AsignarMembresiaDto request);
         Task<CreditosResponseDto?> ObtenerCreditosActualesAsync(Guid usuarioId);
-        Task<bool> RenovarCreditosMesAsync(Guid usuarioId, int? mesDestino = null, int? anioDestino = null);
-        Task<bool> OtorgarCreditosExtraAsync(OtorgarCreditoDto request);
+        Task<(bool Exito, string Mensaje)> RenovarCreditosMesAsync(Guid usuarioId, int? mesDestino = null, int? anioDestino = null);
+        Task<(bool Exito, string Mensaje)> OtorgarCreditosExtraAsync(OtorgarCreditoDto request);
     }
 }

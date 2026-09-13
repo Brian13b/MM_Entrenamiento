@@ -14,18 +14,18 @@ namespace MMEntrenamiento.Application.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<bool> AsignarMembresiaAsync(AsignarMembresiaDto request)
+        public async Task<(bool Exito, string Mensaje)> AsignarMembresiaAsync(AsignarMembresiaDto request)
         {
             var usuario = await _unitOfWork.Usuarios.GetByIdAsync(request.UsuarioId);
             var membresia = await _unitOfWork.Membresias.GetByIdAsync(request.MembresiaId);
 
-            if (usuario == null || membresia == null) return false;
+            if (usuario == null || membresia == null) return (false, "Usuario o membresía no encontrados");
 
             usuario.MembresiaActual = membresia;
             _unitOfWork.Usuarios.Update(usuario);
             await _unitOfWork.CompleteAsync();
 
-            return true;
+            return (true, "Membresía asignada correctamente");
         }
 
         public async Task<CreditosResponseDto?> ObtenerCreditosActualesAsync(Guid usuarioId)
@@ -47,14 +47,14 @@ namespace MMEntrenamiento.Application.Services
             };
         }
 
-        public async Task<bool> RenovarCreditosMesAsync(Guid usuarioId, int? mesDestino = null, int? anioDestino = null)
+        public async Task<(bool Exito, string Mensaje)> RenovarCreditosMesAsync(Guid usuarioId, int? mesDestino = null, int? anioDestino = null)
         {
             var usuario = await _unitOfWork.Usuarios.FirstOrDefaultAsync(
                 u => u.Id == usuarioId,
                 u => u.MembresiaActual!
             );
 
-            if (usuario?.MembresiaActual == null) return false;
+            if (usuario?.MembresiaActual == null) return (false, "El usuario no tiene una membresía activa");
 
             var fechaActual = DateTime.UtcNow;
             var anio = anioDestino ?? fechaActual.Year;
@@ -63,7 +63,7 @@ namespace MMEntrenamiento.Application.Services
             bool existeMes = await _unitOfWork.CreditosMes.AnyAsync(
                 c => c.UsuarioId == usuarioId && c.Anio == anio && c.Mes == mes);
 
-            if (existeMes) return true;
+            if (existeMes) return (true, "Los créditos ya han sido renovados para este mes");
 
             var nuevoMes = new CreditoMes
             {
@@ -78,10 +78,10 @@ namespace MMEntrenamiento.Application.Services
             await _unitOfWork.CreditosMes.AddAsync(nuevoMes);
             await _unitOfWork.CompleteAsync();
 
-            return true;
+            return (true, "Créditos renovados correctamente");
         }
 
-        public async Task<bool> OtorgarCreditosExtraAsync(OtorgarCreditoDto request)
+        public async Task<(bool Exito, string Mensaje)> OtorgarCreditosExtraAsync(OtorgarCreditoDto request)
         {
             await RenovarCreditosMesAsync(request.UsuarioId);
 
@@ -91,14 +91,14 @@ namespace MMEntrenamiento.Application.Services
                 c => c.UsuarioId == request.UsuarioId && c.Anio == fechaActual.Year && c.Mes == fechaActual.Month
             );
 
-            if (creditoMes == null) return false;
+            if (creditoMes == null) return (false, "No se encontró información de créditos para el usuario");
 
             creditoMes.CreditosBase += request.CantidadCreditos;
 
             _unitOfWork.CreditosMes.Update(creditoMes);
             await _unitOfWork.CompleteAsync();
 
-            return true;
+            return (true, "Créditos otorgados correctamente");
         }
     }
 }

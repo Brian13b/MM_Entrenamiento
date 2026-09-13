@@ -19,13 +19,13 @@ namespace MMEntrenamiento.Api.Controllers
         }
 
         [HttpPost("asignar")]
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AsignarMembresia([FromBody] AsignarMembresiaDto request)
         {
-            var success = await _membresiaService.AsignarMembresiaAsync(request);
-            if (!success) return BadRequest(new { message = "Usuario o Membresía no encontrados." });
+            var (exito, mensaje) = await _membresiaService.AsignarMembresiaAsync(request);
+            if (!exito) return BadRequest(new { message = mensaje });
 
-            return Ok(new { message = "Membresía asignada exitosamente." });
+            return Ok(new { message = mensaje });
         }
 
         [HttpGet("mis-creditos")]
@@ -44,20 +44,20 @@ namespace MMEntrenamiento.Api.Controllers
         {
             var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-            var success = await _membresiaService.RenovarCreditosMesAsync(userId);
-            if (!success) return BadRequest(new { message = "Error al renovar. Asegurate de tener una membresía activa." });
+            var (exito, mensaje) = await _membresiaService.RenovarCreditosMesAsync(userId);
+            if (!exito) return BadRequest(new { message = mensaje });
 
-            return Ok(new { message = "Mes renovado con éxito (arrastre calculado)." });
+            return Ok(new { message = mensaje });
         }
 
         [HttpPost("otorgar-creditos")]
-        // [Authorize(Roles = "Admin, Profe")]
+        [Authorize(Roles = "Admin, Profe")]
         public async Task<IActionResult> OtorgarCreditos([FromBody] OtorgarCreditoDto request)
         {
-            var success = await _membresiaService.OtorgarCreditosExtraAsync(request);
-            if (!success) return BadRequest(new { message = "Error al intentar otorgar créditos. Verificá el usuario." });
+            var (exito, mensaje) = await _membresiaService.OtorgarCreditosExtraAsync(request);
+            if (!exito) return BadRequest(new { message = mensaje });
 
-            return Ok(new { message = $"Se otorgaron {request.CantidadCreditos} créditos extra exitosamente." });
+            return Ok(new { message = mensaje });
         }
     }
 }

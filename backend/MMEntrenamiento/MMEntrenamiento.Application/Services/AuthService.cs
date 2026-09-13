@@ -44,7 +44,7 @@ namespace MMEntrenamiento.Application.Services
             };
         }
 
-        public async Task<bool> RegisterAsync(RegisterRequestDto request, string rolBase)
+        public async Task<(bool Exito, string Mensaje)> RegisterAsync(RegisterRequestDto request, string rolBase)
         {
             var user = new Usuario
             {
@@ -61,10 +61,10 @@ namespace MMEntrenamiento.Application.Services
                     await _roleManager.CreateAsync(new IdentityRole<Guid>(rolBase));
 
                 await _userManager.AddToRoleAsync(user, rolBase);
-                return true;
+                return (true, "Usuario registrado con éxito.");
             }
 
-            return false;
+            return (false, "Error al registrar el usuario.");
         }
 
         private string GenerateJwtToken(Usuario user, IList<string> roles)

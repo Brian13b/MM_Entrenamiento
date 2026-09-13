@@ -2,8 +2,8 @@
 
 namespace MMEntrenamiento.Application.Interfaces
 {
-    internal interface IReservaService
+    public interface IReservaService
     {
-        Task<bool> ReservarTurnoAsync(CrearReservaDto request);
+        Task<(bool Exito, string Mensaje)> ReservarTurnoAsync(CrearReservaDto request);
     }
 }

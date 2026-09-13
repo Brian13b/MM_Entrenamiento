@@ -17,9 +17,17 @@ namespace MMEntrenamiento.Application.Services
             _membresiaService = membresiaService;
         }
 
-        public async Task<bool> ReservarTurnoAsync(CrearReservaDto request)
+        public async Task<(bool Exito, string Mensaje)> ReservarTurnoAsync(CrearReservaDto request)
         {
-            // 1. Verificar Créditos del mes correspondiente a la FECHA del turno, no la de hoy
+            var fechaHoy = DateOnly.FromDateTime(DateTime.UtcNow);
+            var fechaLimite = fechaHoy.AddMonths(1);
+
+            if (request.Fecha < fechaHoy)
+                return (false, "No podés reservar turnos en fechas pasadas.");
+
+            if (request.Fecha > fechaLimite)
+                return (false, "Solo podés reservar con hasta un mes de anticipación.");
+
             var mesTurno = request.Fecha.Month;
             var anioTurno = request.Fecha.Year;
 
@@ -29,24 +37,21 @@ namespace MMEntrenamiento.Application.Services
 
             if (credito == null)
             {
-                var creado = await _membresiaService.RenovarCreditosMesAsync(request.UsuarioId, mesTurno, anioTurno);
-                if (!creado) return false;
+                var (creado, mensaje) = await _membresiaService.RenovarCreditosMesAsync(request.UsuarioId, mesTurno, anioTurno);
+                if (!creado) return (false, "El usuario no tiene una membresía activa para generar créditos.");
 
-                // Volvemos a buscar la billetera recién creada
                 credito = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
                     c => c.UsuarioId == request.UsuarioId && c.Anio == anioTurno && c.Mes == mesTurno
                 );
             }
 
-            // Si no tiene registro de créditos o ya gastó todos, bloqueamos
             if (credito == null || credito.CreditosUsados >= credito.CreditosBase)
-                return false;
+                return (false, "No tenés créditos suficientes para este mes.");
 
-            // 2. Obtener el Horario base para saber el Cupo Máximo
             var horario = await _unitOfWork.Horarios.GetByIdAsync(request.HorarioId);
-            if (horario == null) return false;
+            if (horario == null) return (false, "El horario no existe.");
 
-            // 3. Obtener o Crear la instancia del Turno para ese día específico
+
             var turno = await _unitOfWork.Turnos.FirstOrDefaultAsync(
                 t => t.HorarioId == request.HorarioId && t.Fecha == request.Fecha
             );
@@ -63,11 +68,9 @@ namespace MMEntrenamiento.Application.Services
                 await _unitOfWork.Turnos.AddAsync(turno);
             }
 
-            // 4. Validar Cupo
             if (turno.OcupacionActual >= horario.CupoMaximo)
-                return false;
+                return (false, "El turno ya está lleno.");
 
-            // 5. Crear la Reserva
             var reserva = new Reserva
             {
                 Turno = turno,
@@ -79,16 +82,14 @@ namespace MMEntrenamiento.Application.Services
 
             await _unitOfWork.Reservas.AddAsync(reserva);
 
-            // 6. Actualizar contadores
             turno.OcupacionActual++;
             credito.CreditosUsados++;
 
             _unitOfWork.CreditosMes.Update(credito);
 
-            // 7. Guardar todo
             await _unitOfWork.CompleteAsync();
 
-            return true;
+            return (true, "Reserva confirmada con éxito.");
         }
     }
 }

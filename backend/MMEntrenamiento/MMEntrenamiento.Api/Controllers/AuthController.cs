@@ -27,10 +27,10 @@ namespace MMEntrenamiento.Api.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto request)
         {
-            var success = await _authService.RegisterAsync(request, "Alumno");
-            if (!success) return BadRequest(new { message = "Error al registrar el usuario. El email podría estar en uso." });
+            var (success, mensaje) = await _authService.RegisterAsync(request, "Alumno");
+            if (!success) return BadRequest(new { message = mensaje });
 
-            return Ok(new { message = "Usuario registrado exitosamente." });
+            return Ok(new { message = mensaje });
         }
     }
 }

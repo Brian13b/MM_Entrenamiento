@@ -8,6 +8,6 @@ namespace MMEntrenamiento.Application.Interfaces
     public interface IAuthService
     {
         Task<AuthResponseDto?> LoginAsync(LoginRequestDto request);
-        Task<bool> RegisterAsync(RegisterRequestDto request, string rolBase);
+        Task<(bool Exito, string Mensaje)> RegisterAsync(RegisterRequestDto request, string rolBase);
     }
 }
