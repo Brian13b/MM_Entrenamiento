@@ -6,7 +6,7 @@ namespace MMEntrenamiento.Application.Interfaces
     {
         Task<bool> AsignarMembresiaAsync(AsignarMembresiaDto request);
         Task<CreditosResponseDto?> ObtenerCreditosActualesAsync(Guid usuarioId);
-        Task<bool> RenovarCreditosMesAsync(Guid usuarioId);
+        Task<bool> RenovarCreditosMesAsync(Guid usuarioId, int? mesDestino = null, int? anioDestino = null);
         Task<bool> OtorgarCreditosExtraAsync(OtorgarCreditoDto request);
     }
 }

@@ -11,6 +11,11 @@ namespace MMEntrenamiento.Infrastructure.Repositories
         public IGenericRepository<Usuario> Usuarios { get; private set; }
         public IGenericRepository<CreditoMes> CreditosMes { get; private set; }
         public IGenericRepository<Membresia> Membresias { get; private set; }
+        public IGenericRepository<Horario> Horarios { get; private set; }
+        public IGenericRepository<Turno> Turnos { get; private set; }
+        public IGenericRepository<Reserva> Reservas { get; private set; }
+        public IGenericRepository<TurnoFijo> TurnosFijos { get; private set; }
+        public IGenericRepository<ExcepcionTurnoFijo> ExcepcionesTurnosFijos { get; private set; }
 
         public UnitOfWork(ApplicationDbContext context)
         {
@@ -18,6 +23,11 @@ namespace MMEntrenamiento.Infrastructure.Repositories
             Usuarios = new GenericRepository<Usuario>(_context);
             CreditosMes = new GenericRepository<CreditoMes>(_context);
             Membresias = new GenericRepository<Membresia>(_context);
+            Horarios = new GenericRepository<Horario>(_context);
+            Turnos = new GenericRepository<Turno>(_context);
+            Reservas = new GenericRepository<Reserva>(_context);
+            TurnosFijos = new GenericRepository<TurnoFijo>(_context);
+            ExcepcionesTurnosFijos = new GenericRepository<ExcepcionTurnoFijo>(_context);
         }
 
         public async Task<int> CompleteAsync() => await _context.SaveChangesAsync();

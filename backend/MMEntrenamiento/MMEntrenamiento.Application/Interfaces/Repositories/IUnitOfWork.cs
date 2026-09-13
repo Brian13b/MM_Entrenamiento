@@ -10,6 +10,11 @@ namespace MMEntrenamiento.Application.Interfaces.Repositories
         IGenericRepository<Usuario> Usuarios { get; }
         IGenericRepository<CreditoMes> CreditosMes { get; }
         IGenericRepository<Membresia> Membresias { get; }
+        IGenericRepository<Horario> Horarios { get; }
+        IGenericRepository<Turno> Turnos { get; }
+        IGenericRepository<Reserva> Reservas { get; }
+        IGenericRepository<TurnoFijo> TurnosFijos { get; }
+        IGenericRepository<ExcepcionTurnoFijo> ExcepcionesTurnosFijos { get; }
 
         Task<int> CompleteAsync();
     }

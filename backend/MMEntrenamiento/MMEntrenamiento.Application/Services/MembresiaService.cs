@@ -47,7 +47,7 @@ namespace MMEntrenamiento.Application.Services
             };
         }
 
-        public async Task<bool> RenovarCreditosMesAsync(Guid usuarioId)
+        public async Task<bool> RenovarCreditosMesAsync(Guid usuarioId, int? mesDestino = null, int? anioDestino = null)
         {
             var usuario = await _unitOfWork.Usuarios.FirstOrDefaultAsync(
                 u => u.Id == usuarioId,
@@ -57,18 +57,19 @@ namespace MMEntrenamiento.Application.Services
             if (usuario?.MembresiaActual == null) return false;
 
             var fechaActual = DateTime.UtcNow;
+            var anio = anioDestino ?? fechaActual.Year;
+            var mes = mesDestino ?? fechaActual.Month;
 
-            bool existeMesActual = await _unitOfWork.CreditosMes.AnyAsync(
-                c => c.UsuarioId == usuarioId && c.Anio == fechaActual.Year && c.Mes == fechaActual.Month
-            );
+            bool existeMes = await _unitOfWork.CreditosMes.AnyAsync(
+                c => c.UsuarioId == usuarioId && c.Anio == anio && c.Mes == mes);
 
-            if (existeMesActual) return true;
+            if (existeMes) return true;
 
             var nuevoMes = new CreditoMes
             {
                 UsuarioId = usuarioId,
-                Anio = fechaActual.Year,
-                Mes = fechaActual.Month,
+                Anio = anio,
+                Mes = mes,
                 CreditosBase = usuario.MembresiaActual.CreditosOtorgados,
                 CreditosArrastrados = 0,
                 CreditosUsados = 0

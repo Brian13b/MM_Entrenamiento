@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace MMEntrenamiento.Domain.Enums
+﻿namespace MMEntrenamiento.Domain.Enums
 {
     public enum EstadoReserva
     {
