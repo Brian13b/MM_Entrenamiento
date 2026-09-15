@@ -13,5 +13,6 @@ namespace MMEntrenamiento.Application.Interfaces.Repositories
         void Update(T entity);
         void Delete(T entity);
         Task<bool> AnyAsync(Expression<Func<T, bool>> predicate);
+        Task<int> CountAsync(Expression<Func<T, bool>> predicate);
     }
 }

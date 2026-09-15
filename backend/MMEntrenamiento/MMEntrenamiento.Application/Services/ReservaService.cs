@@ -31,6 +31,14 @@ namespace MMEntrenamiento.Application.Services
             // ----------------------------------------------------------------
             if (request.DejarFijo)
             {
+                var usuario = await _unitOfWork.Usuarios.FirstOrDefaultAsync(u => u.Id == request.UsuarioId, u => u.MembresiaActual!);
+                var limiteFijos = usuario?.MembresiaActual?.LimiteTurnosFijos ?? 0;
+
+                var cantidadFijosActuales = await _unitOfWork.TurnosFijos.CountAsync(tf => tf.UsuarioId == request.UsuarioId && tf.Activo);
+
+                if (cantidadFijosActuales >= limiteFijos)
+                    return (false, $"Tu membresía actual solo te permite tener {limiteFijos} horarios fijos por semana. Si querés este horario, dalo de baja de otro día primero.");
+
                 // 1. Proyectar las 4 fechas
                 var fechasAProyectar = new List<DateOnly>();
                 for (int i = 0; i < 4; i++)
@@ -363,6 +371,9 @@ namespace MMEntrenamiento.Application.Services
         {
             var fechaHoy = DateOnly.FromDateTime(DateTime.UtcNow);
 
+            var usuario = await _unitOfWork.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId, u => u.MembresiaActual!);
+            var limite = usuario?.MembresiaActual?.LimiteTurnosFijos ?? 0;
+
             // 1. Buscar próximos turnos reservados activos del usuario
             var reservas = await _unitOfWork.Reservas.FindAsync(
                 r => r.UsuarioId == usuarioId && r.Estado == EstadoReserva.Activa && r.Turno.Fecha >= fechaHoy,
@@ -379,6 +390,9 @@ namespace MMEntrenamiento.Application.Services
             // 3. Mapear al DTO
             var dashboard = new MisTurnosDashboardDto
             {
+                LimiteTurnosFijos = limite,
+                TurnosFijosActivos = turnosFijos.Count(),
+
                 ProximasClases = reservas.OrderBy(r => r.Turno.Fecha).ThenBy(r => r.Turno.Horario.HoraInicio).Select(r => new MiReservaDto
                 {
                     TurnoId = r.TurnoId,
