@@ -24,6 +24,13 @@ namespace MMEntrenamiento.Application.Services
                 return (false, "No podés reservar turnos en fechas pasadas.");
 
             var horario = await _unitOfWork.Horarios.GetByIdAsync(request.HorarioId);
+
+            var usuario = await _unitOfWork.Usuarios.GetByIdAsync(request.UsuarioId);
+            if (usuario != null && usuario.EstadoCuenta != EstadoCuenta.Activo)
+            {
+                return (false, "Tu cuenta se encuentra suspendida. Por favor, comunicate con administración.");
+            }
+
             if (horario == null) return (false, "El horario seleccionado no existe.");
 
             // ----------------------------------------------------------------

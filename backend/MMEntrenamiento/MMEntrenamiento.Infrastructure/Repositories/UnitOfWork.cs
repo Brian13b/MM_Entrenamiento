@@ -16,6 +16,7 @@ namespace MMEntrenamiento.Infrastructure.Repositories
         public IGenericRepository<Reserva> Reservas { get; private set; }
         public IGenericRepository<TurnoFijo> TurnosFijos { get; private set; }
         public IGenericRepository<ExcepcionTurnoFijo> ExcepcionesTurnosFijos { get; private set; }
+        public IGenericRepository<Pago> Pagos { get; private set; }
 
         public UnitOfWork(ApplicationDbContext context)
         {
@@ -26,6 +27,7 @@ namespace MMEntrenamiento.Infrastructure.Repositories
             Horarios = new GenericRepository<Horario>(_context);
             Turnos = new GenericRepository<Turno>(_context);
             Reservas = new GenericRepository<Reserva>(_context);
+            Pagos = new GenericRepository<Pago>(_context);
             TurnosFijos = new GenericRepository<TurnoFijo>(_context);
             ExcepcionesTurnosFijos = new GenericRepository<ExcepcionTurnoFijo>(_context);
         }
