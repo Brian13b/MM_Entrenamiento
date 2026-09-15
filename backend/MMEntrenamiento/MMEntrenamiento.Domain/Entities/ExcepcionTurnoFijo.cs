@@ -11,5 +11,6 @@ namespace MMEntrenamiento.Domain.Entities
         public int HorarioId { get; set; }
         public DateOnly FechaAusencia { get; set; }
         public string? Motivo { get; set; }
+        public virtual Usuario? Usuario { get; set; }
     }
 }
