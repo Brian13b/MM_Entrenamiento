@@ -17,4 +17,19 @@
         public TimeOnly HoraFin { get; set; }
         public int CupoMaximo { get; set; }
     }
+
+    public class CrearHorarioMasivoDto
+    {
+        public List<DayOfWeek> DiasSemana { get; set; } = new();
+        public TimeOnly HoraInicio { get; set; }
+        public TimeOnly HoraFin { get; set; }
+        public int CupoMaximo { get; set; }
+    }
+
+    public class ConfigurarHorarioReducidoDto
+    {
+        public DateOnly FechaFeriado { get; set; }
+        public TimeOnly NuevaHoraInicio { get; set; }
+        public TimeOnly NuevaHoraFin { get; set; }
+    }
 }

@@ -33,5 +33,25 @@ namespace MMEntrenamiento.Api.Controllers
             var horarios = await _horarioService.ObtenerTodosAsync();
             return Ok(horarios);
         }
+
+        [HttpPost("masivo")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> CrearHorariosMasivos([FromBody] CrearHorarioMasivoDto request)
+        {
+            var (exito, mensaje) = await _horarioService.CrearHorariosMasivosAsync(request);
+            if (!exito) return BadRequest(new { message = mensaje });
+
+            return Ok(new { message = mensaje });
+        }
+
+        [HttpPost("reducido")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ConfigurarHorarioReducido([FromBody] ConfigurarHorarioReducidoDto request)
+        {
+            var (exito, mensaje) = await _horarioService.ConfigurarHorarioReducidoAsync(request);
+            if (!exito) return BadRequest(new { message = mensaje });
+
+            return Ok(new { message = mensaje });
+        }
     }
 }
