@@ -33,8 +33,10 @@ namespace MMEntrenamiento.Api.Controllers
         {
             var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-            var creditos = await _membresiaService.ObtenerCreditosActualesAsync(userId);
-            if (creditos == null) return NotFound(new { message = "No tenés créditos activos este mes." });
+            var creditos = await _membresiaService.ObtenerBilleterasActivasAsync(userId);
+
+            if (!creditos.Any())
+                return NotFound(new { message = "No tenés créditos activos." });
 
             return Ok(creditos);
         }

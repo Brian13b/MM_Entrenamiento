@@ -8,5 +8,6 @@ namespace MMEntrenamiento.Application.Interfaces
         Task<CreditosResponseDto?> ObtenerCreditosActualesAsync(Guid usuarioId);
         Task<(bool Exito, string Mensaje)> RenovarCreditosMesAsync(Guid usuarioId, int? mesDestino = null, int? anioDestino = null);
         Task<(bool Exito, string Mensaje)> OtorgarCreditosExtraAsync(OtorgarCreditoDto request);
+        Task<IEnumerable<CreditosResponseDto>> ObtenerBilleterasActivasAsync(Guid usuarioId);
     }
 }

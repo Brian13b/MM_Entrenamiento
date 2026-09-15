@@ -9,5 +9,6 @@ namespace MMEntrenamiento.Domain.Entities
         public int CreditosOtorgados { get; set; }
         public decimal Precio { get; set; }
         public bool Activa { get; set; }
+        public int LimiteTurnosFijos { get; set; }
     }
 }

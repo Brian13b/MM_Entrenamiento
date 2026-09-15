@@ -100,5 +100,24 @@ namespace MMEntrenamiento.Application.Services
 
             return (true, "Créditos otorgados correctamente");
         }
+
+        public async Task<IEnumerable<CreditosResponseDto>> ObtenerBilleterasActivasAsync(Guid usuarioId)
+        {
+            var fechaHoy = DateTime.UtcNow;
+
+            var billeteras = await _unitOfWork.CreditosMes.FindAsync(
+                c => c.UsuarioId == usuarioId &&
+                     (c.Anio > fechaHoy.Year || (c.Anio == fechaHoy.Year && c.Mes >= fechaHoy.Month))
+            );
+
+            return billeteras.OrderBy(c => c.Anio).ThenBy(c => c.Mes).Select(c => new CreditosResponseDto
+            {
+                Anio = c.Anio,
+                Mes = c.Mes,
+                CreditosBase = c.CreditosBase,
+                CreditosArrastrados = c.CreditosArrastrados,
+                CreditosUsados = c.CreditosUsados
+            });
+        }
     }
 }

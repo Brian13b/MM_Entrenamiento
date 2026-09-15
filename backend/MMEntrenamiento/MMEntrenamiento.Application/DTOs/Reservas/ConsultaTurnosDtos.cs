@@ -29,6 +29,10 @@
 
     public class MisTurnosDashboardDto
     {
+        public int LimiteTurnosFijos { get; set; }
+        public int TurnosFijosActivos { get; set; }
+        public bool PuedeAgregarTurnoFijo => TurnosFijosActivos < LimiteTurnosFijos;
+
         public List<MiReservaDto> ProximasClases { get; set; } = new();
         public List<MiTurnoFijoDto> MisSuscripcionesFijas { get; set; } = new();
     }
