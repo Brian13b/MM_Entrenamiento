@@ -27,9 +27,4 @@
     <ProjectReference Include="..\MMEntrenamiento.Infrastructure\MMEntrenamiento.Infrastructure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Middlewares\" />
-    <Folder Include="Extensions\" />
-  </ItemGroup>
-
 </Project>

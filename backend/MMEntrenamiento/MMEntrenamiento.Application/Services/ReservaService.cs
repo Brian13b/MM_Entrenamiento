@@ -328,5 +328,74 @@ namespace MMEntrenamiento.Application.Services
 
             return (true, $"Turno fijo dado de baja exitosamente. Se cancelaron {reservasCanceladas} clases futuras y se devolvieron los créditos.");
         }
+
+        public async Task<IEnumerable<TurnoDisponibleDto>> ObtenerGrillaPorFechaAsync(DateOnly fecha)
+        {
+            var diaSemana = fecha.DayOfWeek;
+
+            // 1. Buscamos la plantilla de horarios para ese día de la semana
+            var horariosDelDia = await _unitOfWork.Horarios.FindAsync(h => h.DiaSemana == diaSemana);
+
+            // 2. Buscamos las instancias reales de turnos para esa fecha exacta
+            var turnosInstanciados = await _unitOfWork.Turnos.FindAsync(t => t.Fecha == fecha);
+
+            var grilla = new List<TurnoDisponibleDto>();
+
+            // 3. Hacemos el "Merge"
+            foreach (var horario in horariosDelDia.OrderBy(h => h.HoraInicio))
+            {
+                var turno = turnosInstanciados.FirstOrDefault(t => t.HorarioId == horario.Id);
+
+                grilla.Add(new TurnoDisponibleDto
+                {
+                    HorarioId = horario.Id,
+                    HoraInicio = horario.HoraInicio,
+                    HoraFin = horario.HoraFin,
+                    CupoMaximo = horario.CupoMaximo,
+                    OcupacionActual = turno?.OcupacionActual ?? 0
+                });
+            }
+
+            return grilla;
+        }
+
+        public async Task<MisTurnosDashboardDto> ObtenerMisTurnosAsync(Guid usuarioId)
+        {
+            var fechaHoy = DateOnly.FromDateTime(DateTime.UtcNow);
+
+            // 1. Buscar próximos turnos reservados activos del usuario
+            var reservas = await _unitOfWork.Reservas.FindAsync(
+                r => r.UsuarioId == usuarioId && r.Estado == EstadoReserva.Activa && r.Turno.Fecha >= fechaHoy,
+                r => r.Turno!,
+                r => r.Turno.Horario! 
+            );
+
+            // 2. Buscar sus turnos fijos activos
+            var turnosFijos = await _unitOfWork.TurnosFijos.FindAsync(
+                tf => tf.UsuarioId == usuarioId && tf.Activo,
+                tf => tf.Horario!
+            );
+
+            // 3. Mapear al DTO
+            var dashboard = new MisTurnosDashboardDto
+            {
+                ProximasClases = reservas.OrderBy(r => r.Turno.Fecha).ThenBy(r => r.Turno.Horario.HoraInicio).Select(r => new MiReservaDto
+                {
+                    TurnoId = r.TurnoId,
+                    Fecha = r.Turno.Fecha,
+                    HoraInicio = r.Turno.Horario.HoraInicio,
+                    TipoReserva = r.Tipo.ToString()
+                }).ToList(),
+
+                MisSuscripcionesFijas = turnosFijos.OrderBy(tf => tf.Horario.DiaSemana).ThenBy(tf => tf.Horario.HoraInicio).Select(tf => new MiTurnoFijoDto
+                {
+                    TurnoFijoId = tf.Id,
+                    DiaSemana = tf.Horario.DiaSemana.ToString(),
+                    HoraInicio = tf.Horario.HoraInicio
+                }).ToList()
+            };
+
+            return dashboard;
+        }
     }
 }

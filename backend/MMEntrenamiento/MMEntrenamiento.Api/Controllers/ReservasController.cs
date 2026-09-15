@@ -33,5 +33,43 @@ namespace MMEntrenamiento.Api.Controllers
 
             return Ok(new { message = resultado.Mensaje });
         }
+
+        [HttpPost("cancelar-clase")]
+        public async Task<IActionResult> CancelarClase([FromBody] CancelarClaseDto request)
+        {
+            request.UsuarioId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            var (exito, mensaje) = await _reservaService.CancelarClaseAsync(request);
+            if (!exito) return BadRequest(new { message = mensaje });
+
+            return Ok(new { message = mensaje });
+        }
+
+        [HttpPost("baja-turno-fijo")]
+        public async Task<IActionResult> DarDeBajaTurnoFijo([FromBody] BajaTurnoFijoDto request)
+        {
+            request.UsuarioId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            var (exito, mensaje) = await _reservaService.DarDeBajaTurnoFijoAsync(request);
+            if (!exito) return BadRequest(new { message = mensaje });
+
+            return Ok(new { message = mensaje });
+        }
+
+        [HttpGet("grilla/{fecha}")]
+        public async Task<IActionResult> ObtenerGrilla(DateOnly fecha)
+        {
+            var grilla = await _reservaService.ObtenerGrillaPorFechaAsync(fecha);
+            return Ok(grilla);
+        }
+
+        [HttpGet("mis-turnos")]
+        public async Task<IActionResult> ObtenerMisTurnos()
+        {
+            var usuarioId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            var dashboard = await _reservaService.ObtenerMisTurnosAsync(usuarioId);
+            return Ok(dashboard);
+        }
     }
 }
