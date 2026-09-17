@@ -21,8 +21,6 @@ namespace MMEntrenamiento.Api.Workers
             {
                 try
                 {
-                    // Como el worker vive para siempre, necesitamos crear un 'Scope' nuevo
-                    // para llamar a nuestros servicios que viven por request (Scoped)
                     using (var scope = _serviceProvider.CreateScope())
                     {
                         var reservaService = scope.ServiceProvider.GetRequiredService<IReservaService>();
@@ -36,9 +34,13 @@ namespace MMEntrenamiento.Api.Workers
                     _logger.LogError(ex, "Error al extender los turnos fijos.");
                 }
 
-                // Duerme hasta mañana (Para un MVP, revisar cada 24hs alcanza. 
-                // Podrías usar TimeSpan.FromHours(24) o calcular los ms exactos hasta las 3 AM).
-                await Task.Delay(TimeSpan.FromHours(24), stoppingToken);
+                var ahora = DateTime.Now;
+                var proximaEjecucion = ahora.Date.AddDays(1).AddHours(1);
+                var tiempoEspera = proximaEjecucion - ahora;
+
+                _logger.LogInformation($"TurnosWorker durmiendo. Próxima ejecución en {tiempoEspera.TotalHours:F2} horas.");
+
+                await Task.Delay(tiempoEspera, stoppingToken);
             }
         }
     }
