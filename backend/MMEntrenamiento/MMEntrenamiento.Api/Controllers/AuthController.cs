@@ -1,6 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MMEntrenamiento.Application.DTOs.Auth;
 using MMEntrenamiento.Application.Interfaces;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace MMEntrenamiento.Api.Controllers
 {
@@ -15,6 +18,7 @@ namespace MMEntrenamiento.Api.Controllers
             _authService = authService;
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
@@ -25,10 +29,47 @@ namespace MMEntrenamiento.Api.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterRequestDto request)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> RegistrarAlumno([FromBody] RegisterRequestDto request)
         {
-            var (success, mensaje) = await _authService.RegisterAsync(request, "Alumno");
-            if (!success) return BadRequest(new { message = mensaje });
+            var (exito, mensaje) = await _authService.RegisterAsync(request, "Alumno");
+            if (!exito) return BadRequest(new { message = mensaje });
+
+            return Ok(new { message = mensaje });
+        }
+
+        [HttpPost("cambiar-password")]
+        [Authorize]
+        public async Task<IActionResult> CambiarPassword([FromBody] CambiarPasswordDto request)
+        {
+            var claimId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+            if (!Guid.TryParse(claimId, out var userId))
+                return Unauthorized(new { message = "Token inválido." });
+
+            var (exito, mensaje) = await _authService.CambiarPasswordAsync(userId, request);
+
+            if (!exito) return BadRequest(new { message = mensaje });
+
+            return Ok(new { message = mensaje });
+        }
+
+        [AllowAnonymous]
+        [HttpPost("recuperar/solicitar")]
+        public async Task<IActionResult> SolicitarRecuperacion([FromBody] SolicitarRecuperacionDto request)
+        {
+            var (exito, mensaje) = await _authService.SolicitarRecuperacionAsync(request);
+
+            return Ok(new { message = mensaje });
+        }
+
+        [AllowAnonymous]
+        [HttpPost("recuperar/resetear")]
+        public async Task<IActionResult> ResetearPassword([FromBody] ResetearPasswordDto request)
+        {
+            var (exito, mensaje) = await _authService.ResetearPasswordAsync(request);
+
+            if (!exito) return BadRequest(new { message = mensaje });
 
             return Ok(new { message = mensaje });
         }

@@ -41,7 +41,8 @@ builder.Services.AddIdentityCore<Usuario>(options =>
     options.Password.RequiredLength = 6;
 })
     .AddRoles<IdentityRole<Guid>>()
-    .AddEntityFrameworkStores<ApplicationDbContext>();
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders();
 
 // Configuración de Autenticación JWT
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");

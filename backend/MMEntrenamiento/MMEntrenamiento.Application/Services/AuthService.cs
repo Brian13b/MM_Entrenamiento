@@ -67,6 +67,41 @@ namespace MMEntrenamiento.Application.Services
             return (false, "Error al registrar el usuario.");
         }
 
+        public async Task<(bool Exito, string Mensaje)> CambiarPasswordAsync(Guid usuarioId, CambiarPasswordDto request)
+        {
+            var usuario = await _userManager.FindByIdAsync(usuarioId.ToString());
+            if (usuario == null) return (false, "Usuario no encontrado.");
+
+            var resultado = await _userManager.ChangePasswordAsync(usuario, request.PasswordActual, request.NuevaPassword);
+            if (!resultado.Succeeded) return (false, "La contraseña actual es incorrecta o la nueva no cumple los requisitos.");
+
+            return (true, "Contraseña actualizada correctamente.");
+        }
+
+        public async Task<(bool Exito, string Mensaje)> SolicitarRecuperacionAsync(SolicitarRecuperacionDto request)
+        {
+            var usuario = await _userManager.FindByEmailAsync(request.Email);
+            if (usuario == null) return (true, "Si el email existe, se enviarán las instrucciones.");
+
+            var token = await _userManager.GeneratePasswordResetTokenAsync(usuario);
+
+            // Decidiendo si va a ser enviado por email o por mensaje de texto, por ahora lo vamos a mostrar en consola para fines de desarrollo.
+            Console.WriteLine($"\n=== TOKEN DE RECUPERACIÓN PARA {usuario.Email} ===\n{token}\n==============================================\n");
+
+            return (true, "Si el email existe, se enviarán las instrucciones.");
+        }
+
+        public async Task<(bool Exito, string Mensaje)> ResetearPasswordAsync(ResetearPasswordDto request)
+        {
+            var usuario = await _userManager.FindByEmailAsync(request.Email);
+            if (usuario == null) return (false, "Solicitud inválida.");
+
+            var resultado = await _userManager.ResetPasswordAsync(usuario, request.Token, request.NuevaPassword);
+            if (!resultado.Succeeded) return (false, "El token expiró o es inválido.");
+
+            return (true, "Contraseña reseteada exitosamente. Ya podés iniciar sesión.");
+        }
+
         private string GenerateJwtToken(Usuario user, IList<string> roles)
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
