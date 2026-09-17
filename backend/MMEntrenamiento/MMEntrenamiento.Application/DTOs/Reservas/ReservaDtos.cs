@@ -5,6 +5,12 @@
         public Guid UsuarioId { get; set; }
         public int HorarioId { get; set; }
         public DateOnly Fecha { get; set; }
-        public bool DejarFijo { get; set; }
+    }
+
+    public class AsignarTurnoFijoDto
+    {
+        public Guid UsuarioId { get; set; }
+        public int HorarioId { get; set; }
+        public DateOnly FechaInicio { get; set; }
     }
 }

@@ -20,18 +20,30 @@ namespace MMEntrenamiento.Api.Controllers
         }
 
         [HttpPost("reservar")]
-        public async Task<IActionResult> ReservarTurno([FromBody] CrearReservaDto request)
+        [Authorize(Roles = "Alumno, Admin, Profe")]
+        public async Task<IActionResult> ReservarEventual([FromBody] CrearReservaDto request)
         {
-            request.UsuarioId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var userIdToken = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-            var resultado = await _reservaService.ReservarTurnoAsync(request);
-
-            if (!resultado.Exito)
+            if (!User.IsInRole("Admin") && !User.IsInRole("Profe"))
             {
-                return BadRequest(new { message = resultado.Mensaje });
+                request.UsuarioId = userIdToken;
             }
 
-            return Ok(new { message = resultado.Mensaje });
+            var (exito, mensaje) = await _reservaService.ReservarTurnoEventualAsync(request);
+            if (!exito) return BadRequest(new { message = mensaje });
+
+            return Ok(new { message = mensaje });
+        }
+
+        [HttpPost("fijo/asignar")]
+        [Authorize(Roles = "Admin, Profe")]
+        public async Task<IActionResult> AsignarFijo([FromBody] AsignarTurnoFijoDto request)
+        {
+            var (exito, mensaje) = await _reservaService.AsignarTurnoFijoAsync(request);
+            if (!exito) return BadRequest(new { message = mensaje });
+
+            return Ok(new { message = mensaje });
         }
 
         [HttpPost("cancelar-clase")]

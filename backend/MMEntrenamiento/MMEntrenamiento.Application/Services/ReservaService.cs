@@ -17,170 +17,149 @@ namespace MMEntrenamiento.Application.Services
             _membresiaService = membresiaService;
         }
 
-        public async Task<(bool Exito, string Mensaje)> ReservarTurnoAsync(CrearReservaDto request)
+        public async Task<(bool Exito, string Mensaje)> ReservarTurnoEventualAsync(CrearReservaDto request)
         {
             var fechaHoy = DateOnly.FromDateTime(DateTime.UtcNow);
-            if (request.Fecha < fechaHoy)
-                return (false, "No podés reservar turnos en fechas pasadas.");
+            if (request.Fecha < fechaHoy) return (false, "No podés reservar turnos en fechas pasadas.");
 
-            var horario = await _unitOfWork.Horarios.GetByIdAsync(request.HorarioId);
+            var limiteEventual = fechaHoy.AddDays(21);
+            if (request.Fecha > limiteEventual) return (false, "Solo podés reservar con hasta 21 días de anticipación.");
 
             var usuario = await _unitOfWork.Usuarios.GetByIdAsync(request.UsuarioId);
             if (usuario != null && usuario.EstadoCuenta != EstadoCuenta.Activo)
-            {
                 return (false, "Tu cuenta se encuentra suspendida. Por favor, comunicate con administración.");
-            }
 
+            var horario = await _unitOfWork.Horarios.GetByIdAsync(request.HorarioId);
             if (horario == null) return (false, "El horario seleccionado no existe.");
 
-            // ----------------------------------------------------------------
-            // FLUJO A: RESERVA FIJA (Proyección de 4 semanas)
-            // ----------------------------------------------------------------
-            if (request.DejarFijo)
+            var reservaExistenteHoy = await _unitOfWork.Reservas.FirstOrDefaultAsync(
+                r => r.UsuarioId == request.UsuarioId
+                  && r.Turno.Fecha == request.Fecha
+                  && (r.Estado == EstadoReserva.Activa || r.Estado == EstadoReserva.Asistio),
+                r => r.Turno!);
+
+            if (reservaExistenteHoy != null)
+                return (false, "Ya tenés un turno activo para este día. Solo podés tener una reserva activa por día.");
+
+            var mesTurno = request.Fecha.Month;
+            var anioTurno = request.Fecha.Year;
+
+            var (creado, _) = await _membresiaService.RenovarCreditosMesAsync(request.UsuarioId, mesTurno, anioTurno);
+            if (!creado) return (false, "No tenés una membresía activa.");
+
+            var credito = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
+                c => c.UsuarioId == request.UsuarioId && c.Anio == anioTurno && c.Mes == mesTurno);
+
+            if (credito == null || credito.CreditosUsados >= credito.CreditosBase)
+                return (false, "No tenés créditos suficientes para este mes.");
+
+            var turno = await _unitOfWork.Turnos.FirstOrDefaultAsync(t => t.HorarioId == request.HorarioId && t.Fecha == request.Fecha);
+
+            if (turno == null)
             {
-                var usuario = await _unitOfWork.Usuarios.FirstOrDefaultAsync(u => u.Id == request.UsuarioId, u => u.MembresiaActual!);
-                var limiteFijos = usuario?.MembresiaActual?.LimiteTurnosFijos ?? 0;
-
-                var cantidadFijosActuales = await _unitOfWork.TurnosFijos.CountAsync(tf => tf.UsuarioId == request.UsuarioId && tf.Activo);
-
-                if (cantidadFijosActuales >= limiteFijos)
-                    return (false, $"Tu membresía actual solo te permite tener {limiteFijos} horarios fijos por semana. Si querés este horario, dalo de baja de otro día primero.");
-
-                // 1. Proyectar las 4 fechas
-                var fechasAProyectar = new List<DateOnly>();
-                for (int i = 0; i < 4; i++)
-                {
-                    fechasAProyectar.Add(request.Fecha.AddDays(i * 7));
-                }
-
-                // 2. Verificar que existan las billeteras de crédito para los meses involucrados y que alcance el saldo
-                var turnosPorMes = fechasAProyectar.GroupBy(f => new { f.Year, f.Month });
-
-                foreach (var grupoMes in turnosPorMes)
-                {
-                    var mes = grupoMes.Key.Month;
-                    var anio = grupoMes.Key.Year;
-                    var cantTurnosEnEsteMes = grupoMes.Count();
-
-                    // Asegurar que la billetera del mes exista
-                    var (creado, _) = await _membresiaService.RenovarCreditosMesAsync(request.UsuarioId, mes, anio);
-                    if (!creado) return (false, $"No tenés una membresía activa para cubrir los turnos de {mes}/{anio}.");
-
-                    var creditoMes = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
-                        c => c.UsuarioId == request.UsuarioId && c.Anio == anio && c.Mes == mes);
-
-                    if (creditoMes == null || (creditoMes.CreditosBase - creditoMes.CreditosUsados) < cantTurnosEnEsteMes)
-                        return (false, $"No te alcanzan los créditos de {mes}/{anio} para dejar este turno fijo.");
-                }
-
-                // 3. Verificar el cupo para las 4 fechas antes de guardar nada
-                var turnosInstanciados = new List<Turno>();
-                foreach (var fecha in fechasAProyectar)
-                {
-                    var turno = await _unitOfWork.Turnos.FirstOrDefaultAsync(t => t.HorarioId == request.HorarioId && t.Fecha == fecha);
-
-                    if (turno == null)
-                    {
-                        turno = new Turno { HorarioId = request.HorarioId, Fecha = fecha, OcupacionActual = 0, EsFeriado = false };
-                        await _unitOfWork.Turnos.AddAsync(turno);
-                    }
-
-                    if (turno.OcupacionActual >= horario.CupoMaximo)
-                        return (false, $"No podés dejarlo fijo porque el día {fecha:dd/MM/yyyy} ya está lleno. Podés reservarlo de manera eventual para los días que haya lugar.");
-
-                    turnosInstanciados.Add(turno);
-                }
-
-                // 4. Crear la plantilla TurnoFijo
-                var turnoFijo = new TurnoFijo
-                {
-                    UsuarioId = request.UsuarioId,
-                    HorarioId = request.HorarioId,
-                    Activo = true
-                };
-                await _unitOfWork.TurnosFijos.AddAsync(turnoFijo);
-
-                // 5. Crear las Reservas, actualizar ocupación y descontar créditos
-                foreach (var turno in turnosInstanciados)
-                {
-                    var reserva = new Reserva
-                    {
-                        Turno = turno,
-                        UsuarioId = request.UsuarioId,
-                        Tipo = TipoReserva.Fija,
-                        Estado = EstadoReserva.Activa,
-                        FechaOperacion = DateTime.UtcNow
-                    };
-                    await _unitOfWork.Reservas.AddAsync(reserva);
-                    turno.OcupacionActual++;
-
-                    var credito = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
-                        c => c.UsuarioId == request.UsuarioId && c.Anio == turno.Fecha.Year && c.Mes == turno.Fecha.Month);
-
-                    credito!.CreditosUsados++;
-                    _unitOfWork.CreditosMes.Update(credito);
-                }
-
-                await _unitOfWork.CompleteAsync();
-                return (true, "Turno fijo establecido y clases reservadas para las próximas 4 semanas con éxito.");
+                turno = new Turno { HorarioId = request.HorarioId, Fecha = request.Fecha, OcupacionActual = 0, EsFeriado = false };
+                await _unitOfWork.Turnos.AddAsync(turno);
             }
 
-            // ----------------------------------------------------------------
-            // FLUJO B: RESERVA EVENTUAL (Solo un día)
-            // ----------------------------------------------------------------
-            else
+            if (turno.OcupacionActual >= horario.CupoMaximo) return (false, "El turno ya está lleno.");
+
+            var reserva = new Reserva
             {
-                var limiteEventual = fechaHoy.AddDays(21);
-                if (request.Fecha > limiteEventual)
-                    return (false, "Solo podés reservar turnos eventuales con hasta 21 días de anticipación.");
+                Turno = turno,
+                UsuarioId = request.UsuarioId,
+                Tipo = TipoReserva.Normal,
+                Estado = EstadoReserva.Activa,
+                FechaOperacion = DateTime.UtcNow
+            };
 
-                var mesTurno = request.Fecha.Month;
-                var anioTurno = request.Fecha.Year;
+            await _unitOfWork.Reservas.AddAsync(reserva);
+            turno.OcupacionActual++;
+            credito.CreditosUsados++;
 
-                var credito = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
-                    c => c.UsuarioId == request.UsuarioId && c.Anio == anioTurno && c.Mes == mesTurno);
+            _unitOfWork.CreditosMes.Update(credito);
+            await _unitOfWork.CompleteAsync();
 
-                if (credito == null)
-                {
-                    var (creado, _) = await _membresiaService.RenovarCreditosMesAsync(request.UsuarioId, mesTurno, anioTurno);
-                    if (!creado) return (false, "El usuario no tiene una membresía activa.");
+            return (true, "Reserva confirmada con éxito.");
+        }
 
-                    credito = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
-                        c => c.UsuarioId == request.UsuarioId && c.Anio == anioTurno && c.Mes == mesTurno);
-                }
+        public async Task<(bool Exito, string Mensaje)> AsignarTurnoFijoAsync(AsignarTurnoFijoDto request)
+        {
+            var fechaHoy = DateOnly.FromDateTime(DateTime.UtcNow);
+            if (request.FechaInicio < fechaHoy) return (false, "La fecha de inicio no puede ser en el pasado.");
 
-                if (credito == null || credito.CreditosUsados >= credito.CreditosBase)
-                    return (false, "No tenés créditos suficientes para este mes.");
+            var horario = await _unitOfWork.Horarios.GetByIdAsync(request.HorarioId);
+            if (horario == null) return (false, "El horario seleccionado no existe.");
 
-                var turno = await _unitOfWork.Turnos.FirstOrDefaultAsync(t => t.HorarioId == request.HorarioId && t.Fecha == request.Fecha);
+            var usuario = await _unitOfWork.Usuarios.FirstOrDefaultAsync(u => u.Id == request.UsuarioId, u => u.MembresiaActual!);
+            if (usuario != null && usuario.EstadoCuenta != EstadoCuenta.Activo)
+                return (false, "La cuenta del alumno se encuentra suspendida.");
 
+            var limiteFijos = usuario?.MembresiaActual?.LimiteTurnosFijos ?? 0;
+            var cantidadFijosActuales = await _unitOfWork.TurnosFijos.CountAsync(tf => tf.UsuarioId == request.UsuarioId && tf.Activo);
+
+            if (cantidadFijosActuales >= limiteFijos)
+                return (false, $"La membresía actual solo permite tener {limiteFijos} horarios fijos semanales.");
+
+            var fechasAProyectar = new List<DateOnly>();
+            for (int i = 0; i < 4; i++) fechasAProyectar.Add(request.FechaInicio.AddDays(i * 7));
+
+            var turnosPorMes = fechasAProyectar.GroupBy(f => new { f.Year, f.Month });
+            foreach (var grupoMes in turnosPorMes)
+            {
+                var mes = grupoMes.Key.Month;
+                var anio = grupoMes.Key.Year;
+
+                var (creado, _) = await _membresiaService.RenovarCreditosMesAsync(request.UsuarioId, mes, anio);
+                if (!creado) return (false, $"El usuario no tiene una membresía para cubrir {mes}/{anio}.");
+
+                var creditoMes = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
+                    c => c.UsuarioId == request.UsuarioId && c.Anio == anio && c.Mes == mes);
+
+                if (creditoMes == null || (creditoMes.CreditosBase - creditoMes.CreditosUsados) < grupoMes.Count())
+                    return (false, $"Al usuario no le alcanzan los créditos de {mes}/{anio} para fijar este turno.");
+            }
+
+            var turnosInstanciados = new List<Turno>();
+            foreach (var fecha in fechasAProyectar)
+            {
+                var turno = await _unitOfWork.Turnos.FirstOrDefaultAsync(t => t.HorarioId == request.HorarioId && t.Fecha == fecha);
                 if (turno == null)
                 {
-                    turno = new Turno { HorarioId = request.HorarioId, Fecha = request.Fecha, OcupacionActual = 0, EsFeriado = false };
+                    turno = new Turno { HorarioId = request.HorarioId, Fecha = fecha, OcupacionActual = 0, EsFeriado = false };
                     await _unitOfWork.Turnos.AddAsync(turno);
                 }
 
                 if (turno.OcupacionActual >= horario.CupoMaximo)
-                    return (false, "El turno ya está lleno.");
+                    return (false, $"El día {fecha:dd/MM/yyyy} ya está lleno. Liberar cupo o usar turnos eventuales.");
 
+                turnosInstanciados.Add(turno);
+            }
+
+            var turnoFijo = new TurnoFijo { UsuarioId = request.UsuarioId, HorarioId = request.HorarioId, Activo = true };
+            await _unitOfWork.TurnosFijos.AddAsync(turnoFijo);
+
+            foreach (var turno in turnosInstanciados)
+            {
                 var reserva = new Reserva
                 {
                     Turno = turno,
                     UsuarioId = request.UsuarioId,
-                    Tipo = TipoReserva.Normal,
+                    Tipo = TipoReserva.Fija,
                     Estado = EstadoReserva.Activa,
                     FechaOperacion = DateTime.UtcNow
                 };
-
                 await _unitOfWork.Reservas.AddAsync(reserva);
                 turno.OcupacionActual++;
-                credito.CreditosUsados++;
 
+                var credito = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
+                    c => c.UsuarioId == request.UsuarioId && c.Anio == turno.Fecha.Year && c.Mes == turno.Fecha.Month);
+
+                credito!.CreditosUsados++;
                 _unitOfWork.CreditosMes.Update(credito);
-                await _unitOfWork.CompleteAsync();
-
-                return (true, "Reserva confirmada con éxito.");
             }
+
+            await _unitOfWork.CompleteAsync();
+            return (true, "Turno fijo establecido y 4 semanas reservadas con éxito.");
         }
 
         public async Task ExtenderTurnosFijosDiarioAsync()
