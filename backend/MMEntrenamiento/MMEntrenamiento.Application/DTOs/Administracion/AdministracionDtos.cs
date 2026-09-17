@@ -22,4 +22,15 @@
         public decimal MontoAbonado { get; set; }
         public string MetodoPago { get; set; } = string.Empty;
     }
+
+    public class AnuncioDto
+    {
+        public string? Mensaje { get; set; }
+        public DateTime UltimaModificacion { get; set; }
+    }
+
+    public class ActualizarAnuncioDto
+    {
+        public string Mensaje { get; set; } = string.Empty;
+    }
 }

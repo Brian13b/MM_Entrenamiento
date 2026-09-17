@@ -83,5 +83,43 @@ namespace MMEntrenamiento.Application.Services
             var estado = suspender ? "suspendido" : "reactivado";
             return (true, $"La cuenta del alumno ha sido {estado} correctamente.");
         }
+
+        public async Task<AnuncioDto?> ObtenerAnuncioGlobalAsync()
+        {
+            var anuncio = await _unitOfWork.AnunciosGlobales.FirstOrDefaultAsync(a => a.Id == 1);
+
+            if (anuncio == null || string.IsNullOrWhiteSpace(anuncio.Mensaje))
+                return null;
+
+            return new AnuncioDto
+            {
+                Mensaje = anuncio.Mensaje,
+                UltimaModificacion = anuncio.UltimaModificacion
+            };
+        }
+
+        public async Task<(bool Exito, string Mensaje)> ActualizarAnuncioGlobalAsync(ActualizarAnuncioDto request)
+        {
+            var anuncio = await _unitOfWork.AnunciosGlobales.FirstOrDefaultAsync(a => a.Id == 1);
+
+            if (anuncio == null)
+            {
+                anuncio = new AnuncioGlobal
+                {
+                    Mensaje = request.Mensaje,
+                    UltimaModificacion = DateTime.UtcNow
+                };
+                await _unitOfWork.AnunciosGlobales.AddAsync(anuncio);
+            }
+            else
+            {
+                anuncio.Mensaje = request.Mensaje;
+                anuncio.UltimaModificacion = DateTime.UtcNow;
+                _unitOfWork.AnunciosGlobales.Update(anuncio);
+            }
+
+            await _unitOfWork.CompleteAsync();
+            return (true, "Anuncio global actualizado correctamente.");
+        }
     }
 }

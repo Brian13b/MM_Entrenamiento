@@ -17,6 +17,7 @@ namespace MMEntrenamiento.Application.Interfaces.Repositories
         IGenericRepository<ExcepcionTurnoFijo> ExcepcionesTurnosFijos { get; }
         IGenericRepository<Pago> Pagos { get; }
         IGenericRepository<HorarioReducido> HorariosReducidos { get; }
+        IGenericRepository<AnuncioGlobal> AnunciosGlobales { get; }
 
         Task<int> CompleteAsync();
     }

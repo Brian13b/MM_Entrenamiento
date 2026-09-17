@@ -8,6 +8,7 @@ namespace MMEntrenamiento.Domain.Entities
         public string NombreCompleto { get; set; } = null!;
         public EstadoCuenta EstadoCuenta { get; set; } = EstadoCuenta.Activo;
         public DateTime FechaAlta { get; set; } = DateTime.UtcNow;
+        public string? FotoPerfilUrl { get; set; }
 
         // Relaciones
         public FichaTecnica? FichaTecnica { get; set; }
