@@ -2,6 +2,7 @@
 using MMEntrenamiento.Application.Interfaces;
 using MMEntrenamiento.Application.Interfaces.Repositories;
 using MMEntrenamiento.Domain.Entities;
+using MMEntrenamiento.Domain.Enums;
 
 namespace MMEntrenamiento.Application.Services
 {
@@ -95,6 +96,32 @@ namespace MMEntrenamiento.Application.Services
             await _unitOfWork.CompleteAsync();
 
             return (true, "Plan de OneDrive vinculado exitosamente.");
+        }
+
+        public async Task<ReporteAsistenciaDto> ObtenerReporteAsistenciaAsync(Guid usuarioId, int mes, int anio)
+        {
+            var reservasDelMes = await _unitOfWork.Reservas.FindAsync(
+                r => r.UsuarioId == usuarioId &&
+                     r.Turno.Fecha.Month == mes &&
+                     r.Turno.Fecha.Year == anio,
+                r => r.Turno!);
+
+            var asistencias = reservasDelMes.Count(r => r.Estado == EstadoReserva.Asistio);
+            var ausencias = reservasDelMes.Count(r => r.Estado == EstadoReserva.Ausente);
+            var canceladas = reservasDelMes.Count(r => r.Estado == EstadoReserva.Cancelada);
+
+            var clasesComputables = asistencias + ausencias;
+            var porcentaje = clasesComputables > 0
+                ? Math.Round((decimal)asistencias / clasesComputables * 100, 1)
+                : 0;
+
+            return new ReporteAsistenciaDto
+            {
+                AsistenciasTotales = asistencias,
+                AusenciasTotales = ausencias,
+                ClasesCanceladas = canceladas,
+                PorcentajeAsistencia = porcentaje
+            };
         }
     }
 }

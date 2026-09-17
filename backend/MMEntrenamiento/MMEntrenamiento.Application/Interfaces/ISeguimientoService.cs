@@ -9,5 +9,6 @@ namespace MMEntrenamiento.Application.Interfaces
 
         Task<OneDrivePlanDto?> ObtenerPlanOneDriveAsync(Guid usuarioId);
         Task<(bool Exito, string Mensaje)> VincularPlanOneDriveAsync(Guid usuarioId, VincularOneDriveDto request);
+        Task<ReporteAsistenciaDto> ObtenerReporteAsistenciaAsync(Guid usuarioId, int mes, int anio);
     }
 }

@@ -64,5 +64,18 @@ namespace MMEntrenamiento.Api.Controllers
 
             return Ok(new { message = mensaje });
         }
+
+        [HttpGet("asistencia/{usuarioId}")]
+        [Authorize(Roles = "Profe, Admin")]
+        public async Task<IActionResult> ObtenerReporteAsistencia(Guid usuarioId, [FromQuery] int? mes, [FromQuery] int? anio)
+        {
+            var fechaHoy = DateTime.UtcNow;
+            var mesFiltro = mes ?? fechaHoy.Month;
+            var anioFiltro = anio ?? fechaHoy.Year;
+
+            var reporte = await _seguimientoService.ObtenerReporteAsistenciaAsync(usuarioId, mesFiltro, anioFiltro);
+
+            return Ok(reporte);
+        }
     }
 }
