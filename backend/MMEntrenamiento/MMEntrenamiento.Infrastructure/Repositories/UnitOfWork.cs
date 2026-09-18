@@ -18,6 +18,7 @@ namespace MMEntrenamiento.Infrastructure.Repositories
         public IGenericRepository<ExcepcionTurnoFijo> ExcepcionesTurnosFijos { get; private set; }
         public IGenericRepository<Pago> Pagos { get; private set; }
         public IGenericRepository<HorarioReducido> HorariosReducidos { get; private set; }
+        public IGenericRepository<AnuncioGlobal> AnunciosGlobales { get; private set; }
 
         public UnitOfWork(ApplicationDbContext context)
         {
@@ -32,6 +33,7 @@ namespace MMEntrenamiento.Infrastructure.Repositories
             TurnosFijos = new GenericRepository<TurnoFijo>(_context);
             ExcepcionesTurnosFijos = new GenericRepository<ExcepcionTurnoFijo>(_context);
             HorariosReducidos = new GenericRepository<HorarioReducido>(_context);
+            AnunciosGlobales = new GenericRepository<AnuncioGlobal>(_context);
         }
 
         public async Task<int> CompleteAsync() => await _context.SaveChangesAsync();

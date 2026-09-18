@@ -12,4 +12,3 @@ namespace MMEntrenamiento.Application.Interfaces
         Task<(bool Exito, string Mensaje)> ActualizarAnuncioGlobalAsync(ActualizarAnuncioDto request);
     }
 }
-}

@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  --color-mm-dark: #1f1e2e;
+  --color-mm-purple: #8e57a4;
+  --color-mm-light: #f5f6fb;
+  --color-mm-surface: #ffffff;
+
+  --font-sans: "DM Sans", sans-serif;
+  --font-display: "Stretch Pro", sans-serif;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+
+@font-face {
+  font-family: 'Stretch Pro';
+  src: url('/fonts/StretchPro.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+body {
+  background-color: var(--color-mm-light);
+  color: var(--color-mm-dark);
+  font-family: var(--font-sans);
+  overscroll-behavior-y: none;
+}
