@@ -1,13 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
 
+import { Login } from '../pages/auth/Login';
+import { InicioAlumno } from '../pages/alumno/InicioAlumno';
+import { AlumnoLayout } from '../layouts/AlumnoLayout';
+
 // Mocks temporales de Layouts para estructurar las rutas
-const AlumnoLayout = () => <div className="h-screen bg-mm-light"><Outlet /></div>;
 const ProfeLayout = () => <div className="h-screen bg-mm-light"><Outlet /></div>;
 const AdminLayout = () => <div className="h-screen bg-mm-light flex"><Outlet /></div>;
-
-// Mock temporal de la página de Login
-const Login = () => <div className="p-8">Pantalla de Login...</div>;
 
 export const AppRouter = () => {
   return (
@@ -19,7 +19,7 @@ export const AppRouter = () => {
         {/* Zona Alumno */}
         <Route element={<ProtectedRoute allowedRoles={['Alumno']} />}>
           <Route path="/alumno" element={<AlumnoLayout />}>
-            <Route index element={<div className="p-4">Inicio Alumno</div>} />
+            <Route index element={<InicioAlumno />} />
             <Route path="clases" element={<div className="p-4">Mis Clases</div>} />
             <Route path="perfil" element={<div className="p-4">Mi Perfil</div>} />
           </Route>

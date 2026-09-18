@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -9,8 +10,6 @@
   --font-sans: "DM Sans", sans-serif;
   --font-display: "Stretch Pro", sans-serif;
 }
-
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
 
 @font-face {
   font-family: 'Stretch Pro';
@@ -25,4 +24,12 @@ body {
   color: var(--color-mm-dark);
   font-family: var(--font-sans);
   overscroll-behavior-y: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
 }

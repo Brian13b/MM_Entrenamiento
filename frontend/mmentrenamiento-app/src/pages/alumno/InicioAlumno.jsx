@@ -1,5 +1,5 @@
 import { useAuthStore } from '../../store/useAuthStore';
-import { CalendarSolid } from '../../components/icons/CalendarSolid';
+import { CalendarIcon } from '@heroicons/react/24/solid';
 
 export const InicioAlumno = () => {
   // Obtenemos los datos del usuario logueado
@@ -67,7 +67,7 @@ export const InicioAlumno = () => {
           <div className="bg-mm-surface rounded-2xl p-4 flex justify-between items-center shadow-sm border border-gray-100">
             <div className="flex items-center gap-3">
               <div className="bg-purple-50 p-2 rounded-xl text-mm-purple">
-                 <CalendarSolid className="w-6 h-6" />
+                 <CalendarIcon className="w-6 h-6" />
               </div>
               <div>
                 <p className="text-xs text-gray-500 font-bold uppercase">Turno Fijo</p>
@@ -82,7 +82,7 @@ export const InicioAlumno = () => {
           <div className="bg-mm-surface rounded-2xl p-4 flex justify-between items-center shadow-sm border border-gray-100">
             <div className="flex items-center gap-3">
               <div className="bg-purple-50 p-2 rounded-xl text-mm-purple">
-                 <CalendarSolid className="w-6 h-6" />
+                 <CalendarIcon className="w-6 h-6" />
               </div>
               <div>
                 <p className="text-xs text-gray-500 font-bold uppercase">Turno Fijo</p>
