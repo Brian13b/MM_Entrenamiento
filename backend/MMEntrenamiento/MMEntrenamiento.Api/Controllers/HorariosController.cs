@@ -44,6 +44,13 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(new { message = mensaje });
         }
 
+        [HttpGet("fecha/{fecha}")]
+        public async Task<IActionResult> ObtenerOperativaDiaria(DateOnly fecha)
+        {
+            var turnos = await _horarioService.ObtenerOperativaDiariaAsync(fecha);
+            return Ok(turnos);
+        }
+
         [HttpPost("reducido")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ConfigurarHorarioReducido([FromBody] ConfigurarHorarioReducidoDto request)
@@ -52,6 +59,15 @@ namespace MMEntrenamiento.Api.Controllers
             if (!exito) return BadRequest(new { message = mensaje });
 
             return Ok(new { message = mensaje });
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> EliminarHorario(int id)
+        {
+            var resultado = await _horarioService.EliminarHorarioAsync(id);
+            if (!resultado.Exito) return BadRequest(new { message = resultado.Mensaje });
+
+            return Ok(new { message = resultado.Mensaje });
         }
     }
 }

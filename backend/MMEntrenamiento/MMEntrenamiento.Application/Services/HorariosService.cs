@@ -1,4 +1,5 @@
 ﻿using MMEntrenamiento.Application.DTOs.Horarios;
+using MMEntrenamiento.Application.DTOs.Reservas;
 using MMEntrenamiento.Application.Interfaces;
 using MMEntrenamiento.Application.Interfaces.Repositories;
 using MMEntrenamiento.Domain.Entities;
@@ -63,25 +64,74 @@ namespace MMEntrenamiento.Application.Services
 
             foreach (var dia in request.DiasSemana)
             {
-                var existe = await _unitOfWork.Horarios.FirstOrDefaultAsync(
-                    h => h.DiaSemana == dia && h.HoraInicio == request.HoraInicio);
+                var horaActual = request.HoraInicio;
 
-                if (existe == null)
+                while (horaActual < request.HoraFin)
                 {
-                    var nuevoHorario = new Horario
+                    var horaFinTurno = horaActual.AddHours(1);
+
+                    if (horaFinTurno > request.HoraFin) break;
+
+                    bool existe = await _unitOfWork.Horarios.AnyAsync(
+                        h => h.DiaSemana == dia && h.HoraInicio == horaActual);
+
+                    if (!existe)
                     {
-                        DiaSemana = dia,
-                        HoraInicio = request.HoraInicio,
-                        HoraFin = request.HoraFin,
-                        CupoMaximo = request.CupoMaximo
-                    };
-                    await _unitOfWork.Horarios.AddAsync(nuevoHorario);
-                    creados++;
+                        var nuevoHorario = new Horario
+                        {
+                            DiaSemana = dia,
+                            HoraInicio = horaActual,
+                            HoraFin = horaFinTurno,
+                            CupoMaximo = request.CupoMaximo
+                        };
+
+                        await _unitOfWork.Horarios.AddAsync(nuevoHorario);
+                        creados++;
+                    }
+
+                    horaActual = horaFinTurno;
                 }
             }
 
             await _unitOfWork.CompleteAsync();
-            return (true, $"Se crearon {creados} horarios base exitosamente.");
+            return (true, $"Se crearon {creados} turnos de 1 hora exitosamente.");
+        }
+
+        public async Task<IEnumerable<TurnoDisponibleDto>> ObtenerOperativaDiariaAsync(DateOnly fecha)
+        {
+            var diaSemana = fecha.DayOfWeek;
+
+            var horariosBase = await _unitOfWork.Horarios.GetAllAsync();
+            var horariosDelDia = horariosBase.Where(h => h.DiaSemana == diaSemana).OrderBy(h => h.HoraInicio);
+
+            var resultado = new List<TurnoDisponibleDto>();
+
+            foreach (var horario in horariosDelDia)
+            {
+                int ocupacionActual = 0;
+
+                var turnos = await _unitOfWork.Turnos.FindAsync(
+                    t => t.Fecha == fecha && t.HorarioId == horario.Id,
+                    t => t.Reservas);
+
+                var turno = turnos.FirstOrDefault();
+
+                if (turno != null && turno.Reservas != null)
+                {
+                    ocupacionActual = turno.Reservas.Count(r => r.Estado == EstadoReserva.Activa);
+                }
+
+                resultado.Add(new TurnoDisponibleDto
+                {
+                    HorarioId = horario.Id,
+                    HoraInicio = horario.HoraInicio,
+                    HoraFin = horario.HoraFin,
+                    CupoMaximo = horario.CupoMaximo,
+                    OcupacionActual = ocupacionActual
+                });
+            }
+
+            return resultado;
         }
 
         public async Task<(bool Exito, string Mensaje)> ConfigurarHorarioReducidoAsync(ConfigurarHorarioReducidoDto request)
@@ -121,6 +171,19 @@ namespace MMEntrenamiento.Application.Services
 
             await _unitOfWork.CompleteAsync();
             return (true, $"Día de horario reducido configurado para el {request.FechaFeriado:dd/MM/yyyy}. Las reservas previas fueron canceladas y los créditos devueltos.");
+        }
+
+        public async Task<(bool Exito, string Mensaje)> EliminarHorarioAsync(int id)
+        {
+            var horario = await _unitOfWork.Horarios.GetByIdAsync(id);
+
+            if (horario == null)
+                return (false, "El horario no existe.");
+
+            _unitOfWork.Horarios.Delete(horario);
+            await _unitOfWork.CompleteAsync();
+
+            return (true, "Horario eliminado correctamente.");
         }
     }
 }

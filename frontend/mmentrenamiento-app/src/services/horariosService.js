@@ -16,5 +16,13 @@ export const horariosService = {
   configurarHorarioReducido: async (datos) => {
     const response = await api.post('/horarios/reducido', datos);
     return response.data;
+  },
+  getTurnosDelDia: async (fecha) => {
+    const response = await api.get(`/horarios/fecha/${fecha}`);
+    return response.data;
+  },
+  eliminarHorario: async (id) => {
+    const response = await api.delete(`/horarios/${id}`);
+    return response.data;
   }
 };

@@ -1,13 +1,19 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
 
+import { AlumnoLayout } from '../layouts/AlumnoLayout';
+import { AdminLayout } from '../layouts/AdminLayout';
+
 import { Login } from '../pages/auth/Login';
 import { InicioAlumno } from '../pages/alumno/InicioAlumno';
-import { AlumnoLayout } from '../layouts/AlumnoLayout';
+import { InicioAdmin } from '../pages/admin/InicioAdmin';
+import { AjustesAdmin } from '../pages/admin/AjustesAdmin';
+import { UsuariosAdmin } from '../pages/admin/UsuariosAdmin';
+import { PerfilUsuarioAdmin } from '../pages/admin/PerfilUsuarioAdmin';
+import { HorariosAdmin } from '../pages/admin/HorariosAdmin';
 
 // Mocks temporales de Layouts para estructurar las rutas
 const ProfeLayout = () => <div className="h-screen bg-mm-light"><Outlet /></div>;
-const AdminLayout = () => <div className="h-screen bg-mm-light flex"><Outlet /></div>;
 
 export const AppRouter = () => {
   return (
@@ -35,7 +41,13 @@ export const AppRouter = () => {
         {/* Zona Admin */}
         <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
           <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<div className="p-4">Panel de Administración</div>} />
+            <Route index element={<InicioAdmin />} />
+            <Route path="horarios" element={<HorariosAdmin />} />
+            <Route path="usuarios">
+              <Route index element={<UsuariosAdmin />} />
+              <Route path=":id" element={<PerfilUsuarioAdmin />} />
+            </Route>
+            <Route path="ajustes" element={<AjustesAdmin />} />
           </Route>
         </Route>
 
