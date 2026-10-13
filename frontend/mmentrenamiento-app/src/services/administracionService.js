@@ -1,6 +1,14 @@
 import { api } from './api';
 
 export const administracionService = {
+  getUsuarioById: async (id) => {
+    const response = await api.get(`/administracion/usuarios/${id}`);
+    return response.data;
+  },
+  getUsuarios: async () => {
+    const response = await api.get('/administracion/usuarios');
+    return response.data;
+  },
   crearMembresia: async (datos) => {
     const response = await api.post('/administracion/membresias', datos);
     return response.data;

@@ -6,10 +6,12 @@ import { AdminLayout } from '../layouts/AdminLayout';
 
 import { Login } from '../pages/auth/Login';
 import { InicioAlumno } from '../pages/alumno/InicioAlumno';
+import { GrillaReservas } from '../pages/alumno/GrillaReservas';
+import { MisTurnosAlumno } from '../pages/alumno/MisTurnosAlumno';
 import { InicioAdmin } from '../pages/admin/InicioAdmin';
 import { AjustesAdmin } from '../pages/admin/AjustesAdmin';
 import { UsuariosAdmin } from '../pages/admin/UsuariosAdmin';
-import { PerfilUsuarioAdmin } from '../pages/admin/PerfilUsuarioAdmin';
+import { PerfilUsuarioAdmin } from '../pages/admin/usuarios/PerfilUsuarioAdmin';
 import { HorariosAdmin } from '../pages/admin/HorariosAdmin';
 
 // Mocks temporales de Layouts para estructurar las rutas
@@ -26,7 +28,8 @@ export const AppRouter = () => {
         <Route element={<ProtectedRoute allowedRoles={['Alumno']} />}>
           <Route path="/alumno" element={<AlumnoLayout />}>
             <Route index element={<InicioAlumno />} />
-            <Route path="clases" element={<div className="p-4">Mis Clases</div>} />
+            <Route path="clases" element={<GrillaReservas />} />
+            <Route path="mis-turnos" element={<MisTurnosAlumno />} />
             <Route path="perfil" element={<div className="p-4">Mi Perfil</div>} />
           </Route>
         </Route>

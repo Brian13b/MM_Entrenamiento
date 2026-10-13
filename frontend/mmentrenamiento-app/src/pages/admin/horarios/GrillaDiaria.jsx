@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react';
 import { ClockIcon, UsersIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+
 import { horariosService } from '../../../services/horariosService';
+import { ModalGestionTurno } from './ModalGestionTurno';
 
 export const GrillaDiaria = () => {
   const [fechaOperativa, setFechaOperativa] = useState(new Date().toISOString().split('T')[0]);
   const [turnosDelDia, setTurnosDelDia] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  const [modalTurnoAbierto, setModalTurnoAbierto] = useState(false);
+  const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
 
   const cargarOperativaDiaria = async (fecha) => {
     try {
@@ -33,6 +38,11 @@ export const GrillaDiaria = () => {
     setFechaOperativa(fechaActual.toISOString().split('T')[0]);
   };
 
+  const abrirModalTurno = (turno) => {
+    setTurnoSeleccionado(turno);
+    setModalTurnoAbierto(true);
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="flex items-center justify-between bg-mm-surface p-4 rounded-2xl border border-gray-100 shadow-sm mb-6">
@@ -54,11 +64,11 @@ export const GrillaDiaria = () => {
       </div>
 
       {isLoading ? (
-        <div className="bg-mm-surface p-12 rounded-[2rem] border border-gray-100 flex justify-center text-mm-purple animate-pulse">
+        <div className="bg-mm-surface p-12 rounded-4xl border border-gray-100 flex justify-center text-mm-purple animate-pulse">
           <span className="font-bold">Cargando turnos del día...</span>
         </div>
       ) : turnosDelDia.length === 0 ? (
-        <div className="bg-mm-surface p-12 rounded-[2rem] border border-gray-100 text-center text-gray-500 font-medium">
+        <div className="bg-mm-surface p-12 rounded-4xl border border-gray-100 text-center text-gray-500 font-medium">
           No hay turnos configurados para esta fecha.
         </div>
       ) : (
@@ -68,7 +78,7 @@ export const GrillaDiaria = () => {
             const estaLleno = turno.ocupacionActual >= turno.cupoMaximo;
             
             return (
-              <div key={turno.horarioId} className="flex flex-col bg-white border border-gray-200 p-5 rounded-[1.5rem] shadow-sm hover:shadow-md transition-shadow">
+              <div key={turno.horarioId} className="flex flex-col bg-white border border-gray-200 p-5 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-[#F8F9FA] rounded-[0.85rem] flex items-center justify-center border border-gray-100">
@@ -103,7 +113,7 @@ export const GrillaDiaria = () => {
                   </div>
                 </div>
                 
-                <button className="w-full mt-5 bg-[#F8F9FA] text-gray-600 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-100 border border-gray-200 transition-colors flex items-center justify-center gap-2">
+                <button onClick={() => abrirModalTurno(turno)} className="w-full mt-5 bg-[#F8F9FA] text-gray-600 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-100 border border-gray-200 transition-colors flex items-center justify-center gap-2">
                   <UsersIcon className="w-4 h-4" /> Ver Alumnos
                 </button>
               </div>
@@ -111,6 +121,14 @@ export const GrillaDiaria = () => {
           })}
         </div>
       )}
+      
+      <ModalGestionTurno 
+        isOpen={modalTurnoAbierto}
+        onClose={() => setModalTurnoAbierto(false)}
+        turno={turnoSeleccionado}
+        fechaOperativa={fechaOperativa}
+        onReservaExitosa={() => cargarOperativaDiaria(fechaOperativa)} 
+      />
     </div>
   );
 };

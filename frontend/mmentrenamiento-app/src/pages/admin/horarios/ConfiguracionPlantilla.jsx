@@ -131,9 +131,9 @@ export const ConfiguracionPlantilla = () => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start animate-fade-in">
       <div className="lg:col-span-1 lg:sticky lg:top-24">
-        <section className="bg-mm-surface p-6 rounded-[2rem] border border-gray-100 shadow-sm">
+        <section className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm">
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center shrink-0">
               <PlusIcon className="w-6 h-6 text-mm-purple" />
             </div>
             <h2 className="text-lg font-bold text-mm-dark">Crear Horario</h2>
@@ -233,7 +233,7 @@ export const ConfiguracionPlantilla = () => {
           {modalidad === 'feriado' && (
             <form onSubmit={handleConfigurarFeriado} className="flex flex-col gap-4 animate-fade-in">
               <div className="bg-orange-50/50 p-3 rounded-xl flex gap-3 border border-orange-100 mb-1">
-                <ExclamationTriangleIcon className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                <ExclamationTriangleIcon className="w-5 h-5 text-orange-600 shrink-0" />
                 <p className="text-[11px] text-orange-800 font-medium">Reemplazará los turnos regulares de la fecha elegida por este nuevo rango reducido.</p>
               </div>
 
@@ -263,11 +263,11 @@ export const ConfiguracionPlantilla = () => {
 
       <div className="lg:col-span-2 flex flex-col gap-6">
         {isLoading ? (
-          <div className="bg-mm-surface p-12 rounded-[2rem] border border-gray-100 flex justify-center text-mm-purple animate-pulse">
+          <div className="bg-mm-surface p-12 rounded-4xl border border-gray-100 flex justify-center text-mm-purple animate-pulse">
             <span className="font-bold">Cargando plantilla...</span>
           </div>
         ) : horarios.length === 0 ? (
-          <div className="bg-mm-surface p-12 rounded-[2rem] border border-gray-100 text-center text-gray-500 font-medium">
+          <div className="bg-mm-surface p-12 rounded-4xl border border-gray-100 text-center text-gray-500 font-medium">
             No hay horarios configurados en la base de datos.
           </div>
         ) : (
@@ -276,7 +276,7 @@ export const ConfiguracionPlantilla = () => {
             if (!clasesDelDia || clasesDelDia.length === 0) return null;
 
             return (
-              <section key={dia.id} className="bg-mm-surface p-6 rounded-[2rem] border border-gray-100 shadow-sm animate-fade-in">
+              <section key={dia.id} className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm animate-fade-in">
                 <h3 className="text-lg font-display font-bold text-mm-dark mb-4 border-b border-gray-100 pb-3">
                   {dia.nombre}
                 </h3>
@@ -285,7 +285,7 @@ export const ConfiguracionPlantilla = () => {
                   {clasesDelDia.sort((a,b) => a.horaInicio.localeCompare(b.horaInicio)).map(clase => (
                     <div key={clase.id} className="flex items-center justify-between bg-[#F8F9FA] border border-gray-200/60 p-2.5 pr-4 rounded-2xl group transition-all hover:border-gray-300">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-white rounded-[0.85rem] flex items-center justify-center shadow-sm border border-gray-100 flex-shrink-0">
+                        <div className="w-12 h-12 bg-white rounded-[0.85rem] flex items-center justify-center shadow-sm border border-gray-100 shrink-0">
                           <ClockIcon className="w-6 h-6 text-mm-purple" />
                         </div>
                         <div className="flex flex-col">

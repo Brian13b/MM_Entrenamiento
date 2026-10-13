@@ -1,20 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeftIcon, 
-  CurrencyDollarIcon, 
-  ClipboardDocumentCheckIcon, 
-  LinkIcon,
-  NoSymbolIcon,
-  PlusCircleIcon,
-  MinusCircleIcon
-} from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, CurrencyDollarIcon, ClipboardDocumentCheckIcon, LinkIcon, NoSymbolIcon, PlusCircleIcon, MinusCircleIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
-// Importamos los servicios (simulados por ahora)
-import { seguimientoService } from '../../services/seguimientoService';
-import { administracionService } from '../../services/administracionService';
-// import { membresiasService } from '../../services/membresiasService';
+import { seguimientoService } from '../../../services/seguimientoService';
+import { administracionService } from '../../../services/administracionService';
+import { membresiasService } from '../../../services/membresiasService';
 
 export const PerfilUsuarioAdmin = () => {
   const { id } = useParams();
@@ -23,12 +14,10 @@ export const PerfilUsuarioAdmin = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [usuario, setUsuario] = useState(null);
   
-  // Estados para los formularios
   const [ficha, setFicha] = useState({ objetivos: '', lesiones: '' });
   const [pago, setPago] = useState({ monto: '', metodo: 'Transferencia', mes: new Date().getMonth() + 1 });
   const [creditosAOtorgar, setCreditosAOtorgar] = useState(0);
   
-  // Estados para OneDrive
   const [planLink, setPlanLink] = useState('');
   const [pestanasDisponibles, setPestanasDisponibles] = useState([]);
   const [pestanaSeleccionada, setPestanaSeleccionada] = useState('');
@@ -38,22 +27,23 @@ export const PerfilUsuarioAdmin = () => {
     const fetchDatosCRM = async () => {
       try {
         setIsLoading(true);
-        // Mock de datos del alumno
-        setUsuario({
-          id,
-          nombreCompleto: 'Juan Pérez',
-          email: 'juan@email.com',
-          telefono: '3434555666',
-          activo: true,
-          creditosDisponibles: 2,
-        });
+        const [datosUsuario, datosFicha] = await Promise.all([
+          administracionService.getUsuarioById(id),
+          seguimientoService.getFichaAlumno(id)
+        ]);
 
-        setFicha({
-          objetivos: 'Ganar masa muscular y mejorar resistencia.',
-          lesiones: 'Molestia en el hombro derecho al hacer press.'
-        });
+        setUsuario(datosUsuario);
+        
+        if (datosFicha) {
+          setFicha({
+            objetivos: datosFicha.objetivos || '',
+            lesiones: datosFicha.lesiones || ''
+          });
+          setPlanLink(datosFicha.driveItemId || '');
+        }
+
       } catch (error) {
-        toast.error("Error al cargar los datos del alumno.");
+        toast.error("Error al cargar el perfil del alumno.");
         console.error(error);
       } finally {
         setIsLoading(false);
@@ -63,7 +53,6 @@ export const PerfilUsuarioAdmin = () => {
     if (id) fetchDatosCRM();
   }, [id]);
 
-  // --- HANDLERS EXISTENTES ---
   const handleActualizarFicha = async () => {
     try {
       await seguimientoService.actualizarFichaAlumno(id, ficha);
@@ -97,20 +86,20 @@ export const PerfilUsuarioAdmin = () => {
     try {
       await administracionService.cambiarEstadoBloqueo(id, suspender);
       setUsuario(prev => ({ ...prev, activo: !suspender }));
-      toast.success(`Usuario ${suspender ? 'bloqueado' : 'desbloqueado'} correctamente.`);
+      toast.success(`Alumno ${suspender ? 'bloqueado' : 'desbloqueado'} correctamente.`);
     } catch (error) {
       toast.error("Error al cambiar estado.");
       console.error(error);
     }
   };
 
-  // --- NUEVOS HANDLERS ---
   const handleOtorgarCreditos = async (cantidad) => {
     if (cantidad === 0) return;
     try {
-      // DTO: OtorgarCreditoDto { UsuarioId, CantidadCreditos }
-      // await membresiasService.otorgarCreditos({ usuarioId: id, cantidadCreditos: cantidad });
-      
+      await membresiasService.otorgarCreditosExtra({ 
+        usuarioId: id, 
+        cantidadCreditos: cantidad 
+      });
       setUsuario(prev => ({ ...prev, creditosDisponibles: prev.creditosDisponibles + cantidad }));
       toast.success(`Se ${cantidad > 0 ? 'sumaron' : 'restaron'} ${Math.abs(cantidad)} créditos.`);
       setCreditosAOtorgar(0);
@@ -124,10 +113,9 @@ export const PerfilUsuarioAdmin = () => {
     if (!planLink) return toast.error("Ingresá un link de OneDrive primero.");
     try {
       setBuscandoPestanas(true);
-      // Simulación de llamada a Graph API en el backend
       setTimeout(() => {
-        setPestanasDisponibles(['Rutina Mes 1', 'Rutina Mes 2', 'Fuerza', 'Adaptación']);
-        setPestanaSeleccionada('Rutina Mes 1');
+        setPestanasDisponibles(['Meso 18', 'Meso 17', 'Meso 16', 'Meso 15']);
+        setPestanaSeleccionada('Meso 18');
         setBuscandoPestanas(false);
         toast.success("Pestañas encontradas.");
       }, 1000);
@@ -141,22 +129,28 @@ export const PerfilUsuarioAdmin = () => {
   const handleVincularPlan = async () => {
     if (!planLink || !pestanaSeleccionada) return toast.error("Faltan datos del plan.");
     try {
-      // DTO Modificado: VincularOneDriveDto { DriveItemId, NombrePestaña }
-      await seguimientoService.vincularPlan(id, { driveItemId: planLink, nombrePestaña: pestanaSeleccionada });
+      await seguimientoService.vincularPlan(id, { 
+        driveItemId: planLink, 
+        nombrePestaña: pestanaSeleccionada 
+      });
       toast.success(`Plan vinculado a la pestaña: ${pestanaSeleccionada}`);
       setPestanasDisponibles([]);
-      setPlanLink('');
     } catch (error) {
       toast.error("Error al vincular el plan.");
-      console.error(error);
+      console.error(error)
     }
   };
 
-  if (isLoading || !usuario) return <div className="p-8 text-center text-mm-purple animate-pulse font-bold">Cargando perfil...</div>;
+  if (isLoading || !usuario) {
+    return (
+      <div className="flex justify-center p-12">
+        <span className="text-mm-purple animate-pulse font-bold">Cargando perfil...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
-      {/* Header del Perfil */}
       <header className="mb-6">
         <button 
           onClick={() => navigate('/admin/usuarios')}
@@ -167,22 +161,28 @@ export const PerfilUsuarioAdmin = () => {
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center text-2xl text-mm-purple font-display font-black border-2 border-purple-200">
+            <div className="w-16 h-16 bg-[#F8F9FA] rounded-2xl flex items-center justify-center text-2xl text-mm-dark font-display font-black border border-gray-100 shadow-sm">
               {usuario.nombreCompleto.charAt(0).toUpperCase()}
             </div>
             <div>
               <h1 className="text-2xl font-display font-bold text-mm-dark flex items-center gap-2">
                 {usuario.nombreCompleto}
-                {!usuario.activo && <span className="text-[10px] bg-red-100 text-red-600 px-2 py-1 rounded-full uppercase tracking-wider">Bloqueado</span>}
+                {!usuario.activo && (
+                  <span className="text-[10px] font-bold bg-red-50 text-red-600 px-2 py-0.5 rounded-full uppercase tracking-wider border border-red-100">
+                    Bloqueado
+                  </span>
+                )}
               </h1>
-              <p className="text-sm text-gray-500">{usuario.email} • {usuario.telefono}</p>
+              <p className="text-sm text-gray-500">{usuario.email} {usuario.telefono ? `• ${usuario.telefono}` : ''}</p>
             </div>
           </div>
           
           <button 
             onClick={handleBloquear}
-            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
-              usuario.activo ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'
+            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors border ${
+              usuario.activo 
+                ? 'bg-white border-red-100 text-red-500 hover:bg-red-50' 
+                : 'bg-white border-green-100 text-green-600 hover:bg-green-50'
             }`}
           >
             <NoSymbolIcon className="w-4 h-4" />
@@ -192,14 +192,11 @@ export const PerfilUsuarioAdmin = () => {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
         {/* COLUMNA IZQUIERDA: Entrenamiento */}
         <div className="flex flex-col gap-6">
-          
-          {/* Ficha Médica */}
-          <section className="bg-mm-surface p-6 rounded-[2rem] border border-gray-100 shadow-sm">
+          <section className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center shrink-0">
                 <ClipboardDocumentCheckIcon className="w-5 h-5 text-blue-500" />
               </div>
               <h2 className="text-lg font-bold text-mm-dark">Ficha Técnica</h2>
@@ -226,17 +223,16 @@ export const PerfilUsuarioAdmin = () => {
               </div>
               <button 
                 onClick={handleActualizarFicha}
-                className="w-full bg-blue-50 text-blue-600 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-100 transition-colors"
+                className="w-full bg-blue-50 text-blue-600 py-3 rounded-xl font-bold text-sm hover:bg-blue-100 transition-colors"
               >
                 Guardar Ficha
               </button>
             </div>
           </section>
 
-          {/* Plan de Entrenamiento (OneDrive) */}
-          <section className="bg-mm-surface p-6 rounded-[2rem] border border-gray-100 shadow-sm">
+          <section className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 bg-sky-50 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-sky-50 rounded-xl flex items-center justify-center shrink-0">
                 <LinkIcon className="w-5 h-5 text-sky-500" />
               </div>
               <h2 className="text-lg font-bold text-mm-dark">Plan OneDrive</h2>
@@ -261,10 +257,10 @@ export const PerfilUsuarioAdmin = () => {
               </div>
 
               {pestanasDisponibles.length > 0 && (
-                <div className="animate-fade-in bg-sky-50 p-3 rounded-xl border border-sky-100 mt-2">
-                  <label className="text-xs font-bold text-sky-800 uppercase tracking-wide block mb-1">Seleccionar Pestaña</label>
+                <div className="animate-fade-in bg-sky-50 p-4 rounded-xl border border-sky-100 mt-2">
+                  <label className="text-xs font-bold text-sky-800 uppercase tracking-wide block mb-2">Seleccionar Pestaña</label>
                   <select 
-                    className="w-full bg-white border border-sky-200 rounded-lg p-2 text-sm text-mm-dark outline-none mb-3"
+                    className="w-full bg-white border border-sky-200 rounded-xl p-3 text-sm text-mm-dark outline-none mb-3 focus:ring-2 focus:ring-sky-500"
                     value={pestanaSeleccionada}
                     onChange={(e) => setPestanaSeleccionada(e.target.value)}
                   >
@@ -274,7 +270,7 @@ export const PerfilUsuarioAdmin = () => {
                   </select>
                   <button 
                     onClick={handleVincularPlan}
-                    className="w-full bg-sky-500 text-white py-2 rounded-lg font-bold text-sm hover:bg-sky-600 transition-colors"
+                    className="w-full bg-sky-500 text-white py-3 rounded-xl font-bold text-sm hover:bg-sky-600 transition-colors"
                   >
                     Confirmar Vinculación
                   </button>
@@ -282,14 +278,11 @@ export const PerfilUsuarioAdmin = () => {
               )}
             </div>
           </section>
-
         </div>
 
-        {/* COLUMNA DERECHA: Administración (Pagos y Créditos) */}
+        {/* COLUMNA DERECHA: Administración */}
         <div className="flex flex-col gap-6">
-
-          {/* Ajuste Manual de Créditos */}
-          <section className="bg-mm-dark p-6 rounded-[2rem] shadow-sm text-white relative overflow-hidden">
+          <section className="bg-mm-dark p-6 rounded-4xl shadow-sm text-white relative overflow-hidden">
             <div className="absolute top-0 right-0 p-6 opacity-10">
               <CurrencyDollarIcon className="w-24 h-24" />
             </div>
@@ -322,10 +315,9 @@ export const PerfilUsuarioAdmin = () => {
             </div>
           </section>
 
-          {/* Registrar Pago */}
-          <section className="bg-mm-surface p-6 rounded-[2rem] border border-gray-100 shadow-sm">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+          <section className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center shrink-0">
                 <CurrencyDollarIcon className="w-5 h-5 text-green-500" />
               </div>
               <h2 className="text-lg font-bold text-mm-dark">Registrar Pago</h2>
@@ -336,7 +328,7 @@ export const PerfilUsuarioAdmin = () => {
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Mes a abonar</label>
                   <select 
-                    className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm font-medium text-mm-dark outline-none"
+                    className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm font-medium text-mm-dark outline-none focus:ring-2 focus:ring-mm-purple"
                     value={pago.mes}
                     onChange={(e) => setPago({...pago, mes: e.target.value})}
                   >
@@ -348,7 +340,7 @@ export const PerfilUsuarioAdmin = () => {
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Método</label>
                   <select 
-                    className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm font-medium text-mm-dark outline-none"
+                    className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm font-medium text-mm-dark outline-none focus:ring-2 focus:ring-mm-purple"
                     value={pago.metodo}
                     onChange={(e) => setPago({...pago, metodo: e.target.value})}
                   >
@@ -372,13 +364,12 @@ export const PerfilUsuarioAdmin = () => {
 
               <button 
                 onClick={handleRegistrarPago}
-                className="w-full bg-green-500 text-white py-3 rounded-xl font-bold text-sm hover:bg-green-600 transition-colors shadow-sm active:scale-95"
+                className="w-full bg-green-500 text-white py-3 rounded-xl font-bold text-sm hover:bg-green-600 transition-colors shadow-sm active:scale-95 mt-2"
               >
                 Confirmar Pago
               </button>
             </div>
           </section>
-
         </div>
       </div>
     </div>

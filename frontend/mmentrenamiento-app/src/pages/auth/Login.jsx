@@ -1,14 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { EnvelopeIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+
 import { authService } from '../../services/auth';
 import { useAuthStore } from '../../store/useAuthStore';
-import toast from 'react-hot-toast';
-import { 
-  EnvelopeIcon, 
-  LockClosedIcon, 
-  EyeIcon, 
-  EyeSlashIcon 
-} from '@heroicons/react/24/outline';
+import { RecuperarPassword } from './RecuperarPassword';
 
 export const Login = () => {
   const [email, setEmail] = useState('');
@@ -16,15 +13,17 @@ export const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isRecoveryModalOpen, setIsRecoveryModalOpen] = useState(false);
 
   const navigate = useNavigate();
   const loginUser = useAuthStore((state) => state.login);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
 
     try {
+      setIsLoading(true);
+
       const data = await authService.login(email, password);
       
       let rolPrincipal = 'Alumno';
@@ -61,17 +60,33 @@ export const Login = () => {
         }
       }, 800);
 
+      toast.success("¡Bienvenido!");
+
     } catch (err) {
       setIsTransitioning(false);
+
+      if (err.response?.status === 401) {
+        toast.error("Email o contraseña incorrectos.");
+      } else {
+        toast.error("Error al intentar iniciar sesión.");
+      }
+    } finally {
       setIsLoading(false);
-      const mensajeError = err.response?.data?.message || 'Error al ingresar.';
-      toast.error(mensajeError);
     }
   };
 
   return (
     <div className="relative min-h-screen bg-mm-light flex flex-col justify-center items-center p-4 overflow-hidden">
       
+      <RecuperarPassword 
+        isOpen={isRecoveryModalOpen} 
+        onClose={() => setIsRecoveryModalOpen(false)} 
+        onSuccess={(recoveredEmail) => {
+          setEmail(recoveredEmail);
+          setPassword('');
+        }}
+      />
+
       <div className="bg-mm-surface w-full max-w-sm rounded-4xl p-8 shadow-sm border border-gray-100 animate-fade-in z-10">
         
         {/* Header */}
@@ -152,23 +167,22 @@ export const Login = () => {
           <div className="flex justify-end -mt-2 mb-2">
             <button 
               type="button" 
-              onClick={() => toast('Módulo de recuperación en desarrollo', { icon: '🚧' })}
+              onClick={() => setIsRecoveryModalOpen(true)}
               className="text-mm-purple text-xs font-bold hover:underline"
             >
               ¿Olvidaste tu contraseña?
             </button>
           </div>
-
         </form>
-
       </div>
 
+      {/* Pantalla de transición */}
       <div 
         className={`fixed inset-0 bg-mm-purple z-50 flex items-center justify-center transition-transform duration-700 ease-[cubic-bezier(0.645,0.045,0.355,1)] ${
           isTransitioning ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
-        <div className={`font-display text-white text-5xl transition-opacity duration-500 delay-300 tracking-wide ${isTransitioning ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`font-display text-white text-3xl sm:text-4xl md:text-5xl text-center px-4 transition-opacity duration-500 delay-300 tracking-wide ${isTransitioning ? 'opacity-100' : 'opacity-0'}`}>
           MM Entrenamiento
         </div>
       </div>
