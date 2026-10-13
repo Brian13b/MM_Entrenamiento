@@ -9,6 +9,7 @@ namespace MMEntrenamiento.Application.Interfaces.Repositories
         Task<IEnumerable<T>> GetAllAsync();
         Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes);
         Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes);
+        Task<IEnumerable<T>> FindWithIncludesAsync(Expression<Func<T, bool>> predicate, params string[] includeStrings);
         Task AddAsync(T entity);
         void Update(T entity);
         void Delete(T entity);

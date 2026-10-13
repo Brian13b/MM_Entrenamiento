@@ -17,6 +17,69 @@ namespace MMEntrenamiento.Application.Services
             _membresiaService = membresiaService;
         }
 
+        public async Task<IEnumerable<UsuarioDirectorioDto>> ObtenerUsuariosDirectorioAsync()
+        {
+            var usuarios = await _unitOfWork.Usuarios.GetAllAsync();
+
+            var mesActual = DateTime.UtcNow.Month;
+            var anioActual = DateTime.UtcNow.Year;
+
+            var directorio = new List<UsuarioDirectorioDto>();
+
+            foreach (var u in usuarios)
+            {
+                int creditosDisponibles = 0;
+
+                var creditosMes = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
+                    c => c.UsuarioId == u.Id && c.Anio == anioActual && c.Mes == mesActual);
+
+                if (creditosMes != null)
+                {
+                    creditosDisponibles = creditosMes.CreditosBase - creditosMes.CreditosUsados;
+                }
+
+                directorio.Add(new UsuarioDirectorioDto
+                {
+                    Id = u.Id,
+                    NombreCompleto = u.NombreCompleto,
+                    Email = u.Email ?? "",
+                    Telefono = u.PhoneNumber ?? "",
+                    Activo = u.EstadoCuenta == EstadoCuenta.Activo,
+                    CreditosDisponibles = creditosDisponibles
+                });
+            }
+
+            return directorio.OrderBy(u => u.NombreCompleto);
+        }
+
+        public async Task<UsuarioDirectorioDto> ObtenerUsuarioDirectorioPorIdAsync(Guid id)
+        {
+            var u = await _unitOfWork.Usuarios.GetByIdAsync(id);
+            if (u == null) return null;
+
+            var mesActual = DateTime.UtcNow.Month;
+            var anioActual = DateTime.UtcNow.Year;
+            int creditosDisponibles = 0;
+
+            var creditosMes = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
+                c => c.UsuarioId == u.Id && c.Anio == anioActual && c.Mes == mesActual);
+
+            if (creditosMes != null)
+            {
+                creditosDisponibles = creditosMes.CreditosBase - creditosMes.CreditosUsados;
+            }
+
+            return new UsuarioDirectorioDto
+            {
+                Id = u.Id,
+                NombreCompleto = u.NombreCompleto ?? "Sin Nombre",
+                Email = u.Email ?? "",
+                Telefono = null,
+                Activo = u.EstadoCuenta == EstadoCuenta.Activo,
+                CreditosDisponibles = creditosDisponibles
+            };
+        }
+
         public async Task<(bool Exito, string Mensaje)> CrearMembresiaAsync(CrearMembresiaDto request)
         {
             var membresia = new Membresia

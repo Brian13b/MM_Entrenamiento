@@ -42,7 +42,14 @@ namespace MMEntrenamiento.Api.Controllers
         public async Task<IActionResult> ObtenerFichaAlumno(Guid usuarioId)
         {
             var ficha = await _seguimientoService.ObtenerFichaAsync(usuarioId);
-            return ficha != null ? Ok(ficha) : NotFound(new { message = "El alumno no tiene ficha técnica." });
+            var plan = await _seguimientoService.ObtenerPlanOneDriveAsync(usuarioId);
+
+            return Ok(new
+            {
+                objetivos = ficha?.Objetivos ?? "",
+                lesiones = ficha?.Lesiones ?? "",
+                driveItemId = plan?.DriveItemId ?? ""
+            });
         }
 
         [HttpPut("ficha/{usuarioId}")]

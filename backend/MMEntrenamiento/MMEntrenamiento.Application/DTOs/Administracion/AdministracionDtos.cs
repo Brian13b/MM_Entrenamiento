@@ -1,5 +1,16 @@
 ﻿namespace MMEntrenamiento.Application.DTOs.Administracion
 {
+    public class UsuarioDirectorioDto
+    {
+        public Guid Id { get; set; }
+        public string NombreCompleto { get; set; } = null!;
+        public string Email { get; set; } = null!;
+        public string? Telefono { get; set; }
+        public bool Activo { get; set; }
+        public int CreditosDisponibles { get; set; }
+        public string? DriveItemId { get; set; }
+    }
+
     public class CrearMembresiaDto
     {
         public string Nombre { get; set; } = string.Empty;

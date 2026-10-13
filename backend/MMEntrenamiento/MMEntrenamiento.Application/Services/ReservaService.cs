@@ -331,7 +331,7 @@ namespace MMEntrenamiento.Application.Services
             var horariosDelDia = await _unitOfWork.Horarios.FindAsync(h => h.DiaSemana == diaSemana);
 
             // 2. Buscamos las instancias reales de turnos para esa fecha exacta
-            var turnosInstanciados = await _unitOfWork.Turnos.FindAsync(t => t.Fecha == fecha);
+            var turnosInstanciados = await _unitOfWork.Turnos.FindWithIncludesAsync(t => t.Fecha == fecha, "Reservas.Usuario");
 
             var grilla = new List<TurnoDisponibleDto>();
 
@@ -340,13 +340,23 @@ namespace MMEntrenamiento.Application.Services
             {
                 var turno = turnosInstanciados.FirstOrDefault(t => t.HorarioId == horario.Id);
 
+                var inscriptos = turno?.Reservas
+                    ?.Where(r => r.Estado == EstadoReserva.Activa)
+                    ?.Select(r => new AlumnoInscriptoDto
+                    {
+                        UsuarioId = r.UsuarioId,
+                        NombreCompleto = r.Usuario?.NombreCompleto ?? "Alumno",
+                        TipoReserva = r.Tipo.ToString()
+                    }).ToList() ?? new List<AlumnoInscriptoDto>();
+
                 grilla.Add(new TurnoDisponibleDto
                 {
                     HorarioId = horario.Id,
                     HoraInicio = horario.HoraInicio,
                     HoraFin = horario.HoraFin,
                     CupoMaximo = horario.CupoMaximo,
-                    OcupacionActual = turno?.OcupacionActual ?? 0
+                    OcupacionActual = turno?.OcupacionActual ?? 0,
+                    Inscriptos = inscriptos
                 });
             }
 

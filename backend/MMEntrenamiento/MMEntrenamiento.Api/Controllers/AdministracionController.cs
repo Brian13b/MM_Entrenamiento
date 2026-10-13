@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MMEntrenamiento.Application.DTOs.Administracion;
+using MMEntrenamiento.Application.DTOs.Usuarios;
 using MMEntrenamiento.Application.Interfaces;
+using MMEntrenamiento.Application.Services;
 
 namespace MMEntrenamiento.Api.Controllers
 {
@@ -15,6 +17,29 @@ namespace MMEntrenamiento.Api.Controllers
         public AdministracionController(IAdministracionService adminService)
         {
             _adminService = adminService;
+        }
+
+        [HttpGet("usuarios")]
+        public async Task<IActionResult> ObtenerUsuariosDirectorio()
+        {
+            try
+            {
+                var usuarios = await _adminService.ObtenerUsuariosDirectorioAsync();
+                return Ok(usuarios);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error al obtener el directorio", error = ex.Message });
+            }
+        }
+
+        [HttpGet("usuarios/{id}")]
+        public async Task<IActionResult> ObtenerUsuarioPorId(Guid id)
+        {
+            var usuario = await _adminService.ObtenerUsuarioDirectorioPorIdAsync(id);
+            if (usuario == null) return NotFound();
+
+            return Ok(usuario);
         }
 
         [HttpPost("membresias")]

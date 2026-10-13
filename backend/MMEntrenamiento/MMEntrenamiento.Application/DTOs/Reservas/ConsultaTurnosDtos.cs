@@ -1,6 +1,12 @@
 ﻿namespace MMEntrenamiento.Application.DTOs.Reservas
 {
-    // 1. DTO para dibujar la Grilla diaria
+    public class AlumnoInscriptoDto
+    {
+        public Guid UsuarioId { get; set; }
+        public string NombreCompleto { get; set; } = string.Empty;
+        public string TipoReserva { get; set; } = string.Empty;
+    }
+
     public class TurnoDisponibleDto
     {
         public int HorarioId { get; set; }
@@ -9,9 +15,10 @@
         public int CupoMaximo { get; set; }
         public int OcupacionActual { get; set; }
         public bool EstaLleno => OcupacionActual >= CupoMaximo;
+
+        public List<AlumnoInscriptoDto> Inscriptos { get; set; } = new();
     }
 
-    // 2. DTOs para la pantalla "Mis Turnos" del usuario
     public class MiReservaDto
     {
         public int TurnoId { get; set; }

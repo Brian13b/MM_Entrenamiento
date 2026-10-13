@@ -34,6 +34,13 @@ namespace MMEntrenamiento.Infrastructure.Repositories
             return await query.Where(predicate).ToListAsync();
         }
 
+        public async Task<IEnumerable<T>> FindWithIncludesAsync(Expression<Func<T, bool>> predicate, params string[] includeStrings)
+        {
+            IQueryable<T> query = _dbSet;
+            foreach (var include in includeStrings) query = query.Include(include);
+            return await query.Where(predicate).ToListAsync();
+        }
+
         public async Task AddAsync(T entity) => await _dbSet.AddAsync(entity);
         public void Update(T entity) => _dbSet.Update(entity);
         public void Delete(T entity) => _dbSet.Remove(entity);
