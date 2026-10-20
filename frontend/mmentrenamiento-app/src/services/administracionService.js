@@ -34,5 +34,6 @@ export const administracionService = {
   actualizarAnuncioGlobal: async (datos) => {
     const response = await api.put('/administracion/anuncio', datos);
     return response.data;
-  }
+  },
+  
 };

@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, CurrencyDollarIcon, ClipboardDocumentCheckIcon, LinkIcon, NoSymbolIcon, PlusCircleIcon, MinusCircleIcon } from '@heroicons/react/24/outline';
+import { 
+  ArrowLeftIcon, CurrencyDollarIcon, ClipboardDocumentCheckIcon, 
+  LinkIcon, NoSymbolIcon, PlusCircleIcon, MinusCircleIcon,
+  PhoneIcon, StarIcon, CalendarDaysIcon, TrashIcon, ArrowTopRightOnSquareIcon,
+  PencilSquareIcon, XMarkIcon
+} from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
 import { seguimientoService } from '../../../services/seguimientoService';
@@ -14,25 +19,61 @@ export const PerfilUsuarioAdmin = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [usuario, setUsuario] = useState(null);
   
+  // Estados de Edición de Perfil
+  const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
+  const [datosEdicion, setDatosEdicion] = useState({ nombreCompleto: '', telefono: '' });
+
+  // Estados de Ficha y Plan
   const [ficha, setFicha] = useState({ objetivos: '', lesiones: '' });
-  const [pago, setPago] = useState({ monto: '', metodo: 'Transferencia', mes: new Date().getMonth() + 1 });
-  const [creditosAOtorgar, setCreditosAOtorgar] = useState(0);
-  
   const [planLink, setPlanLink] = useState('');
   const [pestanasDisponibles, setPestanasDisponibles] = useState([]);
   const [pestanaSeleccionada, setPestanaSeleccionada] = useState('');
   const [buscandoPestanas, setBuscandoPestanas] = useState(false);
 
+  // Estados de Membresía y Créditos
+  const [creditosAOtorgar, setCreditosAOtorgar] = useState(0);
+  const [membresiasDisponibles, setMembresiasDisponibles] = useState([]);
+  const [membresiaSeleccionada, setMembresiaSeleccionada] = useState('');
+
+  // Estados de Pagos
+  const [pago, setPago] = useState({ monto: '', metodo: 'Transferencia', mes: new Date().getMonth() + 1 });
+  const [historialPagos, setHistorialPagos] = useState([
+    { id: 1, fecha: '10/05/2026', monto: 15000, mesAbonado: 'Mayo', metodo: 'Transferencia' }
+  ]);
+
+  // Estados de Turnos
+  const [turnosData, setTurnosData] = useState({ proximasClases: [], misSuscripcionesFijas: [] });
+
+  // MOCK DATA: Turnos
+  const mockGetTurnos = async () => {
+    return new Promise(resolve => setTimeout(() => resolve({
+      proximasClases: [
+        { turnoId: 1, fecha: '16/10/2026', horaInicio: '18:00', tipoReserva: 'Fija' },
+        { turnoId: 2, fecha: '18/10/2026', horaInicio: '19:00', tipoReserva: 'Eventual' }
+      ],
+      misSuscripcionesFijas: [
+        { turnoFijoId: 101, diaSemana: 'Lunes', horaInicio: '18:00' },
+        { turnoFijoId: 102, diaSemana: 'Miércoles', horaInicio: '18:00' }
+      ]
+    }), 500));
+  };
+
   useEffect(() => {
     const fetchDatosCRM = async () => {
       try {
         setIsLoading(true);
-        const [datosUsuario, datosFicha] = await Promise.all([
+        const [datosUsuario, datosFicha, listaMembresias, datosTurnos] = await Promise.all([
           administracionService.getUsuarioById(id),
-          seguimientoService.getFichaAlumno(id)
+          seguimientoService.getFichaAlumno(id),
+          administracionService.getMembresiasActivas(),
+          mockGetTurnos()
         ]);
 
         setUsuario(datosUsuario);
+        setDatosEdicion({ nombreCompleto: datosUsuario.nombreCompleto || '', telefono: datosUsuario.telefono || '' });
+        setMembresiasDisponibles(listaMembresias || []);
+        setMembresiaSeleccionada(datosUsuario.membresiaId || '');
+        setTurnosData(datosTurnos || { proximasClases: [], misSuscripcionesFijas: [] });
         
         if (datosFicha) {
           setFicha({
@@ -53,27 +94,97 @@ export const PerfilUsuarioAdmin = () => {
     if (id) fetchDatosCRM();
   }, [id]);
 
+  // --- HANDLERS: PERFIL ---
+  const handleGuardarPerfil = async (e) => {
+    e.preventDefault();
+    try {
+      // Acá deberías llamar a tu servicio real, ej: administracionService.actualizarUsuario(id, datosEdicion)
+      setUsuario(prev => ({ ...prev, nombreCompleto: datosEdicion.nombreCompleto, telefono: datosEdicion.telefono }));
+      toast.success("Perfil actualizado correctamente.");
+      setModalEditarAbierto(false);
+    } catch (error) {
+      toast.error("Error al actualizar el perfil.");
+        console.error(error);
+    }
+  };
+
+  // --- HANDLERS: ENTRENAMIENTO ---
   const handleActualizarFicha = async () => {
     try {
       await seguimientoService.actualizarFichaAlumno(id, ficha);
       toast.success("Ficha médica actualizada.");
     } catch (error) {
       toast.error("Error al actualizar ficha.");
-      console.error(error);
+        console.error(error);
     }
   };
 
+  const handleBuscarPestanas = async () => {
+    if (!planLink) return toast.error("Ingresá un link de OneDrive primero.");
+    try {
+      setBuscandoPestanas(true);
+      setTimeout(() => {
+        setPestanasDisponibles(['Meso 18', 'Meso 17', 'Meso 16']);
+        setPestanaSeleccionada('Meso 18');
+        setBuscandoPestanas(false);
+        toast.success("Pestañas encontradas.");
+      }, 1000);
+    } catch (error) {
+      toast.error("Error al leer OneDrive.");
+        console.error(error);
+      setBuscandoPestanas(false);
+    }
+  };
+
+  const handleVincularPlan = async () => {
+    if (!planLink || !pestanaSeleccionada) return toast.error("Faltan datos del plan.");
+    try {
+      await seguimientoService.vincularPlan(id, { driveItemId: planLink, nombrePestaña: pestanaSeleccionada });
+      toast.success(`Plan vinculado a: ${pestanaSeleccionada}`);
+      setPestanasDisponibles([]);
+    } catch (error) {
+      toast.error("Error al vincular el plan.");
+        console.error(error);
+    }
+  };
+
+  // --- HANDLERS: TURNOS ---
+  const handleBajaTurnoFijo = async (turnoFijoId) => {
+    if (!window.confirm("¿Dar de baja este turno fijo?")) return;
+    toast.success("Turno fijo eliminado (Simulado).");
+    setTurnosData(prev => ({
+      ...prev,
+      misSuscripcionesFijas: prev.misSuscripcionesFijas.filter(t => t.turnoFijoId !== turnoFijoId)
+    }));
+  };
+
+  const handleCancelarClase = async (turnoId) => {
+    if (!window.confirm("¿Cancelar esta clase eventual?")) return;
+    toast.success("Clase cancelada (Simulada).");
+    setTurnosData(prev => ({
+      ...prev,
+      proximasClases: prev.proximasClases.filter(t => t.turnoId !== turnoId)
+    }));
+  };
+
+  // --- HANDLERS: ADMINISTRACIÓN ---
   const handleRegistrarPago = async () => {
     if (!pago.monto) return toast.error("Ingresá un monto.");
     try {
       await administracionService.registrarPagoManual({
-        usuarioId: id,
-        mes: Number(pago.mes),
-        anio: new Date().getFullYear(),
-        montoAbonado: parseFloat(pago.monto),
-        metodoPago: pago.metodo
+        usuarioId: id, mes: Number(pago.mes), anio: new Date().getFullYear(),
+        montoAbonado: parseFloat(pago.monto), metodoPago: pago.metodo
       });
       toast.success("Pago registrado con éxito.");
+      
+      const nuevoPago = {
+        id: Date.now(),
+        fecha: new Date().toLocaleDateString('es-AR'),
+        monto: parseFloat(pago.monto),
+        mesAbonado: new Date(0, pago.mes - 1).toLocaleString('es', { month: 'long' }),
+        metodo: pago.metodo
+      };
+      setHistorialPagos([nuevoPago, ...historialPagos]);
       setPago({ ...pago, monto: '' });
     } catch (error) {
       toast.error("Error al registrar el pago."); 
@@ -81,25 +192,10 @@ export const PerfilUsuarioAdmin = () => {
     }
   };
 
-  const handleBloquear = async () => {
-    const suspender = usuario.activo;
-    try {
-      await administracionService.cambiarEstadoBloqueo(id, suspender);
-      setUsuario(prev => ({ ...prev, activo: !suspender }));
-      toast.success(`Alumno ${suspender ? 'bloqueado' : 'desbloqueado'} correctamente.`);
-    } catch (error) {
-      toast.error("Error al cambiar estado.");
-      console.error(error);
-    }
-  };
-
   const handleOtorgarCreditos = async (cantidad) => {
     if (cantidad === 0) return;
     try {
-      await membresiasService.otorgarCreditosExtra({ 
-        usuarioId: id, 
-        cantidadCreditos: cantidad 
-      });
+      await membresiasService.otorgarCreditosExtra({ usuarioId: id, cantidadCreditos: cantidad });
       setUsuario(prev => ({ ...prev, creditosDisponibles: prev.creditosDisponibles + cantidad }));
       toast.success(`Se ${cantidad > 0 ? 'sumaron' : 'restaron'} ${Math.abs(cantidad)} créditos.`);
       setCreditosAOtorgar(0);
@@ -109,36 +205,33 @@ export const PerfilUsuarioAdmin = () => {
     }
   };
 
-  const handleBuscarPestanas = async () => {
-    if (!planLink) return toast.error("Ingresá un link de OneDrive primero.");
+  const handleCambiarMembresia = async () => {
+    if (!membresiaSeleccionada) return toast.error("Seleccioná una membresía.");
     try {
-      setBuscandoPestanas(true);
-      setTimeout(() => {
-        setPestanasDisponibles(['Meso 18', 'Meso 17', 'Meso 16', 'Meso 15']);
-        setPestanaSeleccionada('Meso 18');
-        setBuscandoPestanas(false);
-        toast.success("Pestañas encontradas.");
-      }, 1000);
+      await membresiasService.asignarMembresia({ usuarioId: id, membresiaId: membresiaSeleccionada });
+      toast.success("Membresía actualizada correctamente.");
     } catch (error) {
-      toast.error("Error al leer el archivo de OneDrive.");
-      setBuscandoPestanas(false);
+      toast.error("Error al cambiar membresía.");
       console.error(error);
     }
   };
 
-  const handleVincularPlan = async () => {
-    if (!planLink || !pestanaSeleccionada) return toast.error("Faltan datos del plan.");
+  const handleBloquear = async () => {
+    const suspender = usuario.activo;
     try {
-      await seguimientoService.vincularPlan(id, { 
-        driveItemId: planLink, 
-        nombrePestaña: pestanaSeleccionada 
-      });
-      toast.success(`Plan vinculado a la pestaña: ${pestanaSeleccionada}`);
-      setPestanasDisponibles([]);
+      await administracionService.cambiarEstadoBloqueo(id, suspender);
+      setUsuario(prev => ({ ...prev, activo: !suspender }));
+      toast.success(`Alumno ${suspender ? 'bloqueado' : 'desbloqueado'}.`);
     } catch (error) {
-      toast.error("Error al vincular el plan.");
-      console.error(error)
+      toast.error("Error al cambiar estado.");
+      console.error(error);
     }
+  };
+
+  const abrirWhatsApp = () => {
+    if (!usuario.telefono) return toast.error("El usuario no tiene teléfono registrado.");
+    const numeroLimpio = usuario.telefono.replace(/\D/g, '');
+    window.open(`https://wa.me/${numeroLimpio}`, '_blank');
   };
 
   if (isLoading || !usuario) {
@@ -150,7 +243,9 @@ export const PerfilUsuarioAdmin = () => {
   }
 
   return (
-    <div className="animate-fade-in max-w-4xl mx-auto">
+    <div className="animate-fade-in max-w-6xl mx-auto pb-10 relative">
+      
+      {/* HEADER */}
       <header className="mb-6">
         <button 
           onClick={() => navigate('/admin/usuarios')}
@@ -159,41 +254,70 @@ export const PerfilUsuarioAdmin = () => {
           <ArrowLeftIcon className="w-4 h-4" /> Volver al directorio
         </button>
         
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-[#F8F9FA] rounded-2xl flex items-center justify-center text-2xl text-mm-dark font-display font-black border border-gray-100 shadow-sm">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm">
+          
+          {/* Info del Alumno */}
+          <div className="flex items-center gap-5">
+            <div className="w-20 h-20 bg-[#F8F9FA] rounded-3xl flex items-center justify-center text-3xl text-mm-dark font-display font-black border border-gray-200 shadow-sm shrink-0">
               {usuario.nombreCompleto.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h1 className="text-2xl font-display font-bold text-mm-dark flex items-center gap-2">
+              <h1 className="text-2xl font-display font-bold text-mm-dark flex items-center gap-3 mb-1">
                 {usuario.nombreCompleto}
                 {!usuario.activo && (
-                  <span className="text-[10px] font-bold bg-red-50 text-red-600 px-2 py-0.5 rounded-full uppercase tracking-wider border border-red-100">
+                  <span className="text-[10px] font-bold bg-red-50 text-red-600 px-2.5 py-1 rounded-md uppercase tracking-wider border border-red-100">
                     Bloqueado
                   </span>
                 )}
               </h1>
-              <p className="text-sm text-gray-500">{usuario.email} {usuario.telefono ? `• ${usuario.telefono}` : ''}</p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-500 font-medium">
+                <span>{usuario.email}</span>
+                {usuario.telefono && (
+                  <span className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-md border border-gray-100 text-gray-600">
+                    <PhoneIcon className="w-4 h-4" /> {usuario.telefono}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           
-          <button 
-            onClick={handleBloquear}
-            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors border ${
-              usuario.activo 
-                ? 'bg-white border-red-100 text-red-500 hover:bg-red-50' 
-                : 'bg-white border-green-100 text-green-600 hover:bg-green-50'
-            }`}
-          >
-            <NoSymbolIcon className="w-4 h-4" />
-            {usuario.activo ? 'Bloquear Alumno' : 'Desbloquear'}
-          </button>
+          {/* Botonera de Acciones (Editar, WhatsApp, Bloquear) */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button 
+              onClick={() => setModalEditarAbierto(true)}
+              className="flex justify-center items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
+              <PencilSquareIcon className="w-4 h-4" />
+              Editar
+            </button>
+            <button 
+              onClick={abrirWhatsApp}
+              className="flex justify-center items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#25D366]/10 text-[#128C7E] border border-[#25D366]/20 hover:bg-[#25D366]/20 transition-colors"
+            >
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.418-.099.824z"/></svg>
+              WhatsApp
+            </button>
+            <button 
+              onClick={handleBloquear}
+              className={`flex justify-center items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors border ${
+                usuario.activo ? 'bg-white border-red-100 text-red-500 hover:bg-red-50' : 'bg-white border-green-100 text-green-600 hover:bg-green-50'
+              }`}
+            >
+              <NoSymbolIcon className="w-4 h-4" />
+              {usuario.activo ? 'Bloquear' : 'Desbloquear'}
+            </button>
+          </div>
         </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* COLUMNA IZQUIERDA: Entrenamiento */}
+        
+        {/* ==========================================
+            COLUMNA IZQUIERDA: Entrenamiento y Turnos
+            ========================================== */}
         <div className="flex flex-col gap-6">
+          
+          {/* FICHA TÉCNICA */}
           <section className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center shrink-0">
@@ -201,24 +325,19 @@ export const PerfilUsuarioAdmin = () => {
               </div>
               <h2 className="text-lg font-bold text-mm-dark">Ficha Técnica</h2>
             </div>
-            
             <div className="flex flex-col gap-4">
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Objetivos</label>
                 <textarea
                   className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none resize-none"
-                  rows="2"
-                  value={ficha.objetivos}
-                  onChange={(e) => setFicha({...ficha, objetivos: e.target.value})}
+                  rows="2" value={ficha.objetivos} onChange={(e) => setFicha({...ficha, objetivos: e.target.value})}
                 />
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Lesiones / Cuidados</label>
                 <textarea
                   className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none resize-none"
-                  rows="2"
-                  value={ficha.lesiones}
-                  onChange={(e) => setFicha({...ficha, lesiones: e.target.value})}
+                  rows="2" value={ficha.lesiones} onChange={(e) => setFicha({...ficha, lesiones: e.target.value})}
                 />
               </div>
               <button 
@@ -230,26 +349,33 @@ export const PerfilUsuarioAdmin = () => {
             </div>
           </section>
 
+          {/* PLAN ONEDRIVE */}
           <section className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-sky-50 rounded-xl flex items-center justify-center shrink-0">
-                <LinkIcon className="w-5 h-5 text-sky-500" />
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-sky-50 rounded-xl flex items-center justify-center shrink-0">
+                  <LinkIcon className="w-5 h-5 text-sky-500" />
+                </div>
+                <h2 className="text-lg font-bold text-mm-dark">Plan OneDrive</h2>
               </div>
-              <h2 className="text-lg font-bold text-mm-dark">Plan OneDrive</h2>
+              {planLink && (
+                <button 
+                  onClick={() => window.open(planLink, '_blank')}
+                  className="flex items-center gap-1.5 text-xs font-bold text-sky-600 bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-lg transition-colors border border-sky-100"
+                >
+                  Abrir Excel <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+                </button>
+              )}
             </div>
-            
             <div className="flex flex-col gap-3">
               <div className="flex gap-2">
                 <input
-                  type="text"
-                  placeholder="Pegar ID o link del Drive..."
+                  type="text" placeholder="Pegar ID o link del Drive..."
                   className="w-full bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
-                  value={planLink}
-                  onChange={(e) => setPlanLink(e.target.value)}
+                  value={planLink} onChange={(e) => setPlanLink(e.target.value)}
                 />
                 <button 
-                  onClick={handleBuscarPestanas}
-                  disabled={!planLink || buscandoPestanas}
+                  onClick={handleBuscarPestanas} disabled={!planLink || buscandoPestanas}
                   className="bg-mm-dark text-white px-4 rounded-xl font-bold text-xs hover:bg-gray-800 disabled:opacity-50 whitespace-nowrap"
                 >
                   {buscandoPestanas ? 'Buscando...' : 'Leer Hojas'}
@@ -261,12 +387,9 @@ export const PerfilUsuarioAdmin = () => {
                   <label className="text-xs font-bold text-sky-800 uppercase tracking-wide block mb-2">Seleccionar Pestaña</label>
                   <select 
                     className="w-full bg-white border border-sky-200 rounded-xl p-3 text-sm text-mm-dark outline-none mb-3 focus:ring-2 focus:ring-sky-500"
-                    value={pestanaSeleccionada}
-                    onChange={(e) => setPestanaSeleccionada(e.target.value)}
+                    value={pestanaSeleccionada} onChange={(e) => setPestanaSeleccionada(e.target.value)}
                   >
-                    {pestanasDisponibles.map((p, idx) => (
-                      <option key={idx} value={p}>{p}</option>
-                    ))}
+                    {pestanasDisponibles.map((p, idx) => <option key={idx} value={p}>{p}</option>)}
                   </select>
                   <button 
                     onClick={handleVincularPlan}
@@ -278,59 +401,149 @@ export const PerfilUsuarioAdmin = () => {
               )}
             </div>
           </section>
+
+          {/* AGENDA Y TURNOS */}
+          <section className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center shrink-0">
+                <CalendarDaysIcon className="w-5 h-5 text-orange-500" />
+              </div>
+              <h2 className="text-lg font-bold text-mm-dark">Agenda del Alumno</h2>
+            </div>
+
+            <div className="flex flex-col gap-5">
+              <div>
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Suscripciones Fijas</h3>
+                {turnosData.misSuscripcionesFijas.length === 0 ? (
+                  <p className="text-sm text-gray-400 italic bg-gray-50 p-3 rounded-xl border border-gray-100">No tiene turnos fijos.</p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {turnosData.misSuscripcionesFijas.map(fijo => (
+                      <div key={fijo.turnoFijoId} className="flex justify-between items-center bg-purple-50 border border-purple-100 p-3 rounded-xl">
+                        <div>
+                          <p className="font-bold text-sm text-mm-dark">Todos los {fijo.diaSemana}</p>
+                          <p className="text-xs font-bold text-mm-purple">{fijo.horaInicio.slice(0,5)} hs</p>
+                        </div>
+                        <button onClick={() => handleBajaTurnoFijo(fijo.turnoFijoId)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors">
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Próximas Clases</h3>
+                {turnosData.proximasClases.length === 0 ? (
+                  <p className="text-sm text-gray-400 italic bg-gray-50 p-3 rounded-xl border border-gray-100">No tiene reservas próximas.</p>
+                ) : (
+                  <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
+                    {turnosData.proximasClases.map(clase => (
+                      <div key={clase.turnoId} className="flex justify-between items-center bg-white border border-gray-200 p-3 rounded-xl">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-sm text-mm-dark">{clase.fecha} - {clase.horaInicio.slice(0,5)} hs</span>
+                          <span className={`text-[10px] font-bold uppercase tracking-wide ${clase.tipoReserva === 'Fija' ? 'text-mm-purple' : 'text-blue-500'}`}>
+                            {clase.tipoReserva}
+                          </span>
+                        </div>
+                        <button onClick={() => handleCancelarClase(clase.turnoId)} className="text-gray-400 hover:text-red-500 text-xs font-bold underline">
+                          Cancelar
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
         </div>
 
-        {/* COLUMNA DERECHA: Administración */}
+        {/* ==========================================
+            COLUMNA DERECHA: Administración y Pagos
+            ========================================== */}
         <div className="flex flex-col gap-6">
-          <section className="bg-mm-dark p-6 rounded-4xl shadow-sm text-white relative overflow-hidden">
+          
+          {/* BALANCE Y MEMBRESÍA (UNIFICADOS) */}
+          <section className="bg-mm-dark p-6 rounded-4xl shadow-sm text-white relative overflow-hidden border border-gray-800">
             <div className="absolute top-0 right-0 p-6 opacity-10">
-              <CurrencyDollarIcon className="w-24 h-24" />
+              <StarIcon className="w-32 h-32" />
             </div>
             
-            <h2 className="text-sm font-bold text-gray-300 uppercase tracking-wide mb-1 relative z-10">Balance Actual</h2>
-            <div className="text-5xl font-display font-black text-mm-purple mb-6 relative z-10">
-              {usuario.creditosDisponibles} <span className="text-lg font-medium text-gray-400">créditos</span>
-            </div>
+            <div className="relative z-10 flex flex-col gap-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center shrink-0 border border-purple-500/30">
+                  <StarIcon className="w-5 h-5 text-mm-purple" />
+                </div>
+                <h2 className="text-lg font-bold text-white">Membresía y Balance</h2>
+              </div>
 
-            <div className="flex items-center gap-3 relative z-10">
-              <input
-                type="number"
-                placeholder="0"
-                className="w-20 bg-gray-800 border border-gray-700 rounded-xl p-3 text-center text-lg font-bold text-white outline-none focus:border-mm-purple"
-                value={creditosAOtorgar}
-                onChange={(e) => setCreditosAOtorgar(Number(e.target.value))}
-              />
-              <button 
-                onClick={() => handleOtorgarCreditos(creditosAOtorgar)}
-                className="flex items-center gap-1 bg-green-500/20 text-green-400 px-4 py-3 rounded-xl font-bold text-sm hover:bg-green-500/30 transition-colors flex-1 justify-center"
-              >
-                <PlusCircleIcon className="w-5 h-5" /> Sumar
-              </button>
-              <button 
-                onClick={() => handleOtorgarCreditos(-Math.abs(creditosAOtorgar))}
-                className="flex items-center gap-1 bg-red-500/20 text-red-400 px-4 py-3 rounded-xl font-bold text-sm hover:bg-red-500/30 transition-colors flex-1 justify-center"
-              >
-                <MinusCircleIcon className="w-5 h-5" /> Restar
-              </button>
+              <div>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">Plan Asignado</label>
+                <div className="flex gap-2">
+                  <select 
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl p-3 text-sm font-medium text-white outline-none focus:ring-2 focus:ring-mm-purple"
+                    value={membresiaSeleccionada} onChange={(e) => setMembresiaSeleccionada(e.target.value)}
+                  >
+                    <option value="">Sin membresía asignada</option>
+                    {membresiasDisponibles.map((m) => (
+                      <option key={m.id} value={m.id}>{m.nombre} ({m.creditosOtorgados} crd/mes)</option>
+                    ))}
+                  </select>
+                  <button 
+                    onClick={handleCambiarMembresia}
+                    className="bg-mm-purple text-white px-4 rounded-xl font-bold text-xs hover:bg-purple-600 transition-colors shadow-sm"
+                  >
+                    Actualizar
+                  </button>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-700/50 pt-5">
+                <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Créditos Disponibles</h2>
+                <div className="text-5xl font-display font-black text-mm-purple mb-5">
+                  {usuario.creditosDisponibles} <span className="text-lg font-medium text-gray-500">créditos</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number" placeholder="0"
+                    className="w-20 bg-gray-800 border border-gray-700 rounded-xl p-3 text-center text-lg font-bold text-white outline-none focus:border-mm-purple"
+                    value={creditosAOtorgar} onChange={(e) => setCreditosAOtorgar(Number(e.target.value))}
+                  />
+                  <button 
+                    onClick={() => handleOtorgarCreditos(creditosAOtorgar)}
+                    className="flex items-center gap-1 bg-green-500/20 text-green-400 px-4 py-3 rounded-xl font-bold text-sm hover:bg-green-500/30 transition-colors flex-1 justify-center"
+                  >
+                    <PlusCircleIcon className="w-5 h-5" /> Sumar
+                  </button>
+                  <button 
+                    onClick={() => handleOtorgarCreditos(-Math.abs(creditosAOtorgar))}
+                    className="flex items-center gap-1 bg-red-500/20 text-red-400 px-4 py-3 rounded-xl font-bold text-sm hover:bg-red-500/30 transition-colors flex-1 justify-center"
+                  >
+                    <MinusCircleIcon className="w-5 h-5" /> Restar
+                  </button>
+                </div>
+              </div>
             </div>
           </section>
 
+          {/* REGISTRAR PAGO E HISTORIAL */}
           <section className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm">
             <div className="flex items-center gap-3 mb-5">
               <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center shrink-0">
                 <CurrencyDollarIcon className="w-5 h-5 text-green-500" />
               </div>
-              <h2 className="text-lg font-bold text-mm-dark">Registrar Pago</h2>
+              <h2 className="text-lg font-bold text-mm-dark">Pagos</h2>
             </div>
 
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 mb-6">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Mes a abonar</label>
                   <select 
                     className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm font-medium text-mm-dark outline-none focus:ring-2 focus:ring-mm-purple"
-                    value={pago.mes}
-                    onChange={(e) => setPago({...pago, mes: e.target.value})}
+                    value={pago.mes} onChange={(e) => setPago({...pago, mes: e.target.value})}
                   >
                     {[...Array(12)].map((_, i) => (
                       <option key={i+1} value={i+1}>{new Date(0, i).toLocaleString('es', { month: 'long' }).toUpperCase()}</option>
@@ -341,8 +554,7 @@ export const PerfilUsuarioAdmin = () => {
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Método</label>
                   <select 
                     className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm font-medium text-mm-dark outline-none focus:ring-2 focus:ring-mm-purple"
-                    value={pago.metodo}
-                    onChange={(e) => setPago({...pago, metodo: e.target.value})}
+                    value={pago.metodo} onChange={(e) => setPago({...pago, metodo: e.target.value})}
                   >
                     <option value="Transferencia">Transferencia</option>
                     <option value="Efectivo">Efectivo</option>
@@ -354,24 +566,80 @@ export const PerfilUsuarioAdmin = () => {
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Monto ($)</label>
                 <input
-                  type="number"
+                  type="number" placeholder="Ej: 15000"
                   className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-green-500 outline-none"
-                  placeholder="Ej: 15000"
-                  value={pago.monto}
-                  onChange={(e) => setPago({...pago, monto: e.target.value})}
+                  value={pago.monto} onChange={(e) => setPago({...pago, monto: e.target.value})}
                 />
               </div>
 
               <button 
                 onClick={handleRegistrarPago}
-                className="w-full bg-green-500 text-white py-3 rounded-xl font-bold text-sm hover:bg-green-600 transition-colors shadow-sm active:scale-95 mt-2"
+                className="w-full bg-green-500 text-white py-3 rounded-xl font-bold text-sm hover:bg-green-600 transition-colors shadow-sm active:scale-95 flex justify-center items-center gap-2"
               >
-                Confirmar Pago
+                <PlusCircleIcon className="w-5 h-5" /> Registrar Nuevo Pago
               </button>
             </div>
+
+            <div className="border-t border-gray-100 pt-5">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Últimos Pagos Registrados</h3>
+              {historialPagos.length === 0 ? (
+                <p className="text-xs text-gray-400 italic">No hay pagos recientes.</p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {historialPagos.map((hp) => (
+                    <div key={hp.id} className="flex justify-between items-center bg-gray-50 border border-gray-100 p-3 rounded-xl">
+                      <div>
+                        <p className="font-bold text-sm text-mm-dark">${hp.monto}</p>
+                        <p className="text-[10px] text-gray-500 font-medium">{hp.fecha} • {hp.metodo}</p>
+                      </div>
+                      <span className="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded-md uppercase tracking-wider">
+                        {hp.mesAbonado}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </section>
         </div>
       </div>
+
+      {/* OVERLAY DEL MODAL DE EDICIÓN DE PERFIL */}
+      {modalEditarAbierto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-mm-dark/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-mm-dark">Editar Perfil</h2>
+              <button onClick={() => setModalEditarAbierto(false)} className="text-gray-400 hover:text-mm-dark transition-colors">
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+            <form onSubmit={handleGuardarPerfil} className="p-5 flex flex-col gap-4">
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Nombre Completo</label>
+                <input 
+                  type="text" required
+                  className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
+                  value={datosEdicion.nombreCompleto} onChange={(e) => setDatosEdicion({...datosEdicion, nombreCompleto: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Teléfono (WhatsApp)</label>
+                <input 
+                  type="text" 
+                  className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
+                  value={datosEdicion.telefono} onChange={(e) => setDatosEdicion({...datosEdicion, telefono: e.target.value})}
+                />
+              </div>
+              <button type="submit" className="w-full bg-mm-purple text-white py-3 rounded-xl font-bold text-sm hover:bg-purple-600 transition-colors mt-2">
+                Guardar Cambios
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

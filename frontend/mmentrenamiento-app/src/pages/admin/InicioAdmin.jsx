@@ -1,78 +1,207 @@
-import { CalendarDaysIcon, UsersIcon, ChartBarIcon } from '@heroicons/react/24/solid';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { 
+  CalendarDaysIcon, UsersIcon, ChartBarIcon, 
+  CurrencyDollarIcon, MegaphoneIcon, PlusCircleIcon, MagnifyingGlassIcon
+} from '@heroicons/react/24/outline';
+import { administracionService } from '../../services/administracionService';
+import { ModalNuevoUsuario } from './usuarios/ModalNuevoUsuario';
 
 export const InicioAdmin = () => {
   const navigate = useNavigate();
+  
+  const [usuarios, setUsuarios] = useState([]);
+  const [busquedaPago, setBusquedaPago] = useState('');
+  const [modalRegistroAbierto, setModalRegistroAbierto] = useState(false);
 
-  // Mocks de métricas (luego se conectarán al dashboardService)
+  // Mocks de métricas
   const metricas = {
-    ocupacionSemanal: "85%",
+    ocupacionSemanal: 85,
     alumnosActivos: 142,
-    clasesHoy: 8
+    pagosPendientes: 18,
+    ocupacionPorTurno: [
+      { hora: '08:00', porcentaje: 90 },
+      { hora: '10:00', porcentaje: 60 },
+      { hora: '14:00', porcentaje: 40 },
+      { hora: '18:00', porcentaje: 100 },
+      { hora: '20:00', porcentaje: 80 },
+    ]
+  };
+
+  const cargarUsuarios = async () => {
+    try {
+      const data = await administracionService.getUsuarios();
+      setUsuarios(data || []);
+    } catch (error) {
+      console.error("Error cargando usuarios:", error);
+    }
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    cargarUsuarios();
+  }, []);
+
+  // Filtro en tiempo real para el buscador de pagos
+  const usuariosFiltrados = useMemo(() => {
+    if (!busquedaPago) return [];
+    return usuarios
+      .filter(u => u.nombreCompleto.toLowerCase().includes(busquedaPago.toLowerCase()))
+      .slice(0, 4);
+  }, [usuarios, busquedaPago]);
+
+  const irAlPerfilDelAlumno = (id) => {
+    navigate(`/admin/usuarios/${id}`);
   };
 
   return (
-    <div className="animate-fade-in max-w-5xl mx-auto pt-2">
-      <header className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-display font-bold text-mm-dark">Bienvenido, Admin</h1>
-        <p className="text-gray-500 mt-1 text-sm md:text-base">Resumen de la actividad del gimnasio.</p>
+    <div className="animate-fade-in max-w-6xl mx-auto pb-10">
+      
+      <header className="mb-6">
+        <h1 className="text-2xl md:text-3xl font-display font-black text-mm-dark">Bienvenido, Admin</h1>
+        <p className="text-gray-500 mt-1 text-sm md:text-base font-medium">Panel de control y accesos rápidos.</p>
       </header>
 
-      {/* Sección de Métricas */}
-      <section className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-mm-surface p-5 rounded-[1.5rem] border border-gray-100 shadow-sm">
-          <p className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-1">Ocupación Semanal</p>
-          <div className="flex items-end gap-2">
-            <span className="text-3xl font-display font-black text-mm-purple">{metricas.ocupacionSemanal}</span>
-            <ChartBarIcon className="w-5 h-5 text-green-500 mb-1" />
-          </div>
-        </div>
+      {/* ==============================================
+          1. SECCIÓN DE MÉTRICAS Y GRÁFICOS
+          ============================================== */}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         
-        <div className="bg-mm-surface p-5 rounded-[1.5rem] border border-gray-100 shadow-sm">
-          <p className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-1">Alumnos Activos</p>
-          <span className="text-3xl font-display font-black text-mm-dark">{metricas.alumnosActivos}</span>
+        {/* Card: Usuarios Activos */}
+        <div className="bg-mm-surface p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center gap-2 mb-2">
+            <UsersIcon className="w-5 h-5 text-blue-500" />
+            <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Usuarios Activos</p>
+          </div>
+          <span className="text-4xl font-display font-black text-mm-dark">{metricas.alumnosActivos}</span>
         </div>
 
-        <div className="bg-mm-surface p-5 rounded-[1.5rem] border border-gray-100 shadow-sm col-span-2 md:col-span-1">
-          <p className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-1">Clases Hoy</p>
-          <span className="text-3xl font-display font-black text-mm-dark">{metricas.clasesHoy}</span>
+        {/* Card: Ocupación Semanal */}
+        <div className="bg-mm-surface p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center gap-2 mb-2">
+            <ChartBarIcon className="w-5 h-5 text-mm-purple" />
+            <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Ocupación Semanal</p>
+          </div>
+          <div className="flex items-end gap-1">
+            <span className="text-4xl font-display font-black text-mm-purple">{metricas.ocupacionSemanal}%</span>
+          </div>
+        </div>
+
+        {/* Card: Pagos Pendientes */}
+        <div className="bg-mm-surface p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center gap-2 mb-2">
+            <CurrencyDollarIcon className="w-5 h-5 text-red-500" />
+            <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Pagos Pendientes</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-4xl font-display font-black text-red-500">{metricas.pagosPendientes}</span>
+            <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md">Alumnos</span>
+          </div>
         </div>
       </section>
 
-      {/* Accesos Rápidos */}
-      <section>
-        <h2 className="text-lg font-bold text-mm-dark mb-4 px-1">Gestión Principal</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* ==============================================
+          2. ACCESOS RÁPIDOS Y BUSCADOR DE PAGOS
+          ============================================== */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* BUSCADOR DE COBRO RÁPIDO */}
+        <div className="lg:col-span-1 bg-mm-dark p-6 rounded-4xl shadow-sm relative overflow-hidden flex flex-col">
+          <div className="absolute top-0 right-0 p-6 opacity-5">
+            <CurrencyDollarIcon className="w-32 h-32" />
+          </div>
           
-          <div 
-            onClick={() => navigate('/admin/horarios')}
-            className="bg-mm-surface p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer group flex items-center gap-5"
-          >
-            <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-              <CalendarDaysIcon className="w-7 h-7 text-mm-purple" />
+          <h2 className="text-lg font-bold text-white mb-1 relative z-10">Cobro Rápido</h2>
+          <p className="text-gray-400 text-xs font-medium mb-4 relative z-10">Buscá un alumno para registrarle un pago.</p>
+          
+          <div className="relative z-10 flex-1">
+            <div className="relative flex items-center">
+              <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 absolute left-4" />
+              <input 
+                type="text" 
+                placeholder="Nombre del alumno..."
+                value={busquedaPago}
+                onChange={(e) => setBusquedaPago(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl pl-11 pr-4 py-3.5 text-sm outline-none focus:border-mm-surface transition-colors placeholder:text-gray-500"
+              />
             </div>
-            <div>
-              <h2 className="text-base font-bold text-mm-dark">Horarios y Grillas</h2>
-              <p className="text-xs text-gray-500 mt-1">Ver ocupación, crear clases regulares o reducidas y gestionar reservas.</p>
-            </div>
-          </div>
 
-          <div 
-            onClick={() => navigate('/admin/usuarios')}
-            className="bg-mm-surface p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer group flex items-center gap-5"
-          >
-            <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-              <UsersIcon className="w-7 h-7 text-blue-500" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-mm-dark">Directorio de Usuarios</h2>
-              <p className="text-xs text-gray-500 mt-1">Gestionar alumnos, renovar pagos, ver fichas médicas y asignar planes.</p>
-            </div>
+            {/* Resultados de la búsqueda */}
+            {busquedaPago && (
+              <div className="mt-2 bg-white rounded-xl overflow-hidden shadow-lg border border-gray-100 absolute w-full z-20">
+                {usuariosFiltrados.length > 0 ? (
+                  usuariosFiltrados.map(u => (
+                    <button
+                      key={u.id}
+                      onClick={() => irAlPerfilDelAlumno(u.id)}
+                      className="w-full text-left px-4 py-3 text-sm font-bold text-mm-dark hover:bg-green-50 border-b border-gray-50 last:border-0 transition-colors flex justify-between items-center group"
+                    >
+                      {u.nombreCompleto}
+                      <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded-md group-hover:bg-green-100 group-hover:text-green-700">Cobrar</span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-4 py-3 text-sm text-gray-500 text-center font-medium">No se encontraron alumnos.</div>
+                )}
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* BOTONES DE ACCIÓN */}
+        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          
+          {/* Reserva Rápida */}
+          <button 
+            onClick={() => navigate('/admin/horarios')}
+            className="bg-mm-surface p-5 rounded-4xl border border-gray-100 shadow-sm hover:shadow-md hover:border-orange-200 transition-all group flex flex-col items-start text-left"
+          >
+            <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <CalendarDaysIcon className="w-6 h-6 text-orange-500" />
+            </div>
+            <h2 className="text-base font-bold text-mm-dark">Reserva Rápida</h2>
+            <p className="text-xs text-gray-500 mt-1 font-medium">Anotá a un alumno en un turno eventual o fijo.</p>
+          </button>
+
+          {/* Nuevo Usuario */}
+          <button 
+            onClick={() => setModalRegistroAbierto(true)}
+            className="bg-mm-surface p-5 rounded-4xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all group flex flex-col items-start text-left"
+          >
+            <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <PlusCircleIcon className="w-6 h-6 text-blue-500" />
+            </div>
+            <h2 className="text-base font-bold text-mm-dark">Nuevo Usuario</h2>
+            <p className="text-xs text-gray-500 mt-1 font-medium">Registrá rápidamente un alumno o profesor.</p>
+          </button>
+
+          {/* Anuncio Global */}
+          <button 
+            onClick={() => navigate('/admin/ajustes')}
+            className="bg-mm-surface p-5 rounded-4xl border border-gray-100 shadow-sm hover:shadow-md hover:border-purple-200 transition-all group flex flex-col items-start text-left sm:col-span-2"
+          >
+            <div className="flex items-center gap-4 w-full">
+              <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <MegaphoneIcon className="w-6 h-6 text-mm-purple" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-mm-dark">Crear Aviso Global</h2>
+                <p className="text-xs text-gray-500 mt-1 font-medium">Publicá un anuncio que verán todos los alumnos en su panel de inicio.</p>
+              </div>
+            </div>
+          </button>
 
         </div>
+
+        
       </section>
-      
+
+      {/* Inyectamos el Modal de Nuevo Usuario */}
+      <ModalNuevoUsuario 
+        isOpen={modalRegistroAbierto} 
+        onClose={() => setModalRegistroAbierto(false)} 
+        onUsuarioCreado={cargarUsuarios} 
+      />
+
     </div>
   );
 };
