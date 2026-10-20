@@ -31,7 +31,7 @@ jobs:
       with:
         node-version: '20'
     - name: Instalar y Testear Frontend
-      working-directory: ./frontend
+      working-directory: ./frontend/mmentrenamiento-app
       run: |
         npm ci
         npm run test
