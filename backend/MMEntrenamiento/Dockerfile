@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY ["MMEntrenamiento.sln", "./"]
+COPY ["MMEntrenamiento.slnx", "./"]
 COPY ["MMEntrenamiento.Api/MMEntrenamiento.Api.csproj", "MMEntrenamiento.Api/"]
 COPY ["MMEntrenamiento.Application/MMEntrenamiento.Application.csproj", "MMEntrenamiento.Application/"]
 COPY ["MMEntrenamiento.Domain/MMEntrenamiento.Domain.csproj", "MMEntrenamiento.Domain/"]
