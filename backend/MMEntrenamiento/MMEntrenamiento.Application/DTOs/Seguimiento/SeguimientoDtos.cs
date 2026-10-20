@@ -9,7 +9,10 @@
 
     public class ActualizarFichaDto
     {
+        [System.ComponentModel.DataAnnotations.StringLength(2000)]
         public string? Objetivos { get; set; }
+
+        [System.ComponentModel.DataAnnotations.StringLength(2000)]
         public string? Lesiones { get; set; }
     }
 
@@ -30,5 +33,18 @@
         public int AusenciasTotales { get; set; }
         public int ClasesCanceladas { get; set; }
         public decimal PorcentajeAsistencia { get; set; }
+    }
+
+    // Directorio de alumnos para el Profe (no incluye datos administrativos como pagos o créditos).
+    public class AlumnoDirectorioProfeDto
+    {
+        public Guid Id { get; set; }
+        public string NombreCompleto { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string? Telefono { get; set; }
+        public string? FotoPerfilUrl { get; set; }
+        public bool Activo { get; set; }
+        public bool TienePlan { get; set; }
+        public string? Lesiones { get; set; }
     }
 }

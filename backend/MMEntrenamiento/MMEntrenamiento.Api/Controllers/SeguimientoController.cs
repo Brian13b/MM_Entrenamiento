@@ -28,6 +28,17 @@ namespace MMEntrenamiento.Api.Controllers
             return ficha != null ? Ok(ficha) : NotFound(new { message = "Aún no tenés una ficha técnica cargada." });
         }
 
+        [HttpPut("mi-ficha")]
+        [Authorize(Roles = "Alumno, Admin")]
+        public async Task<IActionResult> ActualizarMiFicha([FromBody] ActualizarFichaDto request)
+        {
+            var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var (exito, mensaje) = await _seguimientoService.ActualizarFichaAsync(userId, request);
+
+            if (!exito) return BadRequest(new { message = mensaje });
+            return Ok(new { message = mensaje });
+        }
+
         [HttpGet("mi-plan")]
         public async Task<IActionResult> ObtenerMiPlan()
         {
@@ -35,6 +46,14 @@ namespace MMEntrenamiento.Api.Controllers
             var plan = await _seguimientoService.ObtenerPlanOneDriveAsync(userId);
 
             return plan != null ? Ok(plan) : NotFound(new { message = "No hay plan de entrenamiento vinculado." });
+        }
+
+        [HttpGet("alumnos")]
+        [Authorize(Roles = "Profe, Admin")]
+        public async Task<IActionResult> ObtenerDirectorioAlumnos()
+        {
+            var alumnos = await _seguimientoService.ObtenerDirectorioAlumnosAsync();
+            return Ok(alumnos);
         }
 
         [HttpGet("ficha/{usuarioId}")]

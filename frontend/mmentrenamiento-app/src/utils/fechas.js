@@ -52,6 +52,10 @@ export const nombreDiaSemana = (diaIngles) => {
 // Índice de DayOfWeek de .NET (0 = Domingo) -> "Lunes".
 export const nombreDiaPorIndice = (indice) => capitalizar(fmtDia.format(new Date(2024, 0, 7 + indice)));
 
+// Date -> "2026-10-20" en hora local (evita el desfase de toISOString, que usa UTC).
+export const fechaIsoLocal = (fecha = new Date()) =>
+  `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`;
+
 // Días enteros desde hoy (local) hasta la fecha ISO. 0 = hoy, negativo = vencida.
 export const diasHasta = (fechaIso) => {
   const hoy = new Date();

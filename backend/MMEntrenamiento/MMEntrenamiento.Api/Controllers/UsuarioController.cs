@@ -39,11 +39,25 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(resumen);
         }
 
+        // Disponible para cualquier usuario autenticado (Admin, Profe y Alumno).
         [HttpPut("mi-perfil")]
+        [Consumes("application/json")]
         public async Task<IActionResult> ActualizarMiPerfil([FromBody] ActualizarPerfilDto request)
         {
             var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
             var (exito, mensaje) = await _usuarioService.ActualizarPerfilAsync(userId, request);
+
+            if (!exito) return BadRequest(new { message = mensaje });
+            return Ok(new { message = mensaje });
+        }
+
+        // Misma ruta, pero con la foto en el mismo envío (multipart/form-data).
+        [HttpPut("mi-perfil")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> ActualizarMiPerfilConFoto([FromForm] ActualizarPerfilConFotoDto request)
+        {
+            var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+            var (exito, mensaje) = await _usuarioService.ActualizarPerfilAsync(userId, request, request.Foto);
 
             if (!exito) return BadRequest(new { message = mensaje });
             return Ok(new { message = mensaje });

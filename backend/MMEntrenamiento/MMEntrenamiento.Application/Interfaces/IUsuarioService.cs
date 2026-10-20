@@ -7,7 +7,7 @@ namespace MMEntrenamiento.Application.Interfaces
     {
         Task<PerfilUsuarioDto?> ObtenerPerfilAsync(Guid usuarioId);
         Task<ResumenAlumnoDto?> ObtenerResumenAsync(Guid usuarioId);
-        Task<(bool Exito, string Mensaje)> ActualizarPerfilAsync(Guid usuarioId, ActualizarPerfilDto request);
+        Task<(bool Exito, string Mensaje)> ActualizarPerfilAsync(Guid usuarioId, ActualizarPerfilDto request, IFormFile? foto = null);
         Task<(bool Exito, string Mensaje, string? Url)> SubirFotoPerfilAsync(Guid usuarioId, IFormFile foto);
     }
 }

@@ -31,6 +31,7 @@ builder.Services.AddScoped<IMembresiaService, MembresiaService>();
 builder.Services.AddScoped<IReservaService, ReservaService>();
 builder.Services.AddScoped<IHorarioService, HorarioService>();
 builder.Services.AddScoped<ISeguimientoService, SeguimientoService>();
+builder.Services.AddScoped<IAsistenciaService, AsistenciaService>();
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -76,7 +77,14 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddControllers();
+// En desarrollo, el contenedor valida al arrancar que todas las dependencias de los controladores
+// estén registradas (evita descubrir un servicio sin registrar recién al llamar al endpoint).
+builder.Host.UseDefaultServiceProvider((context, options) =>
+{
+    options.ValidateOnBuild = context.HostingEnvironment.IsDevelopment();
+});
+
+builder.Services.AddControllers().AddControllersAsServices();
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddOpenApi(options =>

@@ -117,10 +117,10 @@ export const GrillaReservas = () => {
   };
 
   return (
-    <div className="animate-fade-in pb-10 max-w-lg mx-auto">
+    <div className="animate-fade-in pb-10 w-full max-w-6xl mx-auto">
 
       {/* Selector de Semanas */}
-      <div className="mt-2 mb-5">
+      <div className="mt-2 mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-[20px] md:text-[24px] font-display font-black text-mm-dark leading-none">
             {MONTH_NAMES[selected.getMonth()]} {selected.getFullYear()}
@@ -128,37 +128,34 @@ export const GrillaReservas = () => {
           <div className="flex gap-2">
             <button
               onClick={() => { const d = new Date(selected); d.setDate(d.getDate() - 7); setSelected(d); }}
-              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors bg-mm-light hover:bg-gray-200"
+              className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors bg-mm-light hover:bg-gray-200"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8L10 4" stroke="var(--color-mm-dark)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
             <button
               onClick={() => { const d = new Date(selected); d.setDate(d.getDate() + 7); setSelected(d); }}
-              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors bg-mm-light hover:bg-gray-200"
+              className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors bg-mm-light hover:bg-gray-200"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4L10 8L6 12" stroke="var(--color-mm-dark)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-7 gap-1 md:gap-2">
+        <div className="grid grid-cols-7 gap-1 md:gap-4">
           {weekDays.map((d, i) => {
             const isSelected = toFormatYYYYMMDD(d) === fechaFormat;
             return (
               <button
                 key={i}
                 onClick={() => setSelected(d)}
-                className={`flex flex-col items-center gap-1 py-2 rounded-2xl transition-all duration-150 ${isSelected ? 'bg-mm-dark' : 'bg-transparent hover:bg-gray-50'}`}
+                className={`flex flex-col items-center justify-center gap-1 py-3 md:py-4 rounded-2xl md:rounded-3xl transition-all duration-150 ${isSelected ? 'bg-mm-dark shadow-md scale-105' : 'bg-mm-surface border border-gray-100 hover:bg-gray-50'}`}
               >
-                <span className={`text-xs font-medium ${isSelected ? 'text-mm-light opacity-60' : 'text-mm-dark opacity-40'}`}>
+                <span className={`text-xs md:text-sm font-medium ${isSelected ? 'text-mm-light opacity-80' : 'text-gray-500'}`}>
                   {DAYS[d.getDay()]}
                 </span>
-                <span className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-mm-dark'}`}>
+                <span className={`text-sm md:text-xl font-black ${isSelected ? 'text-white' : 'text-mm-dark'}`}>
                   {d.getDate()}
                 </span>
-                {isSelected && (
-                  <div className="w-1.5 h-1.5 rounded-full bg-mm-purple" />
-                )}
               </button>
             );
           })}
@@ -167,21 +164,21 @@ export const GrillaReservas = () => {
 
       {/* Lista de Turnos */}
       <div>
-        <p className="text-xs font-medium uppercase mb-3 text-mm-dark opacity-40 tracking-[0.08em]">
+        <p className="text-xs md:text-sm font-medium uppercase mb-4 text-mm-dark opacity-40 tracking-[0.08em]">
           {selected.getDate()} de {MONTH_NAMES[selected.getMonth()]}
         </p>
 
         {isLoading ? (
-          <div className="rounded-2xl p-10 text-center bg-mm-surface shadow-[0_2px_12px_rgba(31,30,46,0.06)] animate-pulse">
+          <div className="rounded-3xl p-12 text-center bg-mm-surface shadow-[0_2px_12px_rgba(31,30,46,0.06)] animate-pulse">
             <div className="w-8 h-8 border-4 border-mm-purple border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           </div>
         ) : dayClasses.length === 0 ? (
-          <div className="rounded-2xl p-10 text-center bg-mm-surface shadow-[0_2px_12px_rgba(31,30,46,0.06)]">
-            <div className="text-3xl mb-2">🏋️</div>
-            <p className="text-sm font-medium text-mm-dark opacity-40">No hay turnos este día</p>
+          <div className="rounded-3xl p-12 text-center bg-mm-surface shadow-[0_2px_12px_rgba(31,30,46,0.06)] border border-gray-100">
+            <div className="text-4xl mb-3">🏋️</div>
+            <p className="text-base font-medium text-mm-dark opacity-40">No hay turnos este día</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {dayClasses.map((cls) => {
               const horaDisplay = formatearHora(cls.horaInicio);
               const miReservaEnEsteHorario = misReservas.find(r =>
@@ -198,29 +195,29 @@ export const GrillaReservas = () => {
               return (
                 <div
                   key={cls.horarioId}
-                  className={`rounded-2xl p-4 flex items-center gap-4 bg-mm-surface shadow-[0_2px_12px_rgba(31,30,46,0.06)] transition-all ${
-                    isMyBooking ? "border-[3px] border-mm-purple" : "border-l-[3px] border-l-transparent"
+                  className={`rounded-3xl p-5 flex items-center gap-4 bg-mm-surface shadow-[0_2px_12px_rgba(31,30,46,0.06)] transition-all ${
+                    isMyBooking ? "border-[3px] border-mm-purple" : "border border-gray-100"
                   }`}
                 >
-                  <div className="shrink-0 w-16 text-center rounded-xl py-2 bg-mm-light">
-                    <p className="font-sans text-sm font-black text-mm-dark leading-none">
+                  <div className="shrink-0 w-20 text-center rounded-2xl py-3 bg-mm-light">
+                    <p className="font-sans text-lg font-black text-mm-dark leading-none">
                       {horaDisplay}
                     </p>
-                    <p className="text-xs text-mm-dark opacity-40 mt-0.5">
+                    <p className="text-xs font-bold text-mm-dark opacity-40 mt-1">
                       hs
                     </p>
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-display text-[26px] font-black text-mm-dark leading-none">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="font-display text-3xl font-black text-mm-dark leading-none">
                         {spotsLeft}
                       </span>
-                      <span className="text-xs text-mm-dark opacity-45">
-                        {spotsLeft === 1 ? "lugar disponible" : "lugares disponibles"}
+                      <span className="text-xs font-medium text-gray-500">
+                        {spotsLeft === 1 ? "lugar libre" : "lugares libres"}
                       </span>
                     </div>
-                    <div className="mt-2 w-full h-1.5 rounded-full overflow-hidden bg-mm-light">
+                    <div className="mt-3 w-full h-2 rounded-full overflow-hidden bg-gray-100">
                       <div
                         style={{ width: `${fillPct}%`, backgroundColor: barColor }}
                         className="h-full rounded-full transition-all duration-300 ease-out"
@@ -232,7 +229,7 @@ export const GrillaReservas = () => {
                     <button
                       onClick={() => abrirModalCancelacion(cls, miReservaEnEsteHorario.turnoId)}
                       disabled={isProcessing}
-                      className="shrink-0 text-xs font-semibold px-3 py-2 rounded-xl transition-all duration-150 bg-mm-dark text-white active:scale-95"
+                      className="shrink-0 text-sm font-bold px-4 py-2.5 rounded-xl transition-all duration-150 bg-mm-dark text-white hover:bg-gray-800 active:scale-95"
                     >
                       Reservado
                     </button>
@@ -240,15 +237,15 @@ export const GrillaReservas = () => {
                     <button
                       onClick={() => handleReservar(cls.horarioId)}
                       disabled={isFull || hasBookingToday || isProcessing}
-                      className={`shrink-0 text-xs font-semibold px-3 py-2 rounded-xl transition-all duration-150 active:scale-95 ${
+                      className={`shrink-0 text-sm font-bold px-4 py-2.5 rounded-xl transition-all duration-150 active:scale-95 ${
                         hasBookingToday
                           ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                           : isFull
-                          ? "bg-[#d8d9e6] text-[#8b8b9a] cursor-not-allowed"
-                          : "bg-mm-purple text-white hover:opacity-90"
+                          ? "bg-red-50 text-red-500 cursor-not-allowed"
+                          : "bg-mm-purple text-white hover:bg-purple-700 shadow-sm"
                       }`}
                     >
-                      {hasBookingToday ? "Bloqueado" : isFull ? "Sin cupos" : "Reservar"}
+                      {hasBookingToday ? "Bloqueado" : isFull ? "Agotado" : "Reservar"}
                     </button>
                   )}
                 </div>

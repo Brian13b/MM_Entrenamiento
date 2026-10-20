@@ -113,16 +113,38 @@ namespace MMEntrenamiento.Application.Services
             };
         }
 
-        public async Task<(bool Exito, string Mensaje)> ActualizarPerfilAsync(Guid usuarioId, ActualizarPerfilDto request)
+        public async Task<(bool Exito, string Mensaje)> ActualizarPerfilAsync(Guid usuarioId, ActualizarPerfilDto request, IFormFile? foto = null)
         {
             var usuario = await _userManager.FindByIdAsync(usuarioId.ToString());
             if (usuario == null) return (false, "Usuario no encontrado.");
 
-            usuario.NombreCompleto = request.NombreCompleto;
-            usuario.PhoneNumber = request.Telefono;
+            if (string.IsNullOrWhiteSpace(request.NombreCompleto))
+                return (false, "El nombre no puede estar vacío.");
+
+            usuario.NombreCompleto = request.NombreCompleto.Trim();
+            usuario.PhoneNumber = string.IsNullOrWhiteSpace(request.Telefono) ? null : request.Telefono.Trim();
+
+            // El email es también el nombre de usuario (el login busca por email).
+            var nuevoEmail = request.Email?.Trim();
+            if (!string.IsNullOrEmpty(nuevoEmail) && !string.Equals(nuevoEmail, usuario.Email, StringComparison.OrdinalIgnoreCase))
+            {
+                usuario.Email = nuevoEmail;
+                usuario.UserName = nuevoEmail;
+            }
+
+            if (foto != null)
+            {
+                var (subio, mensajeFoto, url) = await SubirImagenAsync(foto);
+                if (!subio) return (false, mensajeFoto);
+                usuario.FotoPerfilUrl = url;
+            }
 
             var result = await _userManager.UpdateAsync(usuario);
-            if (!result.Succeeded) return (false, "Error al actualizar el perfil.");
+            if (!result.Succeeded)
+            {
+                var duplicado = result.Errors.Any(e => e.Code is "DuplicateEmail" or "DuplicateUserName");
+                return (false, duplicado ? "Ese email ya está en uso por otra cuenta." : "Error al actualizar el perfil.");
+            }
 
             return (true, "Perfil actualizado correctamente.");
         }
@@ -132,10 +154,22 @@ namespace MMEntrenamiento.Application.Services
             var usuario = await _userManager.FindByIdAsync(usuarioId.ToString());
             if (usuario == null) return (false, "Usuario no encontrado.", null);
 
+            var (exito, mensaje, url) = await SubirImagenAsync(foto);
+            if (!exito) return (false, mensaje, null);
+
+            usuario.FotoPerfilUrl = url;
+            await _userManager.UpdateAsync(usuario);
+
+            return (true, "Foto de perfil actualizada con éxito.", url);
+        }
+
+        private async Task<(bool Exito, string Mensaje, string? Url)> SubirImagenAsync(IFormFile foto)
+        {
             if (foto.Length == 0) return (false, "El archivo está vacío.", null);
+            if (foto.ContentType == null || !foto.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+                return (false, "El archivo debe ser una imagen.", null);
 
             using var stream = foto.OpenReadStream();
-
             var uploadParams = new ImageUploadParams()
             {
                 File = new FileDescription(foto.FileName, stream),
@@ -144,14 +178,10 @@ namespace MMEntrenamiento.Application.Services
             };
 
             var uploadResult = await _cloudinary.UploadAsync(uploadParams);
-
             if (uploadResult.Error != null)
                 return (false, "Error al subir la imagen a la nube.", null);
 
-            usuario.FotoPerfilUrl = uploadResult.SecureUrl.ToString();
-            await _userManager.UpdateAsync(usuario);
-
-            return (true, "Foto de perfil actualizada con éxito.", usuario.FotoPerfilUrl);
+            return (true, "Imagen subida.", uploadResult.SecureUrl.ToString());
         }
     }
 }

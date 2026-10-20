@@ -20,6 +20,10 @@ import { HorariosAdmin } from '../pages/admin/HorariosAdmin';
 
 import { GrillaProfe } from '../pages/profe/GrillaProfe';
 import { AsistenciaClase } from '../pages/profe/AsistenciaClase';
+import { ProfeInicio } from '../pages/profe/ProfeInicio';
+import { ProfeUsuarios } from '../pages/profe/ProfeUsuarios';
+import { PerfilAlumnoProfe } from '../pages/profe/PerfilAlumnoProfe';
+import { MiPerfil } from '../pages/shared/MiPerfil';
 
 export const AppRouter = () => {
   return (
@@ -41,8 +45,12 @@ export const AppRouter = () => {
         {/* Zona Profe */}
         <Route element={<ProtectedRoute allowedRoles={['Profe', 'Admin']} />}>
           <Route path="/profe" element={<ProfeLayout />}>
-            <Route index element={<GrillaProfe />} />
+            <Route index element={<ProfeInicio />} />
+            <Route path="turnos" element={<GrillaProfe />} /> 
             <Route path="clase/:turnoId" element={<AsistenciaClase />} />
+            <Route path="usuarios" element={<ProfeUsuarios />} />
+            <Route path="usuarios/:id" element={<PerfilAlumnoProfe />} />
+            <Route path="perfil" element={<MiPerfil />} />
           </Route>
         </Route>
 

@@ -5,6 +5,14 @@ export const seguimientoService = {
     const response = await api.get('/seguimiento/mi-ficha');
     return response.data;
   },
+  actualizarMiFicha: async (datos) => {
+    const response = await api.put('/seguimiento/mi-ficha', datos);
+    return response.data;
+  },
+  getAlumnos: async () => {
+    const response = await api.get('/seguimiento/alumnos');
+    return response.data;
+  },
   getMiPlan: async () => {
     const response = await api.get('/seguimiento/mi-plan');
     return response.data;

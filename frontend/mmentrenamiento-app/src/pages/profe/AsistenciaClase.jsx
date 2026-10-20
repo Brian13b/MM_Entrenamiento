@@ -2,13 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
-  ArrowLeftIcon, ChevronDownIcon, ExclamationTriangleIcon, CheckIcon, XMarkIcon
+  ArrowLeftIcon, ExclamationTriangleIcon, CheckIcon, XMarkIcon
 } from '@heroicons/react/24/outline';
 import { asistenciaService } from '../../services/asistenciaService';
 import { seguimientoService } from '../../services/seguimientoService';
-import { etiquetaTurno, etiquetaTipoReserva, esNotFound } from '../../utils/fechas';
+import { etiquetaTurno, formatearHora, esNotFound } from '../../utils/fechas';
+import { PlanFrame } from '../../components/perfil/PlanFrame';
 
-// Una lesión "vacía" no debe disparar la alerta.
 const tieneLesiones = (ficha) => {
   const texto = ficha?.lesiones?.trim();
   return !!texto && !/^(ninguna?|no|-|n\/a)$/i.test(texto);
@@ -24,11 +24,9 @@ export const AsistenciaClase = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  // reservaId -> true (presente) / false (ausente)
   const [asistencia, setAsistencia] = useState({});
-  // usuarioId -> { objetivos, lesiones } | null si no se pudo cargar
   const [fichas, setFichas] = useState({});
-  const [expandido, setExpandido] = useState(null);
+  const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null);
 
   const cargar = useCallback(async () => {
     try {
@@ -39,12 +37,10 @@ export const AsistenciaClase = () => {
       const data = await asistenciaService.getDetalleClase(turnoId);
       setDetalle(data);
 
-      // Lo ya guardado se respeta; las reservas todavía activas arrancan como presentes.
       const inicial = {};
       data.alumnosPresentes.forEach((a) => { inicial[a.reservaId] = a.estado !== 'Ausente'; });
       setAsistencia(inicial);
 
-      // Las fichas se precargan para avisar de las lesiones antes de la clase.
       const resultados = await Promise.allSettled(
         data.alumnosPresentes.map((a) => seguimientoService.getFichaAlumno(a.usuarioId))
       );
@@ -53,13 +49,17 @@ export const AsistenciaClase = () => {
         mapa[a.usuarioId] = resultados[i].status === 'fulfilled' ? resultados[i].value : null;
       });
       setFichas(mapa);
+      
+      if (data.alumnosPresentes.length > 0) {
+        setAlumnoSeleccionado(data.alumnosPresentes[0].reservaId);
+      }
+      
     } catch (error) {
       if (esNotFound(error)) {
         setNoEncontrado(true);
       } else {
         setHayError(true);
         toast.error('No se pudo cargar la clase.');
-        console.error(error);
       }
     } finally {
       setIsLoading(false);
@@ -71,7 +71,10 @@ export const AsistenciaClase = () => {
     cargar();
   }, [cargar]);
 
-  const marcar = (reservaId, presente) => setAsistencia((prev) => ({ ...prev, [reservaId]: presente }));
+  const marcar = (e, reservaId, presente) => {
+    e.stopPropagation();
+    setAsistencia((prev) => ({ ...prev, [reservaId]: presente }));
+  };
 
   const handleGuardar = async () => {
     try {
@@ -84,13 +87,12 @@ export const AsistenciaClase = () => {
       await cargar();
     } catch (error) {
       toast.error(error.response?.data?.message || 'No se pudo guardar la asistencia.');
-      console.error(error);
     } finally {
       setIsSaving(false);
     }
   };
 
-  const volver = () => navigate('/profe');
+  const volver = () => navigate('/profe/turnos');
 
   if (isLoading && !detalle) {
     return (
@@ -103,149 +105,199 @@ export const AsistenciaClase = () => {
 
   if (noEncontrado || hayError || !detalle) {
     return (
-      <div className="max-w-lg mx-auto text-center bg-mm-surface rounded-4xl p-8 shadow-sm border border-gray-100">
+      <div className="max-w-lg mx-auto text-center bg-mm-surface rounded-4xl p-8 shadow-sm border border-gray-100 mt-10">
         <p className="text-sm font-bold text-mm-dark opacity-60 mb-4">
           {noEncontrado ? 'No encontramos esa clase.' : 'No pudimos cargar la clase.'}
         </p>
-        <div className="flex gap-2 justify-center">
-          {hayError && (
-            <button onClick={cargar} className="bg-mm-purple text-white px-6 py-2 rounded-full font-semibold text-sm">Reintentar</button>
-          )}
-          <button onClick={volver} className="bg-mm-light text-mm-dark px-6 py-2 rounded-full font-semibold text-sm">Volver a la grilla</button>
-        </div>
+        <button onClick={volver} className="bg-mm-light text-mm-dark px-6 py-2 rounded-full font-semibold text-sm">Volver a la grilla</button>
       </div>
     );
   }
 
   const alumnos = detalle.alumnosPresentes;
   const presentes = alumnos.filter((a) => asistencia[a.reservaId]).length;
+  const alumnoActivo = alumnos.find(a => a.reservaId === alumnoSeleccionado);
+  const fichaActiva = alumnoActivo ? fichas[alumnoActivo.usuarioId] : null;
+
+  const PanelDetalles = ({ alumno, ficha }) => {
+    if (!alumno) return null;
+    const lesion = tieneLesiones(ficha);
+    
+    return (
+      <div className="animate-fade-in bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 flex flex-col h-full">
+        <div className="hidden lg:flex gap-6 border-b border-gray-100 pb-3 mb-6">
+          <span className="font-bold text-mm-dark border-b-2 border-mm-purple pb-3 -mb-3">{alumno.nombreCompleto}</span>
+        </div>
+
+        {ficha === undefined ? (
+          <p className="text-sm text-gray-400">Cargando datos...</p>
+        ) : ficha === null ? (
+          <p className="text-sm text-red-500 font-medium">No se pudo cargar la ficha técnica.</p>
+        ) : (
+          <div className="flex flex-col gap-8 flex-1">
+            <div>
+              <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">Ficha Técnica</h3>
+              <div className="bg-gray-50 rounded-2xl p-5 flex flex-col gap-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-1">
+                  <span className="text-sm font-medium text-gray-500">Objetivos</span>
+                  <span className="text-sm font-bold text-mm-dark text-right">{ficha.objetivos || 'Sin objetivos cargados'}</span>
+                </div>
+                <hr className="border-gray-200" />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-1">
+                  <span className="text-sm font-medium text-gray-500">Lesiones</span>
+                  <span className={`text-sm font-bold text-right ${lesion ? 'text-amber-600' : 'text-mm-dark'}`}>{ficha.lesiones || 'Ninguna'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 flex flex-col">
+              <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">Plan de Entrenamiento (OneDrive)</h3>
+              <div className="flex-1 min-h-[400px] bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 relative">
+                {ficha.driveItemId ? (
+                  <PlanFrame driveItemId={ficha.driveItemId} />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+                    <span className="text-4xl mb-2">📋</span>
+                    <p className="text-sm font-bold text-gray-400">Sin plan vinculado</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <div className="animate-fade-in max-w-lg mx-auto pb-28">
-      <div className="flex items-center gap-4 mb-6">
-        <button onClick={volver} className="w-10 h-10 bg-mm-surface rounded-full flex items-center justify-center text-mm-dark hover:bg-gray-200 transition-colors active:scale-95">
+    <div className="animate-fade-in max-w-7xl mx-auto pb-10">
+      
+      {/* Título adaptado al turno actual */}
+      <div className="flex items-center gap-4 mb-6 md:mb-8">
+        <button onClick={volver} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-mm-dark shadow-sm hover:bg-gray-50 transition-colors active:scale-95">
           <ArrowLeftIcon className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-display font-black text-mm-dark leading-none">Asistencia</h1>
-          <p className="text-sm font-medium text-gray-500 mt-1">{etiquetaTurno(detalle.fecha, detalle.horaInicio)} hs</p>
+          <h1 className="text-2xl md:text-3xl font-display font-black text-mm-dark leading-none">
+            Turno de las {formatearHora(detalle.horaInicio)} hs
+          </h1>
+          <p className="text-sm font-bold text-gray-400 mt-1 uppercase tracking-wider">{etiquetaTurno(detalle.fecha, detalle.horaInicio)}</p>
         </div>
       </div>
 
-      {alumnos.length === 0 ? (
-        <div className="bg-mm-surface rounded-4xl p-8 text-center shadow-sm border border-gray-100">
-          <p className="text-sm font-bold text-mm-dark opacity-40">No hay alumnos inscriptos en esta clase.</p>
-        </div>
-      ) : (
-        <>
-          <p className="text-xs font-medium text-gray-500 mb-3 px-1">
-            Todos arrancan como presentes: marcá a quienes faltaron. <strong className="text-mm-dark">{presentes}/{alumnos.length}</strong> presentes.
-          </p>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* COLUMNA IZQUIERDA: Lista de Asistencia */}
+        <div className="lg:col-span-4 flex flex-col gap-4">
+          <div className="flex items-center justify-between px-2 mb-2">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Asistencia ({presentes}/{alumnos.length})</span>
+          </div>
 
-          <div className="flex flex-col gap-3">
-            {alumnos.map((alumno) => {
-              const ficha = fichas[alumno.usuarioId];
-              const lesion = tieneLesiones(ficha);
-              const abierto = expandido === alumno.reservaId;
-              const presente = !!asistencia[alumno.reservaId];
+          {alumnos.length === 0 ? (
+            <div className="bg-white rounded-3xl p-8 text-center shadow-sm border border-gray-100">
+              <p className="text-sm font-bold text-mm-dark opacity-40">No hay alumnos inscriptos.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {alumnos.map((alumno) => {
+                const ficha = fichas[alumno.usuarioId];
+                const lesion = tieneLesiones(ficha);
+                const isSelected = alumnoSeleccionado === alumno.reservaId;
+                const presente = !!asistencia[alumno.reservaId];
+                const iniciales = alumno.nombreCompleto.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
-              return (
-                <div key={alumno.reservaId} className={`bg-mm-surface rounded-2xl shadow-sm border ${lesion ? 'border-amber-200' : 'border-gray-100'} overflow-hidden`}>
-                  <div className="p-4 flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm text-mm-dark truncate">{alumno.nombreCompleto}</p>
-                      <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider ${alumno.tipoReserva === 'Fija' ? 'text-mm-purple' : 'text-blue-600'}`}>
-                          {etiquetaTipoReserva(alumno.tipoReserva)}
-                        </span>
-                        {alumno.primeraClase && (
-                          <span className="text-[10px] font-bold bg-sky-50 text-sky-600 px-2 py-0.5 rounded-full border border-sky-100 uppercase tracking-wider">Primera clase</span>
-                        )}
-                        {lesion && (
-                          <span className="flex items-center gap-1 text-[10px] font-bold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-100 uppercase tracking-wider">
-                            <ExclamationTriangleIcon className="w-3 h-3" /> Lesión
-                          </span>
-                        )}
+                return (
+                  <div key={alumno.reservaId} className="flex flex-col gap-2">
+                    <div 
+                      onClick={() => setAlumnoSeleccionado(alumno.reservaId)}
+                      className={`cursor-pointer rounded-2xl p-3 flex items-center gap-3 transition-all duration-200 border-2 ${
+                        isSelected 
+                          ? 'bg-white border-mm-purple shadow-md scale-[1.02]' 
+                          : 'bg-white border-transparent shadow-sm hover:border-purple-100'
+                      } ${!presente ? 'opacity-60 grayscale-[30%]' : ''}`}
+                    >
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-sm ${isSelected ? 'bg-purple-100 text-mm-purple' : 'bg-gray-100 text-gray-500'}`}>
+                        {iniciales}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className={`font-bold text-sm truncate ${!presente ? 'text-gray-500 line-through' : 'text-mm-dark'}`}>
+                          {alumno.nombreCompleto}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {lesion && <ExclamationTriangleIcon className="w-3.5 h-3.5 text-amber-500" />}
+                          {alumno.primeraClase && <span className="w-2 h-2 rounded-full bg-sky-400" title="Primera Clase"></span>}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center bg-gray-50 rounded-xl p-1 shrink-0 border border-gray-100">
+                        <button
+                          onClick={(e) => marcar(e, alumno.reservaId, true)}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${presente ? 'bg-mm-purple text-white shadow-sm' : 'text-gray-300 hover:text-mm-purple'}`}
+                        >
+                          <CheckIcon className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={(e) => marcar(e, alumno.reservaId, false)}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${!presente ? 'bg-mm-dark text-white shadow-sm' : 'text-gray-300 hover:text-mm-dark'}`}
+                        >
+                          <XMarkIcon className="w-5 h-5" />
+                        </button>
                       </div>
                     </div>
 
-                    <div className="flex bg-mm-light rounded-xl p-1 shrink-0">
-                      <button
-                        onClick={() => marcar(alumno.reservaId, true)}
-                        title="Presente"
-                        className={`p-2 rounded-lg transition-colors ${presente ? 'bg-green-500 text-white shadow-sm' : 'text-gray-400 hover:text-green-600'}`}
-                      >
-                        <CheckIcon className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => marcar(alumno.reservaId, false)}
-                        title="Ausente"
-                        className={`p-2 rounded-lg transition-colors ${!presente ? 'bg-red-500 text-white shadow-sm' : 'text-gray-400 hover:text-red-600'}`}
-                      >
-                        <XMarkIcon className="w-5 h-5" />
-                      </button>
-                    </div>
-
-                    <button
-                      onClick={() => setExpandido(abierto ? null : alumno.reservaId)}
-                      title="Ver ficha técnica"
-                      className="p-2 rounded-lg text-gray-400 hover:bg-gray-50 transition-colors"
-                    >
-                      <ChevronDownIcon className={`w-5 h-5 transition-transform ${abierto ? 'rotate-180' : ''}`} />
-                    </button>
+                    {isSelected && (
+                      <div className="lg:hidden mt-2 mb-4">
+                         <PanelDetalles alumno={alumnoActivo} ficha={fichaActiva} />
+                      </div>
+                    )}
                   </div>
+                );
+              })}
+            </div>
+          )}
 
-                  {abierto && (
-                    <div className="px-4 pb-4 pt-1 border-t border-gray-50 animate-fade-in">
-                      {ficha === undefined ? (
-                        <p className="text-xs text-gray-400 pt-3">Cargando ficha...</p>
-                      ) : ficha === null ? (
-                        <p className="text-xs text-red-500 font-medium pt-3">No se pudo cargar la ficha técnica.</p>
-                      ) : (
-                        <div className="flex flex-col gap-3 pt-3">
-                          <div>
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Objetivos</p>
-                            <p className="text-sm text-mm-dark">{ficha.objetivos || 'Sin objetivos cargados.'}</p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Lesiones</p>
-                            <p className={`text-sm ${lesion ? 'text-amber-700 font-bold' : 'text-mm-dark'}`}>{ficha.lesiones || 'Ninguna.'}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
-
-      {detalle.alumnosQueAvisaron.length > 0 && (
-        <section className="mt-8">
-          <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3 px-1">Avisaron que no vienen</h2>
-          <div className="flex flex-col gap-2">
-            {detalle.alumnosQueAvisaron.map((a) => (
-              <div key={a.usuarioId} className="bg-mm-surface rounded-2xl p-4 border border-gray-100 shadow-sm">
-                <p className="font-bold text-sm text-mm-dark">{a.nombreCompleto}</p>
-                {a.motivo && <p className="text-xs text-gray-500 mt-0.5">{a.motivo}</p>}
+          {detalle.alumnosQueAvisaron.length > 0 && (
+            <div className="mt-4">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider px-2">Avisaron que no vienen</span>
+              <div className="flex flex-col gap-2 mt-3">
+                {detalle.alumnosQueAvisaron.map((a) => (
+                  <div key={a.usuarioId} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm opacity-60">
+                    <p className="font-bold text-sm text-gray-500 line-through">{a.nombreCompleto}</p>
+                    {a.motivo && <p className="text-xs text-gray-400 mt-0.5">{a.motivo}</p>}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </section>
-      )}
+            </div>
+          )}
 
-      {alumnos.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-mm-light via-mm-light to-transparent">
-          <button
-            onClick={handleGuardar} disabled={isSaving}
-            className="w-full max-w-lg mx-auto block bg-mm-purple text-white font-bold rounded-2xl py-4 text-sm shadow-lg disabled:opacity-70 active:scale-95 transition-all"
-          >
-            {isSaving ? 'Guardando...' : 'Guardar asistencia'}
-          </button>
+          {/* Botón Guardar movido al final de la columna izquierda */}
+          {alumnos.length > 0 && (
+             <div className="mt-6 pb-6">
+               <button
+                onClick={handleGuardar} disabled={isSaving}
+                className="w-full bg-mm-purple text-white font-bold rounded-2xl py-4 text-sm shadow-sm disabled:opacity-70 active:scale-95 transition-all hover:bg-purple-700"
+              >
+                {isSaving ? 'Guardando...' : 'Guardar asistencia'}
+              </button>
+             </div>
+          )}
         </div>
-      )}
+
+        {/* COLUMNA DERECHA: Ficha y Plan (Visible solo en Desktop) */}
+        <div className="hidden lg:block lg:col-span-8">
+          {alumnoActivo ? (
+            // eslint-disable-next-line react-hooks/static-components
+            <PanelDetalles alumno={alumnoActivo} ficha={fichaActiva} />
+          ) : (
+             <div className="bg-white rounded-3xl p-12 border border-gray-100 shadow-sm text-center h-full flex flex-col items-center justify-center">
+                <span className="text-5xl mb-4 opacity-50">👈</span>
+                <p className="text-lg font-bold text-gray-400">Seleccioná un alumno de la lista para ver su ficha y plan.</p>
+             </div>
+          )}
+        </div>
+
+      </div>
     </div>
   );
 };

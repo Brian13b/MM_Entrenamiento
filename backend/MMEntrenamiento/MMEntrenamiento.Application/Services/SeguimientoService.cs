@@ -1,4 +1,5 @@
-﻿using MMEntrenamiento.Application.DTOs.Seguimiento;
+﻿using Microsoft.AspNetCore.Identity;
+using MMEntrenamiento.Application.DTOs.Seguimiento;
 using MMEntrenamiento.Application.Interfaces;
 using MMEntrenamiento.Application.Interfaces.Repositories;
 using MMEntrenamiento.Domain.Entities;
@@ -9,10 +10,40 @@ namespace MMEntrenamiento.Application.Services
     public class SeguimientoService : ISeguimientoService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly UserManager<Usuario> _userManager;
 
-        public SeguimientoService(IUnitOfWork unitOfWork)
+        public SeguimientoService(IUnitOfWork unitOfWork, UserManager<Usuario> userManager)
         {
             _unitOfWork = unitOfWork;
+            _userManager = userManager;
+        }
+
+        public async Task<IEnumerable<AlumnoDirectorioProfeDto>> ObtenerDirectorioAlumnosAsync()
+        {
+            // Solo alumnos "puros": se excluyen las cuentas que además son Admin o Profe.
+            var alumnoIds = (await _userManager.GetUsersInRoleAsync("Alumno")).Select(u => u.Id).ToHashSet();
+            alumnoIds.ExceptWith((await _userManager.GetUsersInRoleAsync("Admin")).Select(u => u.Id));
+            alumnoIds.ExceptWith((await _userManager.GetUsersInRoleAsync("Profe")).Select(u => u.Id));
+
+            var usuarios = await _unitOfWork.Usuarios.FindAsync(
+                u => alumnoIds.Contains(u.Id),
+                u => u.FichaTecnica!,
+                u => u.OneDrivePlan!);
+
+            return usuarios
+                .OrderBy(u => u.NombreCompleto)
+                .Select(u => new AlumnoDirectorioProfeDto
+                {
+                    Id = u.Id,
+                    NombreCompleto = u.NombreCompleto,
+                    Email = u.Email ?? string.Empty,
+                    Telefono = u.PhoneNumber,
+                    FotoPerfilUrl = u.FotoPerfilUrl,
+                    Activo = u.EstadoCuenta == EstadoCuenta.Activo,
+                    TienePlan = u.OneDrivePlan != null && !string.IsNullOrWhiteSpace(u.OneDrivePlan.DriveItemId),
+                    Lesiones = u.FichaTecnica?.Lesiones
+                })
+                .ToList();
         }
 
         public async Task<FichaTecnicaDto?> ObtenerFichaAsync(Guid usuarioId)

@@ -11,9 +11,19 @@
 
     public class ActualizarPerfilDto
     {
+        [System.ComponentModel.DataAnnotations.StringLength(150, MinimumLength = 2)]
         public string NombreCompleto { get; set; } = null!;
-        public string? Telefono { get; set; }
 
+        [System.ComponentModel.DataAnnotations.EmailAddress]
+        public string? Email { get; set; }
+
+        public string? Telefono { get; set; }
+    }
+
+    // Variante multipart/form-data: mismos campos + foto opcional, en una sola llamada.
+    public class ActualizarPerfilConFotoDto : ActualizarPerfilDto
+    {
+        public Microsoft.AspNetCore.Http.IFormFile? Foto { get; set; }
     }
 
     public class EstadisticasAlumnoDto

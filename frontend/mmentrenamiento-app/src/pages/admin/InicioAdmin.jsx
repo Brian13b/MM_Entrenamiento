@@ -141,9 +141,11 @@ export const InicioAdmin = () => {
           ============================================== */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* BUSCADOR DE COBRO RÁPIDO */}
-        <div className="lg:col-span-1 bg-mm-dark p-6 rounded-4xl shadow-sm relative overflow-hidden flex flex-col">
-          <div className="absolute top-0 right-0 p-6 opacity-5">
-            <CurrencyDollarIcon className="w-32 h-32" />
+        <div className="lg:col-span-1 bg-mm-dark p-6 rounded-4xl shadow-sm relative flex flex-col">
+          <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-4xl">
+            <div className="absolute top-0 right-0 p-6 opacity-5">
+              <CurrencyDollarIcon className="w-32 h-32" />
+            </div>
           </div>
 
           <h2 className="text-lg font-bold text-white mb-1 relative z-10">Cobro Rápido</h2>
