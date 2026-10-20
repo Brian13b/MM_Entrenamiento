@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeftIcon, CurrencyDollarIcon, ClipboardDocumentCheckIcon, 
+import {
+  ArrowLeftIcon, CurrencyDollarIcon, ClipboardDocumentCheckIcon,
   LinkIcon, NoSymbolIcon, PlusCircleIcon, MinusCircleIcon,
   PhoneIcon, StarIcon, CalendarDaysIcon, TrashIcon, ArrowTopRightOnSquareIcon,
   PencilSquareIcon, XMarkIcon
@@ -11,14 +11,21 @@ import toast from 'react-hot-toast';
 import { seguimientoService } from '../../../services/seguimientoService';
 import { administracionService } from '../../../services/administracionService';
 import { membresiasService } from '../../../services/membresiasService';
+import { reservasService } from '../../../services/reservasService';
+import { AgregarTurnoUsuario } from './AgregarTurnoUsuario';
+import { useConfirm } from '../../../hooks/useConfirm';
+import { etiquetaTurno, formatearHora, nombreDiaSemana, etiquetaTipoReserva, esNotFound } from '../../../utils/fechas';
+
+const TURNOS_VACIOS = { proximasClases: [], misSuscripcionesFijas: [] };
 
 export const PerfilUsuarioAdmin = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [isLoading, setIsLoading] = useState(true);
+  const [confirmar, confirmDialog] = useConfirm();
   const [usuario, setUsuario] = useState(null);
-  
+
   // Estados de Edición de Perfil
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
   const [datosEdicion, setDatosEdicion] = useState({ nombreCompleto: '', telefono: '' });
@@ -28,7 +35,6 @@ export const PerfilUsuarioAdmin = () => {
   const [planLink, setPlanLink] = useState('');
   const [pestanasDisponibles, setPestanasDisponibles] = useState([]);
   const [pestanaSeleccionada, setPestanaSeleccionada] = useState('');
-  const [buscandoPestanas, setBuscandoPestanas] = useState(false);
 
   // Estados de Membresía y Créditos
   const [creditosAOtorgar, setCreditosAOtorgar] = useState(0);
@@ -37,44 +43,54 @@ export const PerfilUsuarioAdmin = () => {
 
   // Estados de Pagos
   const [pago, setPago] = useState({ monto: '', metodo: 'Transferencia', mes: new Date().getMonth() + 1 });
-  const [historialPagos, setHistorialPagos] = useState([
-    { id: 1, fecha: '10/05/2026', monto: 15000, mesAbonado: 'Mayo', metodo: 'Transferencia' }
-  ]);
+  const [historialPagos, setHistorialPagos] = useState([]);
 
   // Estados de Turnos
   const [turnosData, setTurnosData] = useState({ proximasClases: [], misSuscripcionesFijas: [] });
 
-  // MOCK DATA: Turnos
-  const mockGetTurnos = async () => {
-    return new Promise(resolve => setTimeout(() => resolve({
-      proximasClases: [
-        { turnoId: 1, fecha: '16/10/2026', horaInicio: '18:00', tipoReserva: 'Fija' },
-        { turnoId: 2, fecha: '18/10/2026', horaInicio: '19:00', tipoReserva: 'Eventual' }
-      ],
-      misSuscripcionesFijas: [
-        { turnoFijoId: 101, diaSemana: 'Lunes', horaInicio: '18:00' },
-        { turnoFijoId: 102, diaSemana: 'Miércoles', horaInicio: '18:00' }
-      ]
-    }), 500));
+  const cargarTurnos = async () => {
+    try {
+      return await reservasService.getTurnosDeUsuario(id);
+    } catch (error) {
+      if (esNotFound(error)) return TURNOS_VACIOS;
+      throw error;
+    }
+  };
+
+  const recargarUsuario = async () => {
+    const datosUsuario = await administracionService.getUsuarioById(id);
+    setUsuario(datosUsuario);
+    setMembresiaSeleccionada(datosUsuario.membresiaId ?? '');
+  };
+
+  const recargarPagos = async () => {
+    const pagos = await administracionService.getPagosUsuario(id);
+    setHistorialPagos(pagos || []);
+  };
+
+  const recargarTurnos = async () => {
+    setTurnosData((await cargarTurnos()) || TURNOS_VACIOS);
   };
 
   useEffect(() => {
     const fetchDatosCRM = async () => {
       try {
         setIsLoading(true);
-        const [datosUsuario, datosFicha, listaMembresias, datosTurnos] = await Promise.all([
+        const [datosUsuario, datosFicha, listaMembresias, datosTurnos, datosPagos] = await Promise.all([
           administracionService.getUsuarioById(id),
           seguimientoService.getFichaAlumno(id),
           administracionService.getMembresiasActivas(),
-          mockGetTurnos()
+          cargarTurnos(),
+          administracionService.getPagosUsuario(id)
         ]);
 
         setUsuario(datosUsuario);
         setDatosEdicion({ nombreCompleto: datosUsuario.nombreCompleto || '', telefono: datosUsuario.telefono || '' });
         setMembresiasDisponibles(listaMembresias || []);
-        setMembresiaSeleccionada(datosUsuario.membresiaId || '');
-        setTurnosData(datosTurnos || { proximasClases: [], misSuscripcionesFijas: [] });
-        
+        setMembresiaSeleccionada(datosUsuario.membresiaId ?? '');
+        setTurnosData(datosTurnos || TURNOS_VACIOS);
+        setHistorialPagos(datosPagos || []);
+
         if (datosFicha) {
           setFicha({
             objetivos: datosFicha.objetivos || '',
@@ -92,19 +108,23 @@ export const PerfilUsuarioAdmin = () => {
     };
 
     if (id) fetchDatosCRM();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // --- HANDLERS: PERFIL ---
   const handleGuardarPerfil = async (e) => {
     e.preventDefault();
     try {
-      // Acá deberías llamar a tu servicio real, ej: administracionService.actualizarUsuario(id, datosEdicion)
-      setUsuario(prev => ({ ...prev, nombreCompleto: datosEdicion.nombreCompleto, telefono: datosEdicion.telefono }));
+      await administracionService.actualizarPerfilUsuario(id, {
+        nombreCompleto: datosEdicion.nombreCompleto.trim(),
+        telefono: datosEdicion.telefono.trim() || null
+      });
+      setUsuario(prev => ({ ...prev, nombreCompleto: datosEdicion.nombreCompleto.trim(), telefono: datosEdicion.telefono.trim() || null }));
       toast.success("Perfil actualizado correctamente.");
       setModalEditarAbierto(false);
     } catch (error) {
-      toast.error("Error al actualizar el perfil.");
-        console.error(error);
+      toast.error(error.response?.data?.message || "Error al actualizar el perfil.");
+      console.error(error);
     }
   };
 
@@ -121,50 +141,56 @@ export const PerfilUsuarioAdmin = () => {
 
   const handleBuscarPestanas = async () => {
     if (!planLink) return toast.error("Ingresá un link de OneDrive primero.");
-    try {
-      setBuscandoPestanas(true);
-      setTimeout(() => {
-        setPestanasDisponibles(['Meso 18', 'Meso 17', 'Meso 16']);
-        setPestanaSeleccionada('Meso 18');
-        setBuscandoPestanas(false);
-        toast.success("Pestañas encontradas.");
-      }, 1000);
-    } catch (error) {
-      toast.error("Error al leer OneDrive.");
-        console.error(error);
-      setBuscandoPestanas(false);
-    }
+    // La lectura de hojas de OneDrive todavía no tiene endpoint en el backend.
+    toast.error("La lectura de hojas de OneDrive aún no está disponible. Podés guardar el vínculo igualmente.");
   };
 
   const handleVincularPlan = async () => {
-    if (!planLink || !pestanaSeleccionada) return toast.error("Faltan datos del plan.");
+    if (!planLink.trim()) return toast.error("Ingresá el link o ID del plan.");
     try {
-      await seguimientoService.vincularPlan(id, { driveItemId: planLink, nombrePestaña: pestanaSeleccionada });
-      toast.success(`Plan vinculado a: ${pestanaSeleccionada}`);
+      await seguimientoService.vincularPlan(id, { driveItemId: planLink.trim() });
+      toast.success("Plan vinculado correctamente.");
       setPestanasDisponibles([]);
+      setPestanaSeleccionada('');
     } catch (error) {
-      toast.error("Error al vincular el plan.");
-        console.error(error);
+      toast.error(error.response?.data?.message || "Error al vincular el plan.");
+      console.error(error);
     }
   };
 
   // --- HANDLERS: TURNOS ---
   const handleBajaTurnoFijo = async (turnoFijoId) => {
-    if (!window.confirm("¿Dar de baja este turno fijo?")) return;
-    toast.success("Turno fijo eliminado (Simulado).");
-    setTurnosData(prev => ({
-      ...prev,
-      misSuscripcionesFijas: prev.misSuscripcionesFijas.filter(t => t.turnoFijoId !== turnoFijoId)
-    }));
+    const ok = await confirmar({
+      title: '¿Dar de baja el turno fijo?',
+      message: 'Se cancelarán todas sus clases futuras de este horario y se devolverán los créditos.',
+      confirmText: 'Sí, dar de baja'
+    });
+    if (!ok) return;
+    try {
+      const respuesta = await reservasService.darDeBajaTurnoFijo({ usuarioId: id, turnoFijoId });
+      toast.success(respuesta?.message || "Turno fijo dado de baja.");
+      await Promise.all([recargarTurnos(), recargarUsuario()]);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "No se pudo dar de baja el turno fijo.");
+      console.error(error);
+    }
   };
 
   const handleCancelarClase = async (turnoId) => {
-    if (!window.confirm("¿Cancelar esta clase eventual?")) return;
-    toast.success("Clase cancelada (Simulada).");
-    setTurnosData(prev => ({
-      ...prev,
-      proximasClases: prev.proximasClases.filter(t => t.turnoId !== turnoId)
-    }));
+    const ok = await confirmar({
+      title: '¿Cancelar la clase?',
+      message: 'Se cancelará la reserva del alumno y se le devolverá el crédito.',
+      confirmText: 'Sí, cancelar'
+    });
+    if (!ok) return;
+    try {
+      const respuesta = await reservasService.cancelarClase({ usuarioId: id, turnoId });
+      toast.success(respuesta?.message || "Clase cancelada.");
+      await Promise.all([recargarTurnos(), recargarUsuario()]);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "No se pudo cancelar la clase.");
+      console.error(error);
+    }
   };
 
   // --- HANDLERS: ADMINISTRACIÓN ---
@@ -176,48 +202,70 @@ export const PerfilUsuarioAdmin = () => {
         montoAbonado: parseFloat(pago.monto), metodoPago: pago.metodo
       });
       toast.success("Pago registrado con éxito.");
-      
-      const nuevoPago = {
-        id: Date.now(),
-        fecha: new Date().toLocaleDateString('es-AR'),
-        monto: parseFloat(pago.monto),
-        mesAbonado: new Date(0, pago.mes - 1).toLocaleString('es', { month: 'long' }),
-        metodo: pago.metodo
-      };
-      setHistorialPagos([nuevoPago, ...historialPagos]);
+      await Promise.all([recargarPagos(), recargarUsuario()]);
       setPago({ ...pago, monto: '' });
     } catch (error) {
-      toast.error("Error al registrar el pago."); 
+      toast.error(error.response?.data?.message || "Error al registrar el pago.");
       console.error(error);
     }
   };
 
   const handleOtorgarCreditos = async (cantidad) => {
     if (cantidad === 0) return;
+
+    const ok = await confirmar({
+      title: cantidad > 0 ? '¿Sumar créditos?' : '¿Restar créditos?',
+      message: <>Se {cantidad > 0 ? 'sumarán' : 'restarán'} <strong className="text-mm-dark">{Math.abs(cantidad)}</strong> créditos a {usuario.nombreCompleto}.</>,
+      confirmText: cantidad > 0 ? 'Sí, sumar' : 'Sí, restar',
+      variant: cantidad > 0 ? 'primary' : 'danger'
+    });
+    if (!ok) return;
+
     try {
       await membresiasService.otorgarCreditosExtra({ usuarioId: id, cantidadCreditos: cantidad });
-      setUsuario(prev => ({ ...prev, creditosDisponibles: prev.creditosDisponibles + cantidad }));
+      await recargarUsuario();
       toast.success(`Se ${cantidad > 0 ? 'sumaron' : 'restaron'} ${Math.abs(cantidad)} créditos.`);
       setCreditosAOtorgar(0);
     } catch (error) {
-      toast.error("Error al modificar créditos.");
+      toast.error(error.response?.data?.message || "Error al modificar créditos.");
       console.error(error);
     }
   };
 
   const handleCambiarMembresia = async () => {
     if (!membresiaSeleccionada) return toast.error("Seleccioná una membresía.");
+
+    const membresia = membresiasDisponibles.find((m) => String(m.id) === String(membresiaSeleccionada));
+    const ok = await confirmar({
+      title: '¿Asignar membresía?',
+      message: <>Se asignará el plan <strong className="text-mm-dark">{membresia?.nombre}</strong> a {usuario.nombreCompleto}.</>,
+      confirmText: 'Sí, asignar',
+      variant: 'primary'
+    });
+    if (!ok) return;
     try {
-      await membresiasService.asignarMembresia({ usuarioId: id, membresiaId: membresiaSeleccionada });
+      await membresiasService.asignarMembresia({ usuarioId: id, membresiaId: Number(membresiaSeleccionada) });
       toast.success("Membresía actualizada correctamente.");
+      await recargarUsuario();
     } catch (error) {
-      toast.error("Error al cambiar membresía.");
+      toast.error(error.response?.data?.message || "Error al cambiar membresía.");
       console.error(error);
     }
   };
 
   const handleBloquear = async () => {
     const suspender = usuario.activo;
+
+    const ok = await confirmar({
+      title: suspender ? '¿Bloquear usuario?' : '¿Desbloquear usuario?',
+      message: suspender
+        ? <>{usuario.nombreCompleto} no podrá reservar ni iniciar sesión hasta que lo desbloquees.</>
+        : <>{usuario.nombreCompleto} volverá a tener acceso a su cuenta.</>,
+      confirmText: suspender ? 'Sí, bloquear' : 'Sí, desbloquear',
+      variant: suspender ? 'danger' : 'primary'
+    });
+    if (!ok) return;
+
     try {
       await administracionService.cambiarEstadoBloqueo(id, suspender);
       setUsuario(prev => ({ ...prev, activo: !suspender }));
@@ -244,18 +292,19 @@ export const PerfilUsuarioAdmin = () => {
 
   return (
     <div className="animate-fade-in max-w-6xl mx-auto pb-10 relative">
-      
+      {confirmDialog}
+
       {/* HEADER */}
       <header className="mb-6">
-        <button 
+        <button
           onClick={() => navigate('/admin/usuarios')}
           className="flex items-center gap-2 text-gray-500 hover:text-mm-purple transition-colors text-sm font-bold mb-4"
         >
           <ArrowLeftIcon className="w-4 h-4" /> Volver al directorio
         </button>
-        
+
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm">
-          
+
           {/* Info del Alumno */}
           <div className="flex items-center gap-5">
             <div className="w-20 h-20 bg-[#F8F9FA] rounded-3xl flex items-center justify-center text-3xl text-mm-dark font-display font-black border border-gray-200 shadow-sm shrink-0">
@@ -269,6 +318,11 @@ export const PerfilUsuarioAdmin = () => {
                     Bloqueado
                   </span>
                 )}
+                {usuario.deudor && (
+                  <span className="text-[10px] font-bold bg-amber-50 text-amber-600 px-2.5 py-1 rounded-md uppercase tracking-wider border border-amber-100">
+                    Deudor
+                  </span>
+                )}
               </h1>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-500 font-medium">
                 <span>{usuario.email}</span>
@@ -280,24 +334,24 @@ export const PerfilUsuarioAdmin = () => {
               </div>
             </div>
           </div>
-          
+
           {/* Botonera de Acciones (Editar, WhatsApp, Bloquear) */}
           <div className="flex flex-col sm:flex-row gap-2">
-            <button 
+            <button
               onClick={() => setModalEditarAbierto(true)}
               className="flex justify-center items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
             >
               <PencilSquareIcon className="w-4 h-4" />
               Editar
             </button>
-            <button 
+            <button
               onClick={abrirWhatsApp}
               className="flex justify-center items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#25D366]/10 text-[#128C7E] border border-[#25D366]/20 hover:bg-[#25D366]/20 transition-colors"
             >
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.418-.099.824z"/></svg>
               WhatsApp
             </button>
-            <button 
+            <button
               onClick={handleBloquear}
               className={`flex justify-center items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors border ${
                 usuario.activo ? 'bg-white border-red-100 text-red-500 hover:bg-red-50' : 'bg-white border-green-100 text-green-600 hover:bg-green-50'
@@ -311,12 +365,12 @@ export const PerfilUsuarioAdmin = () => {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
+
         {/* ==========================================
             COLUMNA IZQUIERDA: Entrenamiento y Turnos
             ========================================== */}
         <div className="flex flex-col gap-6">
-          
+
           {/* FICHA TÉCNICA */}
           <section className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
@@ -340,7 +394,7 @@ export const PerfilUsuarioAdmin = () => {
                   rows="2" value={ficha.lesiones} onChange={(e) => setFicha({...ficha, lesiones: e.target.value})}
                 />
               </div>
-              <button 
+              <button
                 onClick={handleActualizarFicha}
                 className="w-full bg-blue-50 text-blue-600 py-3 rounded-xl font-bold text-sm hover:bg-blue-100 transition-colors"
               >
@@ -359,7 +413,7 @@ export const PerfilUsuarioAdmin = () => {
                 <h2 className="text-lg font-bold text-mm-dark">Plan OneDrive</h2>
               </div>
               {planLink && (
-                <button 
+                <button
                   onClick={() => window.open(planLink, '_blank')}
                   className="flex items-center gap-1.5 text-xs font-bold text-sky-600 bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-lg transition-colors border border-sky-100"
                 >
@@ -374,24 +428,31 @@ export const PerfilUsuarioAdmin = () => {
                   className="w-full bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
                   value={planLink} onChange={(e) => setPlanLink(e.target.value)}
                 />
-                <button 
-                  onClick={handleBuscarPestanas} disabled={!planLink || buscandoPestanas}
+                <button
+                  onClick={handleBuscarPestanas} disabled={!planLink}
                   className="bg-mm-dark text-white px-4 rounded-xl font-bold text-xs hover:bg-gray-800 disabled:opacity-50 whitespace-nowrap"
                 >
-                  {buscandoPestanas ? 'Buscando...' : 'Leer Hojas'}
+                  Leer Hojas
                 </button>
               </div>
+
+              <button
+                onClick={handleVincularPlan} disabled={!planLink.trim()}
+                className="w-full bg-sky-500 text-white py-3 rounded-xl font-bold text-sm hover:bg-sky-600 transition-colors disabled:opacity-50"
+              >
+                Guardar Vínculo
+              </button>
 
               {pestanasDisponibles.length > 0 && (
                 <div className="animate-fade-in bg-sky-50 p-4 rounded-xl border border-sky-100 mt-2">
                   <label className="text-xs font-bold text-sky-800 uppercase tracking-wide block mb-2">Seleccionar Pestaña</label>
-                  <select 
+                  <select
                     className="w-full bg-white border border-sky-200 rounded-xl p-3 text-sm text-mm-dark outline-none mb-3 focus:ring-2 focus:ring-sky-500"
                     value={pestanaSeleccionada} onChange={(e) => setPestanaSeleccionada(e.target.value)}
                   >
                     {pestanasDisponibles.map((p, idx) => <option key={idx} value={p}>{p}</option>)}
                   </select>
-                  <button 
+                  <button
                     onClick={handleVincularPlan}
                     className="w-full bg-sky-500 text-white py-3 rounded-xl font-bold text-sm hover:bg-sky-600 transition-colors"
                   >
@@ -411,6 +472,11 @@ export const PerfilUsuarioAdmin = () => {
               <h2 className="text-lg font-bold text-mm-dark">Agenda del Alumno</h2>
             </div>
 
+            <AgregarTurnoUsuario
+              usuarioId={id}
+              onAgregado={() => Promise.all([recargarTurnos(), recargarUsuario()])}
+            />
+
             <div className="flex flex-col gap-5">
               <div>
                 <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Suscripciones Fijas</h3>
@@ -421,8 +487,8 @@ export const PerfilUsuarioAdmin = () => {
                     {turnosData.misSuscripcionesFijas.map(fijo => (
                       <div key={fijo.turnoFijoId} className="flex justify-between items-center bg-purple-50 border border-purple-100 p-3 rounded-xl">
                         <div>
-                          <p className="font-bold text-sm text-mm-dark">Todos los {fijo.diaSemana}</p>
-                          <p className="text-xs font-bold text-mm-purple">{fijo.horaInicio.slice(0,5)} hs</p>
+                          <p className="font-bold text-sm text-mm-dark">Todos los {nombreDiaSemana(fijo.diaSemana)}</p>
+                          <p className="text-xs font-bold text-mm-purple">{formatearHora(fijo.horaInicio)} hs</p>
                         </div>
                         <button onClick={() => handleBajaTurnoFijo(fijo.turnoFijoId)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors">
                           <TrashIcon className="w-4 h-4" />
@@ -442,9 +508,9 @@ export const PerfilUsuarioAdmin = () => {
                     {turnosData.proximasClases.map(clase => (
                       <div key={clase.turnoId} className="flex justify-between items-center bg-white border border-gray-200 p-3 rounded-xl">
                         <div className="flex flex-col">
-                          <span className="font-bold text-sm text-mm-dark">{clase.fecha} - {clase.horaInicio.slice(0,5)} hs</span>
+                          <span className="font-bold text-sm text-mm-dark">{etiquetaTurno(clase.fecha, clase.horaInicio)} hs</span>
                           <span className={`text-[10px] font-bold uppercase tracking-wide ${clase.tipoReserva === 'Fija' ? 'text-mm-purple' : 'text-blue-500'}`}>
-                            {clase.tipoReserva}
+                            {etiquetaTipoReserva(clase.tipoReserva)}
                           </span>
                         </div>
                         <button onClick={() => handleCancelarClase(clase.turnoId)} className="text-gray-400 hover:text-red-500 text-xs font-bold underline">
@@ -463,13 +529,13 @@ export const PerfilUsuarioAdmin = () => {
             COLUMNA DERECHA: Administración y Pagos
             ========================================== */}
         <div className="flex flex-col gap-6">
-          
+
           {/* BALANCE Y MEMBRESÍA (UNIFICADOS) */}
           <section className="bg-mm-dark p-6 rounded-4xl shadow-sm text-white relative overflow-hidden border border-gray-800">
             <div className="absolute top-0 right-0 p-6 opacity-10">
               <StarIcon className="w-32 h-32" />
             </div>
-            
+
             <div className="relative z-10 flex flex-col gap-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center shrink-0 border border-purple-500/30">
@@ -481,7 +547,7 @@ export const PerfilUsuarioAdmin = () => {
               <div>
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">Plan Asignado</label>
                 <div className="flex gap-2">
-                  <select 
+                  <select
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl p-3 text-sm font-medium text-white outline-none focus:ring-2 focus:ring-mm-purple"
                     value={membresiaSeleccionada} onChange={(e) => setMembresiaSeleccionada(e.target.value)}
                   >
@@ -490,7 +556,7 @@ export const PerfilUsuarioAdmin = () => {
                       <option key={m.id} value={m.id}>{m.nombre} ({m.creditosOtorgados} crd/mes)</option>
                     ))}
                   </select>
-                  <button 
+                  <button
                     onClick={handleCambiarMembresia}
                     className="bg-mm-purple text-white px-4 rounded-xl font-bold text-xs hover:bg-purple-600 transition-colors shadow-sm"
                   >
@@ -511,13 +577,13 @@ export const PerfilUsuarioAdmin = () => {
                     className="w-20 bg-gray-800 border border-gray-700 rounded-xl p-3 text-center text-lg font-bold text-white outline-none focus:border-mm-purple"
                     value={creditosAOtorgar} onChange={(e) => setCreditosAOtorgar(Number(e.target.value))}
                   />
-                  <button 
+                  <button
                     onClick={() => handleOtorgarCreditos(creditosAOtorgar)}
                     className="flex items-center gap-1 bg-green-500/20 text-green-400 px-4 py-3 rounded-xl font-bold text-sm hover:bg-green-500/30 transition-colors flex-1 justify-center"
                   >
                     <PlusCircleIcon className="w-5 h-5" /> Sumar
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleOtorgarCreditos(-Math.abs(creditosAOtorgar))}
                     className="flex items-center gap-1 bg-red-500/20 text-red-400 px-4 py-3 rounded-xl font-bold text-sm hover:bg-red-500/30 transition-colors flex-1 justify-center"
                   >
@@ -541,7 +607,7 @@ export const PerfilUsuarioAdmin = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Mes a abonar</label>
-                  <select 
+                  <select
                     className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm font-medium text-mm-dark outline-none focus:ring-2 focus:ring-mm-purple"
                     value={pago.mes} onChange={(e) => setPago({...pago, mes: e.target.value})}
                   >
@@ -552,7 +618,7 @@ export const PerfilUsuarioAdmin = () => {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Método</label>
-                  <select 
+                  <select
                     className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm font-medium text-mm-dark outline-none focus:ring-2 focus:ring-mm-purple"
                     value={pago.metodo} onChange={(e) => setPago({...pago, metodo: e.target.value})}
                   >
@@ -572,7 +638,7 @@ export const PerfilUsuarioAdmin = () => {
                 />
               </div>
 
-              <button 
+              <button
                 onClick={handleRegistrarPago}
                 className="w-full bg-green-500 text-white py-3 rounded-xl font-bold text-sm hover:bg-green-600 transition-colors shadow-sm active:scale-95 flex justify-center items-center gap-2"
               >
@@ -590,10 +656,10 @@ export const PerfilUsuarioAdmin = () => {
                     <div key={hp.id} className="flex justify-between items-center bg-gray-50 border border-gray-100 p-3 rounded-xl">
                       <div>
                         <p className="font-bold text-sm text-mm-dark">${hp.monto}</p>
-                        <p className="text-[10px] text-gray-500 font-medium">{hp.fecha} • {hp.metodo}</p>
+                        <p className="text-[10px] text-gray-500 font-medium">{new Date(hp.fechaPago).toLocaleDateString('es-AR')} • {hp.metodoPago}</p>
                       </div>
                       <span className="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded-md uppercase tracking-wider">
-                        {hp.mesAbonado}
+                        {new Date(hp.anioAbonado, hp.mesAbonado - 1).toLocaleString('es', { month: 'long' })} {hp.anioAbonado}
                       </span>
                     </div>
                   ))}
@@ -618,7 +684,7 @@ export const PerfilUsuarioAdmin = () => {
             <form onSubmit={handleGuardarPerfil} className="p-5 flex flex-col gap-4">
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Nombre Completo</label>
-                <input 
+                <input
                   type="text" required
                   className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
                   value={datosEdicion.nombreCompleto} onChange={(e) => setDatosEdicion({...datosEdicion, nombreCompleto: e.target.value})}
@@ -626,8 +692,8 @@ export const PerfilUsuarioAdmin = () => {
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Teléfono (WhatsApp)</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
                   value={datosEdicion.telefono} onChange={(e) => setDatosEdicion({...datosEdicion, telefono: e.target.value})}
                 />

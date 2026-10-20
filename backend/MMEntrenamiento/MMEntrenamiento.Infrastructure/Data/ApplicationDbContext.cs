@@ -22,6 +22,7 @@ namespace MMEntrenamiento.Infrastructure.Data
         public DbSet<HorarioReducido> HorariosReducidos => Set<HorarioReducido>();
         public DbSet<AlertaActividad> AlertasActividad => Set<AlertaActividad>();
         public DbSet<AnuncioGlobal> AnunciosGlobales => Set<AnuncioGlobal>();
+        public DbSet<ConfiguracionGimnasio> ConfiguracionesGimnasio => Set<ConfiguracionGimnasio>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

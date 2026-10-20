@@ -68,6 +68,35 @@ namespace MMEntrenamiento.Infrastructure.Migrations
                     b.ToTable("AnunciosGlobales");
                 });
 
+            modelBuilder.Entity("MMEntrenamiento.Domain.Entities.ConfiguracionGimnasio", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Direccion")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Instagram")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Telefono")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UltimaModificacion")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ConfiguracionesGimnasio");
+                });
+
             modelBuilder.Entity("MMEntrenamiento.Domain.Entities.CreditoMes", b =>
                 {
                     b.Property<int>("Id")

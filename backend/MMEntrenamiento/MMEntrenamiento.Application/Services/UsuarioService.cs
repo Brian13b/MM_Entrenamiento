@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using MMEntrenamiento.Application.DTOs.Usuarios;
 using MMEntrenamiento.Application.Interfaces;
+using MMEntrenamiento.Application.Interfaces.Repositories;
 using MMEntrenamiento.Domain.Entities;
+using MMEntrenamiento.Domain.Enums;
 using System.Security.Principal;
 
 namespace MMEntrenamiento.Application.Services
@@ -14,10 +16,12 @@ namespace MMEntrenamiento.Application.Services
     {
         private readonly UserManager<Usuario> _userManager;
         private readonly Cloudinary _cloudinary;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public UsuarioService(UserManager<Usuario> userManager, IConfiguration configuration)
+        public UsuarioService(UserManager<Usuario> userManager, IConfiguration configuration, IUnitOfWork unitOfWork)
         {
             _userManager = userManager;
+            _unitOfWork = unitOfWork;
 
             var account = new Account(
                 configuration["Cloudinary:CloudName"],
@@ -39,6 +43,73 @@ namespace MMEntrenamiento.Application.Services
                 Email = usuario.Email!,
                 Telefono = usuario.PhoneNumber,
                 FotoPerfilUrl = usuario.FotoPerfilUrl
+            };
+        }
+
+        public async Task<ResumenAlumnoDto?> ObtenerResumenAsync(Guid usuarioId)
+        {
+            var usuario = await _unitOfWork.Usuarios.FirstOrDefaultAsync(
+                u => u.Id == usuarioId,
+                u => u.MembresiaActual!,
+                u => u.FichaTecnica!);
+
+            if (usuario == null) return null;
+
+            var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
+
+            // Clases ya resueltas (Asistio/Ausente). Las canceladas y las activas sin cerrar no afectan la racha.
+            var reservasResueltas = (await _unitOfWork.Reservas.FindAsync(
+                r => r.UsuarioId == usuarioId
+                  && (r.Estado == EstadoReserva.Asistio || r.Estado == EstadoReserva.Ausente)
+                  && r.Turno.Fecha <= hoy,
+                r => r.Turno!,
+                r => r.Turno.Horario!))
+                .OrderByDescending(r => r.Turno.Fecha)
+                .ThenByDescending(r => r.Turno.Horario.HoraInicio)
+                .ToList();
+
+            // Racha: asistencias consecutivas, se corta en la primera ausencia.
+            var racha = reservasResueltas
+                .TakeWhile(r => r.Estado == EstadoReserva.Asistio)
+                .Count();
+
+            // Semana calendario actual (lunes a domingo).
+            var diasDesdeLunes = ((int)hoy.DayOfWeek + 6) % 7;
+            var lunes = hoy.AddDays(-diasDesdeLunes);
+            var asistidasSemana = reservasResueltas.Count(r =>
+                r.Estado == EstadoReserva.Asistio && r.Turno.Fecha >= lunes && r.Turno.Fecha <= lunes.AddDays(6));
+
+            PlanAlumnoDto? plan = null;
+            if (usuario.MembresiaActual != null)
+            {
+                plan = new PlanAlumnoDto
+                {
+                    Nombre = usuario.MembresiaActual.Nombre,
+                    VecesPorSemana = usuario.MembresiaActual.LimiteTurnosFijos,
+                    // El bloqueo por falta de pago es manual (Admin): el estado depende solo de la cuenta.
+                    Estado = usuario.EstadoCuenta == EstadoCuenta.Activo ? "Activo" : "Inactivo",
+                    Vencimiento = new DateOnly(hoy.Year, hoy.Month, DateTime.DaysInMonth(hoy.Year, hoy.Month))
+                };
+            }
+
+            return new ResumenAlumnoDto
+            {
+                Id = usuario.Id,
+                NombreCompleto = usuario.NombreCompleto,
+                Email = usuario.Email ?? string.Empty,
+                Telefono = usuario.PhoneNumber,
+                FotoPerfilUrl = usuario.FotoPerfilUrl,
+                Estadisticas = new EstadisticasAlumnoDto
+                {
+                    ClasesAsistidasSemana = asistidasSemana,
+                    RachaActual = racha
+                },
+                Plan = plan,
+                FichaTecnica = new FichaResumenDto
+                {
+                    Objetivos = usuario.FichaTecnica?.Objetivos,
+                    Lesiones = usuario.FichaTecnica?.Lesiones
+                }
             };
         }
 

@@ -74,6 +74,11 @@ export const UsuariosLista = ({ usuarios, isLoading, onBloquear }) => {
                     Bloqueado
                   </span>
                 )}
+                {usuario.deudor && (
+                  <span className="text-[10px] font-bold bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full uppercase tracking-wider border border-amber-100">
+                    Deudor
+                  </span>
+                )}
                 {usuario.driveItemId && (
                   <span className="hidden sm:inline-block text-[10px] font-bold bg-sky-50 text-sky-600 px-2 py-0.5 rounded-full uppercase tracking-wider border border-sky-100">
                     Plan Activo

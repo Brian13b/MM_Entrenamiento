@@ -9,6 +9,26 @@ export const administracionService = {
     const response = await api.get('/administracion/usuarios');
     return response.data;
   },
+  getConfiguracion: async () => {
+    const response = await api.get('/administracion/configuracion');
+    return response.data;
+  },
+  actualizarConfiguracion: async (datos) => {
+    const response = await api.put('/administracion/configuracion', datos);
+    return response.data;
+  },
+  getMetricas: async () => {
+    const response = await api.get('/administracion/metricas');
+    return response.data;
+  },
+  getPagosUsuario: async (usuarioId) => {
+    const response = await api.get(`/administracion/pagos/${usuarioId}`);
+    return response.data;
+  },
+  actualizarPerfilUsuario: async (usuarioId, datos) => {
+    const response = await api.put(`/administracion/usuarios/${usuarioId}/perfil`, datos);
+    return response.data;
+  },
   crearMembresia: async (datos) => {
     const response = await api.post('/administracion/membresias', datos);
     return response.data;
@@ -22,8 +42,8 @@ export const administracionService = {
     return response.data;
   },
   cambiarEstadoBloqueo: async (usuarioId, suspender) => {
-    const response = await api.put(`/administracion/usuarios/${usuarioId}/bloqueo`, null, { 
-      params: { suspender } 
+    const response = await api.put(`/administracion/usuarios/${usuarioId}/bloqueo`, null, {
+      params: { suspender }
     });
     return response.data;
   },
@@ -35,5 +55,5 @@ export const administracionService = {
     const response = await api.put('/administracion/anuncio', datos);
     return response.data;
   },
-  
+
 };

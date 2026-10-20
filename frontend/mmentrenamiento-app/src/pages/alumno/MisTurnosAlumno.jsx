@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ArrowLeftIcon, CalendarDaysIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { reservasService } from '../../services/reservasService';
-import { Modal } from '../../components/ui/Modal'; 
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { etiquetaTurno, formatearHora, nombreDiaSemana, etiquetaTipoReserva, esNotFound } from '../../utils/fechas';
 
 export const MisTurnosAlumno = () => {
   const navigate = useNavigate();
   const [turnosData, setTurnosData] = useState({ proximasClases: [], misSuscripcionesFijas: [] });
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const [modalCancelar, setModalCancelar] = useState({ isOpen: false, clase: null, isProcessing: false });
   const [modalBajaFijo, setModalBajaFijo] = useState({ isOpen: false, turnoFijo: null, isProcessing: false });
 
@@ -19,8 +20,12 @@ export const MisTurnosAlumno = () => {
       const data = await reservasService.getMisTurnos();
       setTurnosData(data || { proximasClases: [], misSuscripcionesFijas: [] });
     } catch (error) {
-      toast.error("Error al cargar tus turnos.");
-      console.error(error)
+      if (esNotFound(error)) {
+        setTurnosData({ proximasClases: [], misSuscripcionesFijas: [] });
+      } else {
+        toast.error("Error al cargar tus turnos.");
+        console.error(error)
+      }
     } finally {
       setIsLoading(false);
     }
@@ -36,8 +41,8 @@ export const MisTurnosAlumno = () => {
     if (!modalCancelar.clase) return;
     try {
       setModalCancelar(prev => ({ ...prev, isProcessing: true }));
-      await reservasService.cancelarClase({ turnoId: modalCancelar.clase.turnoId }); 
-      toast.success("Clase cancelada exitosamente. Recuperaste tu crédito.");
+      const respuesta = await reservasService.cancelarClase({ turnoId: modalCancelar.clase.turnoId });
+      toast.success(respuesta?.message || "Clase cancelada exitosamente.");
       setModalCancelar({ isOpen: false, clase: null, isProcessing: false });
       cargarTurnos();
     } catch (error) {
@@ -51,8 +56,8 @@ export const MisTurnosAlumno = () => {
     if (!modalBajaFijo.turnoFijo) return;
     try {
       setModalBajaFijo(prev => ({ ...prev, isProcessing: true }));
-      await reservasService.darDeBajaTurnoFijo({ turnoFijoId: modalBajaFijo.turnoFijo.turnoFijoId }); 
-      toast.success("Turno fijo dado de baja.");
+      const respuesta = await reservasService.darDeBajaTurnoFijo({ turnoFijoId: modalBajaFijo.turnoFijo.turnoFijoId });
+      toast.success(respuesta?.message || "Turno fijo dado de baja.");
       setModalBajaFijo({ isOpen: false, turnoFijo: null, isProcessing: false });
       cargarTurnos();
     } catch (error) {
@@ -72,24 +77,28 @@ export const MisTurnosAlumno = () => {
 
   return (
     <div className="animate-fade-in pb-10 max-w-lg mx-auto mt-2 px-4 md:px-0">
-      
+
       {/* Modal Cancelar Clase Eventual */}
-      <Modal isOpen={modalCancelar.isOpen} onClose={() => !modalCancelar.isProcessing && setModalCancelar({ isOpen: false, clase: null, isProcessing: false })} title="¿Cancelar clase?">
-        <p className="text-sm text-gray-500 mb-6">Vas a cancelar tu turno del <strong className="text-mm-dark">{modalCancelar.clase?.dia} a las {modalCancelar.clase?.hora} hs</strong>.</p>
-        <div className="flex gap-3">
-          <button onClick={() => setModalCancelar({ isOpen: false, clase: null, isProcessing: false })} disabled={modalCancelar.isProcessing} className="flex-1 py-3 rounded-xl font-bold text-sm bg-mm-light text-mm-dark hover:bg-gray-200 transition-colors">Volver</button>
-          <button onClick={confirmarCancelacion} disabled={modalCancelar.isProcessing} className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 transition-colors">{modalCancelar.isProcessing ? "Procesando..." : "Sí, cancelar"}</button>
-        </div>
-      </Modal>
+      <ConfirmDialog
+        isOpen={modalCancelar.isOpen}
+        title="¿Cancelar clase?"
+        message={<>Vas a cancelar tu turno del <strong className="text-mm-dark">{modalCancelar.clase && etiquetaTurno(modalCancelar.clase.fecha, modalCancelar.clase.horaInicio)} hs</strong>. Recuperarás tu crédito.</>}
+        confirmText="Sí, cancelar"
+        isLoading={modalCancelar.isProcessing}
+        onConfirm={confirmarCancelacion}
+        onCancel={() => setModalCancelar({ isOpen: false, clase: null, isProcessing: false })}
+      />
 
       {/* Modal Dar de Baja Turno Fijo */}
-      <Modal isOpen={modalBajaFijo.isOpen} onClose={() => !modalBajaFijo.isProcessing && setModalBajaFijo({ isOpen: false, turnoFijo: null, isProcessing: false })} title="¿Liberar turno fijo?">
-        <p className="text-sm text-gray-500 mb-6">Vas a liberar tu lugar fijo de todos los <strong className="text-mm-dark">{modalBajaFijo.turnoFijo?.diaSemana} a las {modalBajaFijo.turnoFijo?.horaInicio?.substring(0,5)} hs</strong>.</p>
-        <div className="flex gap-3">
-          <button onClick={() => setModalBajaFijo({ isOpen: false, turnoFijo: null, isProcessing: false })} disabled={modalBajaFijo.isProcessing} className="flex-1 py-3 rounded-xl font-bold text-sm bg-mm-light text-mm-dark hover:bg-gray-200 transition-colors">Volver</button>
-          <button onClick={confirmarBajaFija} disabled={modalBajaFijo.isProcessing} className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 transition-colors">{modalBajaFijo.isProcessing ? "Procesando..." : "Sí, liberar"}</button>
-        </div>
-      </Modal>
+      <ConfirmDialog
+        isOpen={modalBajaFijo.isOpen}
+        title="¿Liberar turno fijo?"
+        message={<>Vas a liberar tu lugar fijo de todos los <strong className="text-mm-dark">{modalBajaFijo.turnoFijo && nombreDiaSemana(modalBajaFijo.turnoFijo.diaSemana)} a las {formatearHora(modalBajaFijo.turnoFijo?.horaInicio)} hs</strong>. Se cancelarán tus clases futuras de ese horario y se te devolverán los créditos.</>}
+        confirmText="Sí, liberar"
+        isLoading={modalBajaFijo.isProcessing}
+        onConfirm={confirmarBajaFija}
+        onCancel={() => setModalBajaFijo({ isOpen: false, turnoFijo: null, isProcessing: false })}
+      />
 
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
@@ -112,7 +121,7 @@ export const MisTurnosAlumno = () => {
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-mm-dark opacity-40 uppercase tracking-wider mb-0.5">Suscripción Activa</p>
-                    <p className="text-sm md:text-base font-bold text-mm-dark">Cada {fijo.diaSemana} · {fijo.horaInicio.substring(0,5)} hs</p>
+                    <p className="text-sm md:text-base font-bold text-mm-dark">Cada {nombreDiaSemana(fijo.diaSemana)} · {formatearHora(fijo.horaInicio)} hs</p>
                   </div>
                 </div>
                 <button onClick={() => setModalBajaFijo({ isOpen: true, turnoFijo: fijo, isProcessing: false })} className="text-[11px] font-bold text-red-500 hover:bg-red-50 px-3 py-2 rounded-xl transition-colors">
@@ -141,8 +150,8 @@ export const MisTurnosAlumno = () => {
                     <CalendarDaysIcon className="w-6 h-6 text-mm-purple" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-mm-purple uppercase tracking-wider mb-0.5">{cls.tipoReserva}</p>
-                    <p className="text-sm md:text-base font-bold text-mm-dark">{cls.dia} {cls.fecha} {cls.mes} · {cls.hora}</p>
+                    <p className="text-[10px] font-bold text-mm-purple uppercase tracking-wider mb-0.5">{etiquetaTipoReserva(cls.tipoReserva)}</p>
+                    <p className="text-sm md:text-base font-bold text-mm-dark">{etiquetaTurno(cls.fecha, cls.horaInicio)}</p>
                   </div>
                 </div>
                 <button onClick={() => setModalCancelar({ isOpen: true, clase: cls, isProcessing: false })} className="text-[11px] font-bold text-red-500 hover:bg-red-50 px-3 py-2 rounded-xl transition-colors text-center">

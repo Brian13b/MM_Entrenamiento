@@ -32,6 +32,10 @@ namespace MMEntrenamiento.Application.Services
             var horario = await _unitOfWork.Horarios.GetByIdAsync(request.HorarioId);
             if (horario == null) return (false, "El horario seleccionado no existe.");
 
+            var reducidoDelDia = await DisponibilidadHorarios.ObtenerReducidoAsync(_unitOfWork, request.Fecha);
+            if (!DisponibilidadHorarios.EstaDisponible(horario, reducidoDelDia))
+                return (false, $"Ese horario no está disponible el {request.Fecha:dd/MM/yyyy} por horario reducido o feriado.");
+
             var reservaExistenteHoy = await _unitOfWork.Reservas.FirstOrDefaultAsync(
                 r => r.UsuarioId == request.UsuarioId
                   && r.Turno.Fecha == request.Fecha
@@ -101,7 +105,16 @@ namespace MMEntrenamiento.Application.Services
                 return (false, $"La membresía actual solo permite tener {limiteFijos} horarios fijos semanales.");
 
             var fechasAProyectar = new List<DateOnly>();
-            for (int i = 0; i < 4; i++) fechasAProyectar.Add(request.FechaInicio.AddDays(i * 7));
+            for (int i = 0; i < 4; i++)
+            {
+                var fechaCandidata = request.FechaInicio.AddDays(i * 7);
+                var reducido = await DisponibilidadHorarios.ObtenerReducidoAsync(_unitOfWork, fechaCandidata);
+
+                // En fechas con horario reducido/feriado los turnos fijos no se reservan solos:
+                // cada alumno debe anotarse de nuevo en la grilla de ese día.
+                if (reducido == null)
+                    fechasAProyectar.Add(fechaCandidata);
+            }
 
             var turnosPorMes = fechasAProyectar.GroupBy(f => new { f.Year, f.Month });
             foreach (var grupoMes in turnosPorMes)
@@ -175,6 +188,9 @@ namespace MMEntrenamiento.Application.Services
             );
 
             if (!turnosFijos.Any()) return;
+
+            // En fechas con horario reducido/feriado no se generan reservas fijas automáticas.
+            if (await DisponibilidadHorarios.ObtenerReducidoAsync(_unitOfWork, fechaObjetivo) != null) return;
 
             foreach (var turnoFijo in turnosFijos)
             {
@@ -328,7 +344,9 @@ namespace MMEntrenamiento.Application.Services
             var diaSemana = fecha.DayOfWeek;
 
             // 1. Buscamos la plantilla de horarios para ese día de la semana
-            var horariosDelDia = await _unitOfWork.Horarios.FindAsync(h => h.DiaSemana == diaSemana);
+            var reducido = await DisponibilidadHorarios.ObtenerReducidoAsync(_unitOfWork, fecha);
+            var horariosDelDia = (await _unitOfWork.Horarios.FindAsync(h => h.DiaSemana == diaSemana))
+                .Where(h => DisponibilidadHorarios.EstaDisponible(h, reducido));
 
             // 2. Buscamos las instancias reales de turnos para esa fecha exacta
             var turnosInstanciados = await _unitOfWork.Turnos.FindWithIncludesAsync(t => t.Fecha == fecha, "Reservas.Usuario");
@@ -351,6 +369,7 @@ namespace MMEntrenamiento.Application.Services
 
                 grilla.Add(new TurnoDisponibleDto
                 {
+                    TurnoId = turno?.Id,
                     HorarioId = horario.Id,
                     HoraInicio = horario.HoraInicio,
                     HoraFin = horario.HoraFin,

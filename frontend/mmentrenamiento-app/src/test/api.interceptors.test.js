@@ -19,4 +19,16 @@ describe('API Interceptors', () => {
       expect(logoutSpy).toHaveBeenCalled();
     }
   });
+
+  it('No debe ejecutar logout cuando el 401 viene del login (credenciales inválidas)', async () => {
+    const logoutSpy = vi.fn();
+    useAuthStore.setState({ logout: logoutSpy, token: null });
+
+    mock.onPost('/auth/login').reply(401, { message: 'Credenciales inválidas' });
+
+    await expect(api.post('/auth/login', { email: 'a@a.com', password: 'x' })).rejects.toMatchObject({
+      response: { status: 401 }
+    });
+    expect(logoutSpy).not.toHaveBeenCalled();
+  });
 });

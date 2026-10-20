@@ -25,15 +25,36 @@ namespace MMEntrenamiento.Application.Services
 
             if (turno == null) return null;
 
-            var reservasActivas = await _unitOfWork.Reservas.FindAsync(
-                r => r.TurnoId == turnoId && r.Estado == EstadoReserva.Activa,
+            // Se incluyen las reservas ya resueltas para poder revisar/corregir la asistencia guardada.
+            var reservas = (await _unitOfWork.Reservas.FindAsync(
+                r => r.TurnoId == turnoId
+                  && (r.Estado == EstadoReserva.Activa || r.Estado == EstadoReserva.Asistio || r.Estado == EstadoReserva.Ausente),
                 r => r.Usuario!
-            );
+            )).ToList();
 
             var excepciones = await _unitOfWork.ExcepcionesTurnosFijos.FindAsync(
                 e => e.HorarioId == turno.HorarioId && e.FechaAusencia == turno.Fecha,
                 e => e.Usuario!
             );
+
+            var alumnos = new List<AlumnoEnClaseDto>();
+            foreach (var r in reservas)
+            {
+                // Primera clase: el alumno todavía no asistió a ninguna otra clase.
+                var asistioAntes = await _unitOfWork.Reservas.AnyAsync(
+                    x => x.UsuarioId == r.UsuarioId && x.TurnoId != turnoId && x.Estado == EstadoReserva.Asistio);
+
+                alumnos.Add(new AlumnoEnClaseDto
+                {
+                    UsuarioId = r.UsuarioId,
+                    ReservaId = r.Id,
+                    NombreCompleto = r.Usuario?.NombreCompleto ?? "Alumno",
+                    Email = r.Usuario?.Email ?? "",
+                    TipoReserva = r.Tipo.ToString(),
+                    Estado = r.Estado.ToString(),
+                    PrimeraClase = !asistioAntes
+                });
+            }
 
             var detalle = new DetalleClaseDto
             {
@@ -41,21 +62,12 @@ namespace MMEntrenamiento.Application.Services
                 Fecha = turno.Fecha,
                 HoraInicio = turno.Horario.HoraInicio,
                 OcupacionActual = turno.OcupacionActual,
-
-                AlumnosPresentes = reservasActivas.Select(r => new AlumnoEnClaseDto
-                {
-                    UsuarioId = r.UsuarioId,
-                    ReservaId = r.Id,
-                    NombreCompleto = r.Usuario?.UserName ?? "Alumno",
-                    Email = r.Usuario?.Email ?? "",
-                    TipoReserva = r.Tipo.ToString()
-                }).ToList(),
-
+                AlumnosPresentes = alumnos.OrderBy(a => a.NombreCompleto).ToList(),
                 AlumnosQueAvisaron = excepciones.Select(e => new ExcepcionDiaDto
                 {
                     UsuarioId = e.UsuarioId,
-                    NombreCompleto = e.Usuario?.UserName ?? "Alumno",
-                    Motivo = e.Motivo
+                    NombreCompleto = e.Usuario?.NombreCompleto ?? "Alumno",
+                    Motivo = e.Motivo ?? string.Empty
                 }).ToList()
             };
 

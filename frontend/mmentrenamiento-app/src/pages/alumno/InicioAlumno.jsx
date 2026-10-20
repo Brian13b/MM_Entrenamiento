@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarDaysIcon } from '@heroicons/react/24/solid';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -7,68 +7,75 @@ import toast from 'react-hot-toast';
 import { reservasService } from '../../services/reservasService';
 import { membresiasService } from '../../services/membresiasService';
 import { administracionService } from '../../services/administracionService';
-import { Modal } from '../../components/ui/Modal';
+import { usuarioService } from '../../services/usuarioService';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { etiquetaTurno, etiquetaTipoReserva, diasHasta, esNotFound } from '../../utils/fechas';
+
+const MENSAJE_SIN_AVISOS = "No hay avisos nuevos por el momento.";
+
+// Un 404 significa "no hay datos" (estado vacío); cualquier otro error se propaga.
+const vacioSi404 = (promesa, valorVacio) =>
+  promesa.catch((error) => {
+    if (esNotFound(error)) return valorVacio;
+    throw error;
+  });
 
 export const InicioAlumno = () => {
   const navigate = useNavigate();
   const { usuario } = useAuthStore();
-  
+  const usuarioId = usuario?.id;
+
   const [datosDashboard, setDatosDashboard] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hayError, setHayError] = useState(false);
 
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [classToCancel, setClassToCancel] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        setIsLoading(true);
+  const fetchDashboard = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setHayError(false);
 
-        const [misTurnos, respuestaCreditos, anuncio] = await Promise.all([
-          reservasService.getMisTurnos().catch(() => ({ proximasClases: [], turnosFijosActivos: 0 })),
-          membresiasService.getMisCreditos().catch(() => []), 
-          administracionService.getAnuncioGlobal().catch(() => ({ mensaje: "No hay avisos nuevos por el momento." }))
-        ]);
+      const [misTurnos, billeteras, anuncio, resumen] = await Promise.all([
+        reservasService.getMisTurnos(),
+        vacioSi404(membresiasService.getMisCreditos(), []),
+        administracionService.getAnuncioGlobal(),
+        usuarioService.getMiResumen()
+      ]);
 
-        const fechaHoy = new Date();
-        const mesActual = fechaHoy.getMonth() + 1;
-        const anioActual = fechaHoy.getFullYear();
+      const fechaHoy = new Date();
+      const billeteraMesActual = billeteras.find(
+        (b) => b.mes === fechaHoy.getMonth() + 1 && b.anio === fechaHoy.getFullYear()
+      );
 
-        let creditosDisponibles = 0;
-        if (Array.isArray(respuestaCreditos)) {
-          const billeteraMesActual = respuestaCreditos.find(
-            (b) => b.mes === mesActual && b.anio === anioActual
-          );
-          
-          if (billeteraMesActual) {
-            creditosDisponibles = billeteraMesActual.totalDisponibles;
-          }
-        }
-
-        setDatosDashboard({
-          creditos: creditosDisponibles,
-          turnosFijosSemana: misTurnos.turnosFijosActivos || 0,
-          mensajeImportante: anuncio.mensaje || "No hay avisos nuevos por el momento.",
-          diasVencimientoMembresia: 0,
-          proximasClases: misTurnos.proximasClases || [] 
-        });
-
-      } catch (error) {
-        toast.error("Error al cargar tu información.");
-        console.error(error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (usuario?.id) {
-      fetchDashboard();
-    } else if (usuario === null) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDatosDashboard({
+        creditos: billeteraMesActual?.totalDisponibles ?? 0,
+        turnosFijosSemana: misTurnos.turnosFijosActivos ?? 0,
+        // GET anuncio devuelve 204 (sin cuerpo) cuando no hay anuncio.
+        mensajeImportante: anuncio?.mensaje || MENSAJE_SIN_AVISOS,
+        plan: resumen.plan,
+        diasVencimientoMembresia: resumen.plan ? diasHasta(resumen.plan.vencimiento) : null,
+        proximasClases: misTurnos.proximasClases ?? []
+      });
+    } catch (error) {
+      setHayError(true);
+      toast.error("Error al cargar tu información.");
+      console.error(error);
+    } finally {
       setIsLoading(false);
     }
-  }, [usuario]);
+  }, []);
+
+  useEffect(() => {
+    if (usuarioId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchDashboard();
+    } else {
+      setIsLoading(false);
+    }
+  }, [usuarioId, fetchDashboard]);
 
   const abrirModalCancelacion = (cls) => {
     setClassToCancel(cls);
@@ -77,18 +84,12 @@ export const InicioAlumno = () => {
 
   const confirmarCancelacion = async () => {
     if (!classToCancel) return;
-    
+
     try {
       setIsProcessing(true);
-      await reservasService.cancelarClase({ turnoId: classToCancel.turnoId }); 
-      
-      setDatosDashboard(prev => ({
-        ...prev,
-        proximasClases: prev.proximasClases.filter(c => c.turnoId !== classToCancel.turnoId),
-        creditos: prev.creditos + 1 
-      }));
-      
-      toast.success("Clase cancelada. Se te devolvió 1 crédito.");
+      const respuesta = await reservasService.cancelarClase({ turnoId: classToCancel.turnoId });
+      toast.success(respuesta?.message || "Clase cancelada.");
+      await fetchDashboard();
       setShowCancelModal(false);
     } catch (error) {
       toast.error(error.response?.data?.message || "No se pudo cancelar la clase.");
@@ -97,6 +98,17 @@ export const InicioAlumno = () => {
       setClassToCancel(null);
     }
   };
+
+  if (hayError && !datosDashboard) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <p className="text-sm font-medium text-gray-500">No pudimos cargar tu información.</p>
+        <button onClick={fetchDashboard} className="bg-mm-purple text-white px-6 py-2 rounded-full font-semibold text-sm">
+          Reintentar
+        </button>
+      </div>
+    );
+  }
 
   if (isLoading || !datosDashboard) {
     return (
@@ -108,43 +120,29 @@ export const InicioAlumno = () => {
 
   return (
     <>
-      <Modal 
-        isOpen={showCancelModal} 
-        onClose={() => !isProcessing && setShowCancelModal(false)}
+      <ConfirmDialog
+        isOpen={showCancelModal}
         title="¿Cancelar reserva?"
-      >
-        <p className="text-sm text-gray-500 mb-6">
-          Estás por cancelar tu turno del <strong className="text-mm-dark">{classToCancel?.dia} a las {classToCancel?.hora} hs</strong>. Recuperarás tu crédito para usarlo en otro momento.
-        </p>
-        <div className="flex gap-3">
-          <button 
-            onClick={() => setShowCancelModal(false)}
-            disabled={isProcessing}
-            className="flex-1 py-3 rounded-xl font-bold text-sm bg-mm-light text-mm-dark hover:bg-gray-200 transition-colors"
-          >
-            Volver
-          </button>
-          <button 
-            onClick={confirmarCancelacion}
-            disabled={isProcessing}
-            className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
-          >
-            {isProcessing ? "Cancelando..." : "Sí, cancelar"}
-          </button>
-        </div>
-      </Modal>
+        message={<>Estás por cancelar tu turno del <strong className="text-mm-dark">{classToCancel && etiquetaTurno(classToCancel.fecha, classToCancel.horaInicio)} hs</strong>. Recuperarás tu crédito para usarlo en otro momento.</>}
+        confirmText="Sí, cancelar"
+        isLoading={isProcessing}
+        onConfirm={confirmarCancelacion}
+        onCancel={() => setShowCancelModal(false)}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 items-stretch animate-fade-in pt-2">
-        
+
         {/* Widget: Créditos */}
         <div className="md:col-span-1 lg:col-span-2 bg-mm-surface rounded-4xl p-6 md:p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
           <div className="flex items-start justify-between mb-1">
             <span className="text-sm font-medium tracking-wide uppercase text-mm-dark opacity-50">
               Tus Créditos
             </span>
-            <div className="text-xs px-3 py-1 rounded-full font-bold bg-purple-50 text-mm-purple">
-              Activo
-            </div>
+            {datosDashboard.plan && (
+              <div className={`text-xs px-3 py-1 rounded-full font-bold ${datosDashboard.plan.estado === 'Activo' ? 'bg-purple-50 text-mm-purple' : 'bg-red-50 text-red-600'}`}>
+                {datosDashboard.plan.estado}
+              </div>
+            )}
           </div>
 
           <div className="flex items-end gap-4 mt-2 mb-4">
@@ -163,7 +161,7 @@ export const InicioAlumno = () => {
             </span>
           </div>
         </div>
-        
+
         {/* Widget: Información y Membresía */}
         <div className="md:col-span-1 lg:col-span-3 bg-mm-surface rounded-4xl p-6 md:p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
           <div>
@@ -176,13 +174,25 @@ export const InicioAlumno = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 rounded-2xl px-4 py-4 bg-mm-dark mt-auto">
-            <p className="text-sm font-medium text-mm-light text-center">
-              Tu membresía vence en <span className="text-mm-purple font-bold">{datosDashboard.diasVencimientoMembresia}</span> días.
-            </p>
-            <span className="h-px w-full sm:h-5 sm:w-px bg-gray-600 my-1 sm:my-0" />
-            <p className="text-sm font-medium text-mm-light text-center">
-              <span className="text-mm-purple font-bold">Renovala</span> para no perder tus turnos.
-            </p>
+            {datosDashboard.plan ? (
+              <>
+                <p className="text-sm font-medium text-mm-light text-center">
+                  {datosDashboard.diasVencimientoMembresia === 0 ? (
+                    <>Tu membresía <span className="text-mm-purple font-bold">vence hoy</span>.</>
+                  ) : (
+                    <>Tu membresía vence en <span className="text-mm-purple font-bold">{datosDashboard.diasVencimientoMembresia}</span> {datosDashboard.diasVencimientoMembresia === 1 ? 'día' : 'días'}.</>
+                  )}
+                </p>
+                <span className="h-px w-full sm:h-5 sm:w-px bg-gray-600 my-1 sm:my-0" />
+                <p className="text-sm font-medium text-mm-light text-center">
+                  <span className="text-mm-purple font-bold">Renovala</span> para no perder tus turnos.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm font-medium text-mm-light text-center">
+                Todavía no tenés una membresía asignada. Consultá con administración.
+              </p>
+            )}
           </div>
         </div>
 
@@ -190,7 +200,7 @@ export const InicioAlumno = () => {
         <div className="md:col-span-2 lg:col-span-5 mt-4 pb-6">
           <div className="flex items-center justify-between mb-4 px-1">
             <h2 className="text-lg md:text-xl font-bold text-mm-dark">Próximas Clases</h2>
-            <button 
+            <button
               onClick={() => navigate('/alumno/mis-turnos')}
               className="text-sm font-bold text-mm-purple hover:underline cursor-pointer"
             >
@@ -214,10 +224,10 @@ export const InicioAlumno = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-bold mb-0.5 uppercase tracking-wider text-mm-purple truncate">
-                      {cls.tipoReserva}
+                      {etiquetaTipoReserva(cls.tipoReserva)}
                     </p>
                     <p className="text-sm md:text-base font-bold text-mm-dark truncate">
-                      {cls.dia} {cls.fecha} {cls.mes} · {cls.hora}
+                      {etiquetaTurno(cls.fecha, cls.horaInicio)}
                     </p>
                   </div>
                   <button

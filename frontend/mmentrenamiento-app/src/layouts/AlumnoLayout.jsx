@@ -2,6 +2,7 @@ import { Outlet, NavLink } from 'react-router-dom';
 import { HomeIcon, CalendarDaysIcon, UserIcon } from '@heroicons/react/24/outline';
 import { HomeIcon as HomeSolid, CalendarDaysIcon as CalendarSolid, UserIcon as UserSolid } from '@heroicons/react/24/solid';
 import { useAuthStore } from '../store/useAuthStore';
+import logo from '../assets/Logo_MM_sin_fondo.png';
 
 export const AlumnoLayout = () => {
   const { usuario } = useAuthStore();
@@ -12,7 +13,7 @@ export const AlumnoLayout = () => {
       {/* Header Superior */}
       <header className="sticky top-0 z-40 bg-mm-light/80 backdrop-blur-md px-4 md:px-8 pt-6 pb-4 w-full max-w-5xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src="src\assets\Logo_MM_sin_fondo.png" alt="Logo MM Entrenamiento" className="w-8 h-8 md:w-10 md:h-10 object-contain" />
+          <img src={logo} alt="Logo MM Entrenamiento" className="w-8 h-8 md:w-10 md:h-10 object-contain" />
           <span className="text-lg md:text-xl font-bold text-mm-dark font-display tracking-tight">
             MM Entrenamiento
           </span>
@@ -21,7 +22,7 @@ export const AlumnoLayout = () => {
         {/* Avatar del Usuario */}
         <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-mm-purple shadow-sm bg-purple-50 flex items-center justify-center">
           <img
-            src={usuario?.foto || `https://plus.unsplash.com/premium_photo-1689568126014-06fea9d5d341?q=80&w=80&h=80&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D`}
+            src={usuario?.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(usuario?.nombreCompleto || 'Usuario')}&background=f5f6fb&color=8e57a4`}
             alt="Avatar del usuario"
             className="w-full h-full object-cover"
           />

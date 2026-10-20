@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import { reservasService } from "../../services/reservasService";
-import { Modal } from "../../components/ui/Modal"; 
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { formatearHora, esNotFound } from "../../utils/fechas";
 
 const DAYS = ["D", "L", "M", "M", "J", "V", "S"];
 const MONTH_NAMES = [
@@ -11,9 +12,9 @@ const MONTH_NAMES = [
 
 function buildWeekDays(anchor) {
   const days = [];
-  const dow = anchor.getDay(); 
-  const mondayOffset = dow === 0 ? -6 : 1 - dow; 
-  
+  const dow = anchor.getDay();
+  const mondayOffset = dow === 0 ? -6 : 1 - dow;
+
   const monday = new Date(anchor);
   monday.setDate(anchor.getDate() + mondayOffset);
   monday.setHours(0, 0, 0, 0);
@@ -32,13 +33,13 @@ function toFormatYYYYMMDD(d) {
 
 export const GrillaReservas = () => {
   const [selected, setSelected] = useState(new Date());
-  
+
   const [dayClasses, setDayClasses] = useState([]);
-  const [misReservas, setMisReservas] = useState([]); 
-  
+  const [misReservas, setMisReservas] = useState([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [classToCancel, setClassToCancel] = useState(null);
 
@@ -52,13 +53,16 @@ export const GrillaReservas = () => {
         reservasService.getGrillaPorFecha(fechaFormat),
         reservasService.getMisTurnos()
       ]);
-      
+
       setDayClasses(dataGrilla || []);
       setMisReservas(dataMisTurnos?.proximasClases || []);
     } catch (error) {
-      toast.error("Error al cargar los horarios.");
-      console.error(error)
+      if (!esNotFound(error)) {
+        toast.error("Error al cargar los horarios.");
+        console.error(error)
+      }
       setDayClasses([]);
+      setMisReservas([]);
     } finally {
       setIsLoading(false);
     }
@@ -75,8 +79,8 @@ export const GrillaReservas = () => {
   const handleReservar = async (horarioId) => {
     try {
       setIsProcessing(true);
-      await reservasService.reservarTurno({ horarioId: horarioId, fecha: fechaFormat });
-      toast.success("¡Turno reservado con éxito!");
+      const respuesta = await reservasService.reservarTurno({ horarioId: horarioId, fecha: fechaFormat });
+      toast.success(respuesta?.message || "¡Turno reservado con éxito!");
       await cargarGrillaYMisTurnos();
     } catch (error) {
       toast.error(error.response?.data?.message || "No se pudo reservar el turno.");
@@ -92,19 +96,19 @@ export const GrillaReservas = () => {
 
   const confirmarCancelacion = async () => {
     if (!classToCancel?.turnoIdReal) return;
-    
+
     try {
       setIsProcessing(true);
-      await reservasService.cancelarClase({ 
-        turnoId: classToCancel.turnoIdReal, 
-        motivo: "Cancelado desde la app por el alumno" 
+      const respuesta = await reservasService.cancelarClase({
+        turnoId: classToCancel.turnoIdReal,
+        motivo: "Cancelado desde la app por el alumno"
       });
-      
-      toast.success("Reserva cancelada.");
+
+      toast.success(respuesta?.message || "Reserva cancelada.");
       setShowCancelModal(false);
       await cargarGrillaYMisTurnos();
     } catch (error) {
-      toast.error("No se pudo cancelar el turno.");
+      toast.error(error.response?.data?.message || "No se pudo cancelar el turno.");
       console.error(error)
     } finally {
       setIsProcessing(false);
@@ -179,16 +183,16 @@ export const GrillaReservas = () => {
         ) : (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {dayClasses.map((cls) => {
-              const horaDisplay = cls.horaInicio.substring(0, 5);
-              const miReservaEnEsteHorario = misReservas.find(r => 
-                r.fecha === fechaFormat && r.horaInicio.substring(0, 5) === horaDisplay
+              const horaDisplay = formatearHora(cls.horaInicio);
+              const miReservaEnEsteHorario = misReservas.find(r =>
+                r.fecha === fechaFormat && formatearHora(r.horaInicio) === horaDisplay
               );
               const isMyBooking = !!miReservaEnEsteHorario;
 
               const spotsLeft = Math.max(cls.cupoMaximo - cls.ocupacionActual, 0);
               const fillPct = Math.min((cls.ocupacionActual / cls.cupoMaximo) * 100, 100);
               const isFull = cls.estaLleno || spotsLeft === 0;
-              
+
               const barColor = isMyBooking ? "var(--color-mm-purple)" : (fillPct >= 85 ? "#e2574c" : "var(--color-mm-dark)");
 
               return (
@@ -254,27 +258,15 @@ export const GrillaReservas = () => {
         )}
       </div>
 
-      <Modal isOpen={showCancelModal} onClose={() => !isProcessing && setShowCancelModal(false)} title="¿Cancelar reserva?">
-        <p className="text-sm text-gray-500 mb-6">
-          Estás por cancelar tu turno de las <strong className="text-mm-dark">{classToCancel?.horaInicio.substring(0, 5)} hs</strong>. Si lo hacés con anticipación, recuperarás tu crédito.
-        </p>
-        <div className="flex gap-3">
-          <button 
-            onClick={() => setShowCancelModal(false)}
-            disabled={isProcessing}
-            className="flex-1 py-3 rounded-xl font-bold text-sm bg-mm-light text-mm-dark hover:bg-gray-200 transition-colors"
-          >
-            Volver
-          </button>
-          <button 
-            onClick={confirmarCancelacion}
-            disabled={isProcessing}
-            className="flex-1 py-3 rounded-xl font-bold text-sm bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
-          >
-            {isProcessing ? "Cancelando..." : "Sí, cancelar"}
-          </button>
-        </div>
-      </Modal>
+      <ConfirmDialog
+        isOpen={showCancelModal}
+        title="¿Cancelar reserva?"
+        message={<>Estás por cancelar tu turno de las <strong className="text-mm-dark">{formatearHora(classToCancel?.horaInicio)} hs</strong>. Recuperarás tu crédito.</>}
+        confirmText="Sí, cancelar"
+        isLoading={isProcessing}
+        onConfirm={confirmarCancelacion}
+        onCancel={() => setShowCancelModal(false)}
+      />
 
     </div>
   );

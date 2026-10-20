@@ -1,31 +1,36 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  CalendarDaysIcon, UsersIcon, ChartBarIcon, 
+import {
+  CalendarDaysIcon, UsersIcon, ChartBarIcon,
   CurrencyDollarIcon, MegaphoneIcon, PlusCircleIcon, MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
+import toast from 'react-hot-toast';
 import { administracionService } from '../../services/administracionService';
+import { useAuthStore } from '../../store/useAuthStore';
+import { nombreDiaPorIndice } from '../../utils/fechas';
 import { ModalNuevoUsuario } from './usuarios/ModalNuevoUsuario';
 
 export const InicioAdmin = () => {
   const navigate = useNavigate();
-  
+
   const [usuarios, setUsuarios] = useState([]);
   const [busquedaPago, setBusquedaPago] = useState('');
   const [modalRegistroAbierto, setModalRegistroAbierto] = useState(false);
 
-  // Mocks de métricas
-  const metricas = {
-    ocupacionSemanal: 85,
-    alumnosActivos: 142,
-    pagosPendientes: 18,
-    ocupacionPorTurno: [
-      { hora: '08:00', porcentaje: 90 },
-      { hora: '10:00', porcentaje: 60 },
-      { hora: '14:00', porcentaje: 40 },
-      { hora: '18:00', porcentaje: 100 },
-      { hora: '20:00', porcentaje: 80 },
-    ]
+  const nombreAdmin = useAuthStore((state) => state.usuario?.nombreCompleto);
+
+  const [metricas, setMetricas] = useState(null);
+  const [errorMetricas, setErrorMetricas] = useState(false);
+
+  const cargarMetricas = async () => {
+    try {
+      setErrorMetricas(false);
+      setMetricas(await administracionService.getMetricas());
+    } catch (error) {
+      setErrorMetricas(true);
+      toast.error("No se pudieron cargar las métricas.");
+      console.error("Error cargando métricas:", error);
+    }
   };
 
   const cargarUsuarios = async () => {
@@ -40,6 +45,7 @@ export const InicioAdmin = () => {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     cargarUsuarios();
+    cargarMetricas();
   }, []);
 
   // Filtro en tiempo real para el buscador de pagos
@@ -56,9 +62,9 @@ export const InicioAdmin = () => {
 
   return (
     <div className="animate-fade-in max-w-6xl mx-auto pb-10">
-      
+
       <header className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-display font-black text-mm-dark">Bienvenido, Admin</h1>
+        <h1 className="text-2xl md:text-3xl font-display font-black text-mm-dark">Bienvenido, {nombreAdmin || 'Admin'}</h1>
         <p className="text-gray-500 mt-1 text-sm md:text-base font-medium">Panel de control y accesos rápidos.</p>
       </header>
 
@@ -66,14 +72,14 @@ export const InicioAdmin = () => {
           1. SECCIÓN DE MÉTRICAS Y GRÁFICOS
           ============================================== */}
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        
+
         {/* Card: Usuarios Activos */}
         <div className="bg-mm-surface p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between">
           <div className="flex items-center gap-2 mb-2">
             <UsersIcon className="w-5 h-5 text-blue-500" />
-            <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Usuarios Activos</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Alumnos Activos</p>
           </div>
-          <span className="text-4xl font-display font-black text-mm-dark">{metricas.alumnosActivos}</span>
+          <span className="text-4xl font-display font-black text-mm-dark">{metricas ? metricas.alumnosActivos : '—'}</span>
         </div>
 
         {/* Card: Ocupación Semanal */}
@@ -83,7 +89,7 @@ export const InicioAdmin = () => {
             <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Ocupación Semanal</p>
           </div>
           <div className="flex items-end gap-1">
-            <span className="text-4xl font-display font-black text-mm-purple">{metricas.ocupacionSemanal}%</span>
+            <span className="text-4xl font-display font-black text-mm-purple">{metricas ? `${metricas.ocupacionSemanal}%` : '—'}</span>
           </div>
         </div>
 
@@ -94,10 +100,40 @@ export const InicioAdmin = () => {
             <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Pagos Pendientes</p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-4xl font-display font-black text-red-500">{metricas.pagosPendientes}</span>
+            <span className="text-4xl font-display font-black text-red-500">{metricas ? metricas.pagosPendientes : '—'}</span>
             <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md">Alumnos</span>
           </div>
         </div>
+      </section>
+
+      {/* Ocupación por turno (semana en curso) */}
+      <section className="bg-mm-surface p-5 rounded-3xl border border-gray-100 shadow-sm mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Ocupación por día · semana en curso</p>
+          {errorMetricas && (
+            <button onClick={cargarMetricas} className="text-xs font-bold text-mm-purple hover:underline">Reintentar</button>
+          )}
+        </div>
+        {!metricas ? (
+          <p className="text-sm text-gray-400 font-medium">{errorMetricas ? 'No se pudieron cargar los datos.' : 'Cargando...'}</p>
+        ) : metricas.ocupacionPorDia.length === 0 ? (
+          <p className="text-sm text-gray-400 font-medium">No hay horarios configurados.</p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {metricas.ocupacionPorDia.map((t) => (
+              <div key={t.fecha} className="flex items-center gap-3">
+                <span className="w-24 text-xs font-bold text-mm-dark">{nombreDiaPorIndice(t.diaSemana)}</span>
+                <div className="flex-1 h-2.5 rounded-full bg-mm-light overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${t.porcentaje >= 85 ? 'bg-red-500' : 'bg-mm-purple'}`}
+                    style={{ width: `${t.porcentaje}%` }}
+                  />
+                </div>
+                <span className="w-10 text-right text-xs font-bold text-gray-500">{t.porcentaje}%</span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* ==============================================
@@ -109,15 +145,15 @@ export const InicioAdmin = () => {
           <div className="absolute top-0 right-0 p-6 opacity-5">
             <CurrencyDollarIcon className="w-32 h-32" />
           </div>
-          
+
           <h2 className="text-lg font-bold text-white mb-1 relative z-10">Cobro Rápido</h2>
           <p className="text-gray-400 text-xs font-medium mb-4 relative z-10">Buscá un alumno para registrarle un pago.</p>
-          
+
           <div className="relative z-10 flex-1">
             <div className="relative flex items-center">
               <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 absolute left-4" />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Nombre del alumno..."
                 value={busquedaPago}
                 onChange={(e) => setBusquedaPago(e.target.value)}
@@ -149,9 +185,9 @@ export const InicioAdmin = () => {
 
         {/* BOTONES DE ACCIÓN */}
         <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          
+
           {/* Reserva Rápida */}
-          <button 
+          <button
             onClick={() => navigate('/admin/horarios')}
             className="bg-mm-surface p-5 rounded-4xl border border-gray-100 shadow-sm hover:shadow-md hover:border-orange-200 transition-all group flex flex-col items-start text-left"
           >
@@ -163,7 +199,7 @@ export const InicioAdmin = () => {
           </button>
 
           {/* Nuevo Usuario */}
-          <button 
+          <button
             onClick={() => setModalRegistroAbierto(true)}
             className="bg-mm-surface p-5 rounded-4xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all group flex flex-col items-start text-left"
           >
@@ -175,7 +211,7 @@ export const InicioAdmin = () => {
           </button>
 
           {/* Anuncio Global */}
-          <button 
+          <button
             onClick={() => navigate('/admin/ajustes')}
             className="bg-mm-surface p-5 rounded-4xl border border-gray-100 shadow-sm hover:shadow-md hover:border-purple-200 transition-all group flex flex-col items-start text-left sm:col-span-2"
           >
@@ -192,14 +228,14 @@ export const InicioAdmin = () => {
 
         </div>
 
-        
+
       </section>
 
       {/* Inyectamos el Modal de Nuevo Usuario */}
-      <ModalNuevoUsuario 
-        isOpen={modalRegistroAbierto} 
-        onClose={() => setModalRegistroAbierto(false)} 
-        onUsuarioCreado={cargarUsuarios} 
+      <ModalNuevoUsuario
+        isOpen={modalRegistroAbierto}
+        onClose={() => setModalRegistroAbierto(false)}
+        onUsuarioCreado={cargarUsuarios}
       />
 
     </div>

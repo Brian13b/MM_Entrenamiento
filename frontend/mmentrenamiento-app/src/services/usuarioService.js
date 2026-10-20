@@ -5,6 +5,10 @@ export const usuarioService = {
     const response = await api.get('/usuarios/mi-perfil');
     return response.data;
   },
+  getMiResumen: async () => {
+    const response = await api.get('/usuarios/mi-resumen');
+    return response.data;
+  },
   actualizarMiPerfil: async (datos) => {
     const response = await api.put('/usuarios/mi-perfil', datos);
     return response.data;

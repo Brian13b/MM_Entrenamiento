@@ -7,6 +7,7 @@
         public string NombreCompleto { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string TipoReserva { get; set; } = string.Empty;
+        public string Estado { get; set; } = string.Empty;
         public bool PrimeraClase { get; set; }
     }
 

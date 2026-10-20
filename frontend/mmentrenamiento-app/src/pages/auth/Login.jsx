@@ -6,6 +6,7 @@ import { EnvelopeIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/
 import { authService } from '../../services/auth';
 import { useAuthStore } from '../../store/useAuthStore';
 import { RecuperarPassword } from './RecuperarPassword';
+import logoMM from '../../assets/Logo-MM.png';
 
 export const Login = () => {
   const [email, setEmail] = useState('');
@@ -91,7 +92,7 @@ export const Login = () => {
         
         {/* Header */}
         <div className="flex flex-col items-center mb-8 gap-3">
-          <img src="src\assets\Logo-MM.png" alt="Logo MM Entrenamiento" className="w-20 h-20" />
+          <img src={logoMM} alt="Logo MM Entrenamiento" className="w-20 h-20" />
           <h1 className="font-display font-bold text-mm-dark text-xl text-center tracking-wide">
             MM Entrenamiento
           </h1>

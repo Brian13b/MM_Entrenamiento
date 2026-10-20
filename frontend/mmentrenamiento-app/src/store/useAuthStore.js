@@ -1,19 +1,30 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-export const useAuthStore = create((set) => ({
-    usuario: null,
-    token: localStorage.getItem('token') || null,
-    isAuthenticated: !!localStorage.getItem('token'),
+export const useAuthStore = create(
+    persist(
+        (set) => ({
+            usuario: null,
+            token: null,
+            isAuthenticated: false,
 
-    login: (usuario, token) => {
-        localStorage.setItem('token', token);
-        set({ usuario, token, isAuthenticated: true });
-    },
+            login: (usuario, token) => {
+                set({ usuario, token, isAuthenticated: true });
+            },
 
-    logout: () => {
-        localStorage.removeItem('token');
-        set({ usuario: null, token: null, isAuthenticated: false });
-    },
+            logout: () => {
+                set({ usuario: null, token: null, isAuthenticated: false });
+            },
 
-    setUsuario: (usuario) => set({ usuario }),
-}));
+            setUsuario: (usuario) => set({ usuario }),
+        }),
+        {
+            name: 'mm-auth',
+            partialize: (state) => ({
+                usuario: state.usuario,
+                token: state.token,
+                isAuthenticated: state.isAuthenticated,
+            }),
+        }
+    )
+);

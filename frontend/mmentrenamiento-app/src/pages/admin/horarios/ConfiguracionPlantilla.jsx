@@ -2,16 +2,19 @@ import { useState, useEffect } from 'react';
 import { PlusIcon, ClockIcon, TrashIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { horariosService } from '../../../services/horariosService';
+import { useConfirm } from '../../../hooks/useConfirm';
+import { parsearFechaIso } from '../../../utils/fechas';
 
 export const ConfiguracionPlantilla = () => {
   const [horarios, setHorarios] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [modalidad, setModalidad] = useState('masivo');
+  const [confirmar, confirmDialog] = useConfirm();
 
-  const [formMasivo, setFormMasivo] = useState();
-  const [formUnico, setFormUnico] = useState();
-  const [formFeriado, setFormFeriado] = useState();
+  const [formMasivo, setFormMasivo] = useState({ diasSemana: [], horaInicio: '', horaFin: '', cupoMaximo: '' });
+  const [formUnico, setFormUnico] = useState({ diaSemana: 1, horaInicio: '', horaFin: '', cupoMaximo: '' });
+  const [formFeriado, setFormFeriado] = useState({ fechaFeriado: '', nuevaHoraInicio: '', nuevaHoraFin: '' });
 
   const diasSemana = [
     { id: 1, nombre: 'Lunes' }, { id: 2, nombre: 'Martes' },
@@ -41,6 +44,7 @@ export const ConfiguracionPlantilla = () => {
 
   const handleCrearMasivo = async (e) => {
     e.preventDefault();
+    if (formMasivo.diasSemana.length === 0) return toast.error("Seleccioná al menos un día.");
     try {
       setIsSaving(true);
       await horariosService.crearHorariosMasivos({
@@ -82,17 +86,24 @@ export const ConfiguracionPlantilla = () => {
   const handleConfigurarFeriado = async (e) => {
     e.preventDefault();
     if (!formFeriado.fechaFeriado) return toast.error("Seleccioná una fecha.");
+
+    const ok = await confirmar({
+      title: '¿Reemplazar la grilla de ese día?',
+      message: <>Se eliminarán los turnos del <strong className="text-mm-dark">{parsearFechaIso(formFeriado.fechaFeriado).toLocaleDateString('es-AR')}</strong> y se crearán nuevos con el horario reducido ({formFeriado.nuevaHoraInicio} a {formFeriado.nuevaHoraFin}). Las reservas existentes se cancelarán y se devolverán los créditos: cada alumno deberá volver a anotarse.</>,
+      confirmText: 'Sí, reemplazar'
+    });
+    if (!ok) return;
     try {
       setIsSaving(true);
-      await horariosService.configurarHorarioReducido({
+      const respuesta = await horariosService.configurarHorarioReducido({
         fechaFeriado: formFeriado.fechaFeriado,
         nuevaHoraInicio: formFeriado.nuevaHoraInicio,
         nuevaHoraFin: formFeriado.nuevaHoraFin
       });
-      toast.success("Feriado configurado.");
+      toast.success(respuesta?.message || "Feriado configurado.", { duration: 6000 });
       setFormFeriado({ ...formFeriado, fechaFeriado: '' });
     } catch (error) {
-      toast.error("Error al configurar el feriado.");
+      toast.error(error.response?.data?.message || "Error al configurar el feriado.");
       console.error(error);
     } finally {
       setIsSaving(false);
@@ -100,12 +111,19 @@ export const ConfiguracionPlantilla = () => {
   };
 
   const handleEliminarHorario = async (id) => {
+    const ok = await confirmar({
+      title: '¿Eliminar este horario?',
+      message: 'Se quitará de la plantilla semanal. Esta acción no se puede deshacer.',
+      confirmText: 'Sí, eliminar'
+    });
+    if (!ok) return;
+
     try {
       await horariosService.eliminarHorario(id);
-      
+
       setHorarios(prev => prev.filter(h => h.id !== id));
       toast.success("Horario eliminado.");
-      
+
     } catch (error) {
       toast.error("Error al eliminar el horario.");
       console.error(error);
@@ -130,6 +148,7 @@ export const ConfiguracionPlantilla = () => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start animate-fade-in">
+      {confirmDialog}
       <div className="lg:col-span-1 lg:sticky lg:top-24">
         <section className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm">
           <div className="flex items-center gap-3 mb-5">
@@ -160,8 +179,8 @@ export const ConfiguracionPlantilla = () => {
                       type="button"
                       onClick={() => toggleDiaMasivo(dia.id)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border ${
-                        formMasivo?.diasSemana?.includes(dia.id) 
-                          ? 'bg-purple-50 border-mm-purple text-mm-purple' 
+                        formMasivo?.diasSemana?.includes(dia.id)
+                          ? 'bg-purple-50 border-mm-purple text-mm-purple'
                           : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
                       }`}
                     >
@@ -280,7 +299,7 @@ export const ConfiguracionPlantilla = () => {
                 <h3 className="text-lg font-display font-bold text-mm-dark mb-4 border-b border-gray-100 pb-3">
                   {dia.nombre}
                 </h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {clasesDelDia.sort((a,b) => a.horaInicio.localeCompare(b.horaInicio)).map(clase => (
                     <div key={clase.id} className="flex items-center justify-between bg-[#F8F9FA] border border-gray-200/60 p-2.5 pr-4 rounded-2xl group transition-all hover:border-gray-300">
@@ -297,7 +316,7 @@ export const ConfiguracionPlantilla = () => {
                           </span>
                         </div>
                       </div>
-                      <button 
+                      <button
                         onClick={() => handleEliminarHorario(clase.id)}
                         className="text-gray-300 hover:text-red-500 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                         title="Eliminar horario"

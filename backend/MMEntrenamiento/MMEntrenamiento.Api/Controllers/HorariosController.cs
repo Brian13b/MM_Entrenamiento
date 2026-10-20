@@ -62,6 +62,7 @@ namespace MMEntrenamiento.Api.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> EliminarHorario(int id)
         {
             var resultado = await _horarioService.EliminarHorarioAsync(id);

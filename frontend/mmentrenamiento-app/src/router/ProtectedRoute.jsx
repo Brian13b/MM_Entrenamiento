@@ -1,6 +1,12 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 
+const HOME_POR_ROL = {
+    Admin: "/admin",
+    Profe: "/profe",
+    Alumno: "/alumno",
+};
+
 export const ProtectedRoute = ({ allowedRoles }) => {
     const { isAuthenticated, usuario } = useAuthStore();
 
@@ -8,14 +14,8 @@ export const ProtectedRoute = ({ allowedRoles }) => {
         return <Navigate to="/login" replace />;
     }
 
-    if (allowedRoles && usuario && !allowedRoles.includes(usuario?.rol)) {
-        if (usuario?.rol === "Admin") {
-            return <Navigate to="/admin" replace />;
-        }
-        if (usuario?.rol === "User") {
-            return <Navigate to="/user" replace />;
-        }
-        return <Navigate to="/alumno" replace />;
+    if (allowedRoles && usuario && !allowedRoles.includes(usuario.rol)) {
+        return <Navigate to={HOME_POR_ROL[usuario.rol] ?? "/alumno"} replace />;
     }
 
     return <Outlet />;

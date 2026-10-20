@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { 
-  MegaphoneIcon, ArrowPathIcon, LockClosedIcon, 
-  BuildingStorefrontIcon, PhoneIcon, MapPinIcon 
+import {
+  MegaphoneIcon, ArrowPathIcon, LockClosedIcon,
+  BuildingStorefrontIcon, PhoneIcon, MapPinIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { administracionService } from '../../services/administracionService';
+import { authService } from '../../services/auth';
 
 export const AjustesAdmin = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -14,17 +15,12 @@ export const AjustesAdmin = () => {
   const [ultimaModificacion, setUltimaModificacion] = useState(null);
   const [isSavingAnuncio, setIsSavingAnuncio] = useState(false);
 
-  // Estados Cambio de Contraseña (MOCK)
+  // Estados Cambio de Contraseña
   const [passwords, setPasswords] = useState({ actual: '', nueva: '', confirmar: '' });
   const [isSavingPassword, setIsSavingPassword] = useState(false);
 
-  // Estados Datos del Gimnasio (MOCK)
-  const [datosGym, setDatosGym] = useState({
-    nombre: 'MM Entrenamiento',
-    telefono: '+54 9 11 1234-5678',
-    direccion: 'Calle Falsa 123, CABA',
-    instagram: '@mm.entrenamiento'
-  });
+  // Estados Datos del Gimnasio
+  const [datosGym, setDatosGym] = useState({ nombre: '', telefono: '', direccion: '', instagram: '' });
   const [isSavingGym, setIsSavingGym] = useState(false);
 
   // ---------------------------------------------------------
@@ -34,11 +30,21 @@ export const AjustesAdmin = () => {
     const fetchAnuncio = async () => {
       try {
         setIsLoading(true);
-        const data = await administracionService.getAnuncioGlobal();
-        if (data) {
-          setMensaje(data.mensaje || '');
-          setUltimaModificacion(data.ultimaModificacion);
+        const [anuncio, config] = await Promise.all([
+          administracionService.getAnuncioGlobal(),
+          administracionService.getConfiguracion()
+        ]);
+        // GET anuncio devuelve 204 (sin cuerpo) cuando no hay anuncio.
+        if (anuncio) {
+          setMensaje(anuncio.mensaje || '');
+          setUltimaModificacion(anuncio.ultimaModificacion);
         }
+        setDatosGym({
+          nombre: config.nombre || '',
+          telefono: config.telefono || '',
+          direccion: config.direccion || '',
+          instagram: config.instagram || ''
+        });
       } catch (error) {
         toast.error('No se pudo cargar la configuración actual.');
         console.error(error);
@@ -51,9 +57,9 @@ export const AjustesAdmin = () => {
   }, []);
 
   // ---------------------------------------------------------
-  // HANDLERS (Con Mocks donde corresponde)
+  // HANDLERS
   // ---------------------------------------------------------
-  
+
   const handleGuardarAnuncio = async () => {
     if (mensaje.trim() === '') return toast.error('El anuncio no puede estar vacío.');
     try {
@@ -73,15 +79,14 @@ export const AjustesAdmin = () => {
     e.preventDefault();
     if (passwords.nueva !== passwords.confirmar) return toast.error('Las contraseñas nuevas no coinciden.');
     if (passwords.nueva.length < 6) return toast.error('La contraseña debe tener al menos 6 caracteres.');
-    
+
     try {
       setIsSavingPassword(true);
-      // MOCK: Simulación de llamada a la API
-      await new Promise(resolve => setTimeout(resolve, 800)); 
-      toast.success('Contraseña actualizada correctamente.');
+      const respuesta = await authService.cambiarPassword(passwords.actual, passwords.nueva);
+      toast.success(respuesta?.message || 'Contraseña actualizada correctamente.');
       setPasswords({ actual: '', nueva: '', confirmar: '' });
     } catch (error) {
-      toast.error('La contraseña actual es incorrecta.');
+      toast.error(error.response?.data?.message || 'No se pudo cambiar la contraseña.');
       console.error(error);
     } finally {
       setIsSavingPassword(false);
@@ -92,11 +97,15 @@ export const AjustesAdmin = () => {
     e.preventDefault();
     try {
       setIsSavingGym(true);
-      // MOCK: Simulación de llamada a la API
-      await new Promise(resolve => setTimeout(resolve, 800)); 
-      toast.success('Datos del gimnasio actualizados.');
+      const respuesta = await administracionService.actualizarConfiguracion({
+        nombre: datosGym.nombre.trim(),
+        telefono: datosGym.telefono.trim() || null,
+        direccion: datosGym.direccion.trim() || null,
+        instagram: datosGym.instagram.trim() || null
+      });
+      toast.success(respuesta?.message || 'Datos del gimnasio actualizados.');
     } catch (error) {
-      toast.error('Error al actualizar datos.');
+      toast.error(error.response?.data?.message || 'Error al actualizar datos.');
       console.error(error);
     } finally {
       setIsSavingGym(false);
@@ -125,10 +134,10 @@ export const AjustesAdmin = () => {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
+
         {/* COLUMNA IZQUIERDA: Anuncio Global y Seguridad */}
         <div className="flex flex-col gap-6">
-          
+
           {/* ANUNCIO GLOBAL */}
           <section className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm flex flex-col gap-4">
             <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
@@ -179,7 +188,7 @@ export const AjustesAdmin = () => {
             <form onSubmit={handleCambiarPassword} className="flex flex-col gap-4 mt-2">
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1 block mb-1">Contraseña Actual</label>
-                <input 
+                <input
                   type="password" required value={passwords.actual} onChange={e => setPasswords({...passwords, actual: e.target.value})}
                   className="w-full bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
                 />
@@ -187,20 +196,20 @@ export const AjustesAdmin = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1 block mb-1">Nueva Contraseña</label>
-                  <input 
+                  <input
                     type="password" required minLength={6} value={passwords.nueva} onChange={e => setPasswords({...passwords, nueva: e.target.value})}
                     className="w-full bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
                   />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1 block mb-1">Repetir Nueva</label>
-                  <input 
+                  <input
                     type="password" required minLength={6} value={passwords.confirmar} onChange={e => setPasswords({...passwords, confirmar: e.target.value})}
                     className="w-full bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
                   />
                 </div>
               </div>
-              <button 
+              <button
                 type="submit" disabled={isSavingPassword || !passwords.actual || !passwords.nueva || !passwords.confirmar}
                 className="self-end bg-mm-dark text-white px-6 py-3 rounded-xl font-bold text-xs hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 mt-2"
               >
@@ -214,7 +223,7 @@ export const AjustesAdmin = () => {
         {/* COLUMNA DERECHA: Datos del Gimnasio */}
         <div className="flex flex-col gap-6">
           <section className="bg-mm-dark p-6 rounded-4xl shadow-sm flex flex-col gap-4 border border-gray-800 relative overflow-hidden">
-            
+
             {/* Decal Background */}
             <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
               <BuildingStorefrontIcon className="w-40 h-40" />
@@ -233,7 +242,7 @@ export const AjustesAdmin = () => {
             <form onSubmit={handleGuardarDatosGym} className="flex flex-col gap-4 mt-2 relative z-10">
               <div>
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wide ml-1 block mb-1">Nombre del Gimnasio</label>
-                <input 
+                <input
                   type="text" required value={datosGym.nombre} onChange={e => setDatosGym({...datosGym, nombre: e.target.value})}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl p-3 text-sm text-white font-bold focus:ring-2 focus:ring-mm-purple outline-none placeholder:text-gray-500"
                 />
@@ -244,7 +253,7 @@ export const AjustesAdmin = () => {
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wide ml-1 block mb-1">
                     <span className="flex items-center gap-1"><PhoneIcon className="w-3 h-3" /> Teléfono / WhatsApp</span>
                   </label>
-                  <input 
+                  <input
                     type="text" value={datosGym.telefono} onChange={e => setDatosGym({...datosGym, telefono: e.target.value})}
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl p-3 text-sm text-white focus:ring-2 focus:ring-mm-purple outline-none"
                   />
@@ -253,7 +262,7 @@ export const AjustesAdmin = () => {
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wide ml-1 block mb-1">
                     <span className="flex items-center gap-1">@ Instagram</span>
                   </label>
-                  <input 
+                  <input
                     type="text" value={datosGym.instagram} onChange={e => setDatosGym({...datosGym, instagram: e.target.value})}
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl p-3 text-sm text-white focus:ring-2 focus:ring-mm-purple outline-none"
                   />
@@ -264,13 +273,13 @@ export const AjustesAdmin = () => {
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wide ml-1 block mb-1">
                   <span className="flex items-center gap-1"><MapPinIcon className="w-3 h-3" /> Dirección</span>
                 </label>
-                <input 
+                <input
                   type="text" value={datosGym.direccion} onChange={e => setDatosGym({...datosGym, direccion: e.target.value})}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl p-3 text-sm text-white focus:ring-2 focus:ring-mm-purple outline-none"
                 />
               </div>
 
-              <button 
+              <button
                 type="submit" disabled={isSavingGym}
                 className="w-full bg-mm-purple text-white px-6 py-3.5 rounded-xl font-bold text-sm hover:bg-purple-600 transition-colors flex items-center justify-center gap-2 active:scale-95 disabled:opacity-70 mt-3"
               >

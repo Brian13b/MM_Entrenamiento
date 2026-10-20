@@ -1,4 +1,5 @@
-﻿using MMEntrenamiento.Application.DTOs.Administracion;
+﻿using Microsoft.AspNetCore.Identity;
+using MMEntrenamiento.Application.DTOs.Administracion;
 using MMEntrenamiento.Application.Interfaces;
 using MMEntrenamiento.Application.Interfaces.Repositories;
 using MMEntrenamiento.Domain.Entities;
@@ -10,74 +11,73 @@ namespace MMEntrenamiento.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMembresiaService _membresiaService;
+        private readonly UserManager<Usuario> _userManager;
 
-        public AdministracionService(IUnitOfWork unitOfWork, IMembresiaService membresiaService)
+        public AdministracionService(IUnitOfWork unitOfWork, IMembresiaService membresiaService, UserManager<Usuario> userManager)
         {
             _unitOfWork = unitOfWork;
             _membresiaService = membresiaService;
+            _userManager = userManager;
         }
 
         public async Task<IEnumerable<UsuarioDirectorioDto>> ObtenerUsuariosDirectorioAsync()
         {
-            var usuarios = await _unitOfWork.Usuarios.GetAllAsync();
-
-            var mesActual = DateTime.UtcNow.Month;
-            var anioActual = DateTime.UtcNow.Year;
-
-            var directorio = new List<UsuarioDirectorioDto>();
-
-            foreach (var u in usuarios)
-            {
-                int creditosDisponibles = 0;
-
-                var creditosMes = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
-                    c => c.UsuarioId == u.Id && c.Anio == anioActual && c.Mes == mesActual);
-
-                if (creditosMes != null)
-                {
-                    creditosDisponibles = creditosMes.CreditosBase - creditosMes.CreditosUsados;
-                }
-
-                directorio.Add(new UsuarioDirectorioDto
-                {
-                    Id = u.Id,
-                    NombreCompleto = u.NombreCompleto,
-                    Email = u.Email ?? "",
-                    Telefono = u.PhoneNumber ?? "",
-                    Activo = u.EstadoCuenta == EstadoCuenta.Activo,
-                    CreditosDisponibles = creditosDisponibles
-                });
-            }
-
+            var directorio = await ConstruirDirectorioAsync(null);
             return directorio.OrderBy(u => u.NombreCompleto);
         }
 
-        public async Task<UsuarioDirectorioDto> ObtenerUsuarioDirectorioPorIdAsync(Guid id)
+        public async Task<UsuarioDirectorioDto?> ObtenerUsuarioDirectorioPorIdAsync(Guid id)
         {
-            var u = await _unitOfWork.Usuarios.GetByIdAsync(id);
-            if (u == null) return null;
+            var directorio = await ConstruirDirectorioAsync(id);
+            return directorio.FirstOrDefault();
+        }
 
+        // Arma el directorio con un número fijo de consultas (no una por usuario).
+        // Deudor = alumno con membresía asignada y sin ningún pago registrado para el mes calendario actual.
+        private async Task<List<UsuarioDirectorioDto>> ConstruirDirectorioAsync(Guid? soloUsuarioId)
+        {
             var mesActual = DateTime.UtcNow.Month;
             var anioActual = DateTime.UtcNow.Year;
-            int creditosDisponibles = 0;
 
-            var creditosMes = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
-                c => c.UsuarioId == u.Id && c.Anio == anioActual && c.Mes == mesActual);
+            var usuarios = (await _unitOfWork.Usuarios.FindAsync(
+                u => soloUsuarioId == null || u.Id == soloUsuarioId,
+                u => u.MembresiaActual!,
+                u => u.OneDrivePlan!)).ToList();
 
-            if (creditosMes != null)
+            var creditosPorUsuario = (await _unitOfWork.CreditosMes.FindAsync(
+                    c => c.Anio == anioActual && c.Mes == mesActual && (soloUsuarioId == null || c.UsuarioId == soloUsuarioId)))
+                .ToDictionary(c => c.UsuarioId);
+
+            var usuariosConPagoDelMes = (await _unitOfWork.Pagos.FindAsync(
+                    p => p.AnioAbonado == anioActual && p.MesAbonado == mesActual && (soloUsuarioId == null || p.UsuarioId == soloUsuarioId)))
+                .Select(p => p.UsuarioId)
+                .ToHashSet();
+
+            var adminIds = (await _userManager.GetUsersInRoleAsync("Admin")).Select(u => u.Id).ToHashSet();
+            var profeIds = (await _userManager.GetUsersInRoleAsync("Profe")).Select(u => u.Id).ToHashSet();
+
+            return usuarios.Select(u =>
             {
-                creditosDisponibles = creditosMes.CreditosBase - creditosMes.CreditosUsados;
-            }
+                var rol = adminIds.Contains(u.Id) ? "Admin" : profeIds.Contains(u.Id) ? "Profe" : "Alumno";
 
-            return new UsuarioDirectorioDto
-            {
-                Id = u.Id,
-                NombreCompleto = u.NombreCompleto ?? "Sin Nombre",
-                Email = u.Email ?? "",
-                Telefono = null,
-                Activo = u.EstadoCuenta == EstadoCuenta.Activo,
-                CreditosDisponibles = creditosDisponibles
-            };
+                int creditosDisponibles = 0;
+                if (creditosPorUsuario.TryGetValue(u.Id, out var creditosMes))
+                    creditosDisponibles = (creditosMes.CreditosBase + creditosMes.CreditosArrastrados) - creditosMes.CreditosUsados;
+
+                return new UsuarioDirectorioDto
+                {
+                    Id = u.Id,
+                    NombreCompleto = u.NombreCompleto ?? "Sin Nombre",
+                    Email = u.Email ?? "",
+                    Telefono = u.PhoneNumber,
+                    Activo = u.EstadoCuenta == EstadoCuenta.Activo,
+                    CreditosDisponibles = creditosDisponibles,
+                    DriveItemId = u.OneDrivePlan?.DriveItemId,
+                    Rol = rol,
+                    MembresiaId = u.MembresiaActual?.Id,
+                    Deudor = rol == "Alumno" && u.MembresiaActual != null && !usuariosConPagoDelMes.Contains(u.Id)
+                };
+            }).ToList();
         }
 
         public async Task<(bool Exito, string Mensaje)> CrearMembresiaAsync(CrearMembresiaDto request)
@@ -131,6 +131,119 @@ namespace MMEntrenamiento.Application.Services
             await _unitOfWork.CompleteAsync();
 
             return (true, $"Pago de ${request.MontoAbonado} registrado contablemente.");
+        }
+
+        public async Task<MetricasDto> ObtenerMetricasAsync()
+        {
+            var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
+
+            // Alumnos activos y pagos pendientes salen del mismo directorio (misma regla de "Deudor").
+            var directorio = await ConstruirDirectorioAsync(null);
+            var alumnosActivos = directorio.Count(u => u.Rol == "Alumno" && u.Activo);
+            var pagosPendientes = directorio.Count(u => u.Deudor);
+
+            // Semana en curso (lunes a domingo): cada franja de la plantilla cuenta una vez por día,
+            // con ocupación 0 si todavía no existe el turno de esa fecha. Los días con horario reducido
+            // solo cuentan las franjas que siguen disponibles.
+            var lunes = hoy.AddDays(-(((int)hoy.DayOfWeek + 6) % 7));
+            var domingo = lunes.AddDays(6);
+
+            var horarios = (await _unitOfWork.Horarios.GetAllAsync()).Where(h => h.CupoMaximo > 0).ToList();
+            var turnosSemana = (await _unitOfWork.Turnos.FindAsync(t => t.Fecha >= lunes && t.Fecha <= domingo)).ToList();
+            var reducidosSemana = (await _unitOfWork.HorariosReducidos.FindAsync(
+                r => r.Aplica && r.FechaFeriado >= lunes && r.FechaFeriado <= domingo)).ToList();
+
+            var franjas = new List<(DateOnly Fecha, int Ocupacion, int Cupo)>();
+            for (var fecha = lunes; fecha <= domingo; fecha = fecha.AddDays(1))
+            {
+                var reducido = reducidosSemana.FirstOrDefault(r => r.FechaFeriado == fecha);
+
+                foreach (var horario in horarios.Where(h => h.DiaSemana == fecha.DayOfWeek && DisponibilidadHorarios.EstaDisponible(h, reducido)))
+                {
+                    var turno = turnosSemana.FirstOrDefault(t => t.HorarioId == horario.Id && t.Fecha == fecha);
+                    franjas.Add((fecha, Math.Min(turno?.OcupacionActual ?? 0, horario.CupoMaximo), horario.CupoMaximo));
+                }
+            }
+
+            var ocupacionSemanal = franjas.Count == 0
+                ? 0
+                : (int)Math.Round(franjas.Average(f => (double)f.Ocupacion / f.Cupo) * 100);
+
+            // Por día: porcentaje de los cupos totales de ese día que se ocuparon.
+            var porDia = franjas
+                .GroupBy(f => f.Fecha)
+                .OrderBy(g => g.Key)
+                .Select(g => new OcupacionDiaDto
+                {
+                    Fecha = g.Key,
+                    DiaSemana = g.Key.DayOfWeek,
+                    Porcentaje = (int)Math.Round(g.Sum(f => f.Ocupacion) * 100.0 / g.Sum(f => f.Cupo))
+                })
+                .ToList();
+
+            return new MetricasDto
+            {
+                OcupacionSemanal = ocupacionSemanal,
+                AlumnosActivos = alumnosActivos,
+                PagosPendientes = pagosPendientes,
+                OcupacionPorDia = porDia
+            };
+        }
+
+        public async Task<ConfiguracionGimnasioDto> ObtenerConfiguracionGimnasioAsync()
+        {
+            var config = await _unitOfWork.ConfiguracionesGimnasio.FirstOrDefaultAsync(c => c.Id == 1);
+
+            // Mientras no se haya guardado nada, se devuelve la configuración por defecto.
+            if (config == null)
+                return new ConfiguracionGimnasioDto { Nombre = "MM Entrenamiento" };
+
+            return new ConfiguracionGimnasioDto
+            {
+                Nombre = config.Nombre,
+                Telefono = config.Telefono,
+                Direccion = config.Direccion,
+                Instagram = config.Instagram
+            };
+        }
+
+        public async Task<(bool Exito, string Mensaje)> ActualizarConfiguracionGimnasioAsync(ConfiguracionGimnasioDto request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Nombre))
+                return (false, "El nombre del gimnasio es obligatorio.");
+
+            var config = await _unitOfWork.ConfiguracionesGimnasio.FirstOrDefaultAsync(c => c.Id == 1);
+            var nuevo = config == null;
+            config ??= new ConfiguracionGimnasio { Id = 1 };
+
+            config.Nombre = request.Nombre.Trim();
+            config.Telefono = string.IsNullOrWhiteSpace(request.Telefono) ? null : request.Telefono.Trim();
+            config.Direccion = string.IsNullOrWhiteSpace(request.Direccion) ? null : request.Direccion.Trim();
+            config.Instagram = string.IsNullOrWhiteSpace(request.Instagram) ? null : request.Instagram.Trim();
+            config.UltimaModificacion = DateTime.UtcNow;
+
+            if (nuevo) await _unitOfWork.ConfiguracionesGimnasio.AddAsync(config);
+            else _unitOfWork.ConfiguracionesGimnasio.Update(config);
+
+            await _unitOfWork.CompleteAsync();
+            return (true, "Datos del gimnasio actualizados correctamente.");
+        }
+
+        public async Task<IEnumerable<PagoDto>> ObtenerPagosUsuarioAsync(Guid usuarioId)
+        {
+            var pagos = await _unitOfWork.Pagos.FindAsync(p => p.UsuarioId == usuarioId);
+
+            return pagos
+                .OrderByDescending(p => p.FechaPago)
+                .Select(p => new PagoDto
+                {
+                    Id = p.Id,
+                    Monto = p.Monto,
+                    MesAbonado = p.MesAbonado,
+                    AnioAbonado = p.AnioAbonado,
+                    MetodoPago = p.MetodoPago,
+                    FechaPago = p.FechaPago
+                });
         }
 
         public async Task<(bool Exito, string Mensaje)> CambiarEstadoBloqueoAsync(Guid usuarioId, bool suspender)

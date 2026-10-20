@@ -13,10 +13,12 @@ namespace MMEntrenamiento.Api.Controllers
     public class AdministracionController : ControllerBase
     {
         private readonly IAdministracionService _adminService;
+        private readonly IUsuarioService _usuarioService;
 
-        public AdministracionController(IAdministracionService adminService)
+        public AdministracionController(IAdministracionService adminService, IUsuarioService usuarioService)
         {
             _adminService = adminService;
+            _usuarioService = usuarioService;
         }
 
         [HttpGet("usuarios")]
@@ -61,6 +63,44 @@ namespace MMEntrenamiento.Api.Controllers
         public async Task<IActionResult> RegistrarPago([FromBody] RegistrarPagoDto request)
         {
             var (exito, mensaje) = await _adminService.RegistrarPagoManualAsync(request);
+            if (!exito) return BadRequest(new { message = mensaje });
+            return Ok(new { message = mensaje });
+        }
+
+        [AllowAnonymous]
+        [HttpGet("configuracion")]
+        public async Task<IActionResult> ObtenerConfiguracion()
+        {
+            var config = await _adminService.ObtenerConfiguracionGimnasioAsync();
+            return Ok(config);
+        }
+
+        [HttpPut("configuracion")]
+        public async Task<IActionResult> ActualizarConfiguracion([FromBody] ConfiguracionGimnasioDto request)
+        {
+            var (exito, mensaje) = await _adminService.ActualizarConfiguracionGimnasioAsync(request);
+            if (!exito) return BadRequest(new { message = mensaje });
+            return Ok(new { message = mensaje });
+        }
+
+        [HttpGet("metricas")]
+        public async Task<IActionResult> ObtenerMetricas()
+        {
+            var metricas = await _adminService.ObtenerMetricasAsync();
+            return Ok(metricas);
+        }
+
+        [HttpGet("pagos/{usuarioId}")]
+        public async Task<IActionResult> ObtenerPagosUsuario(Guid usuarioId)
+        {
+            var pagos = await _adminService.ObtenerPagosUsuarioAsync(usuarioId);
+            return Ok(pagos);
+        }
+
+        [HttpPut("usuarios/{usuarioId}/perfil")]
+        public async Task<IActionResult> ActualizarPerfilUsuario(Guid usuarioId, [FromBody] ActualizarPerfilDto request)
+        {
+            var (exito, mensaje) = await _usuarioService.ActualizarPerfilAsync(usuarioId, request);
             if (!exito) return BadRequest(new { message = mensaje });
             return Ok(new { message = mensaje });
         }

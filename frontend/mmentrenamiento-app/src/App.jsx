@@ -1,10 +1,24 @@
 import { AppRouter } from './router/AppRouter';
-import { Toaster } from 'react-hot-toast';
+import { useEffect } from 'react';
+import toast, { Toaster } from 'react-hot-toast';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 function App() {
+  useEffect(() => {
+    // Red de seguridad: una promesa rechazada sin catch no debe fallar en silencio.
+    const alRechazar = (evento) => {
+      console.error('Promesa rechazada sin capturar:', evento.reason);
+      toast.error('Ocurrió un error inesperado.');
+    };
+    window.addEventListener('unhandledrejection', alRechazar);
+    return () => window.removeEventListener('unhandledrejection', alRechazar);
+  }, []);
+
   return (
     <>
-      <AppRouter />
+      <ErrorBoundary>
+        <AppRouter />
+      </ErrorBoundary>
       <Toaster 
         position="top-center"
         toastOptions={{

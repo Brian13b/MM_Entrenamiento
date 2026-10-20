@@ -19,6 +19,18 @@ namespace MMEntrenamiento.Api.Controllers
             _reservaService = reservaService;
         }
 
+        // Admin y Profe pueden operar en nombre de un alumno enviando su usuarioId;
+        // para el resto (o sin usuarioId) siempre se usa el usuario del token.
+        private Guid ResolverUsuarioObjetivo(Guid usuarioIdSolicitado)
+        {
+            var userIdToken = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var puedeOperarPorTerceros = User.IsInRole("Admin") || User.IsInRole("Profe");
+
+            return puedeOperarPorTerceros && usuarioIdSolicitado != Guid.Empty
+                ? usuarioIdSolicitado
+                : userIdToken;
+        }
+
         [HttpPost("reservar")]
         [Authorize(Roles = "Alumno, Admin, Profe")]
         public async Task<IActionResult> ReservarEventual([FromBody] CrearReservaDto request)
@@ -49,7 +61,7 @@ namespace MMEntrenamiento.Api.Controllers
         [HttpPost("cancelar-clase")]
         public async Task<IActionResult> CancelarClase([FromBody] CancelarClaseDto request)
         {
-            request.UsuarioId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            request.UsuarioId = ResolverUsuarioObjetivo(request.UsuarioId);
 
             var (exito, mensaje) = await _reservaService.CancelarClaseAsync(request);
             if (!exito) return BadRequest(new { message = mensaje });
@@ -60,7 +72,7 @@ namespace MMEntrenamiento.Api.Controllers
         [HttpPost("baja-turno-fijo")]
         public async Task<IActionResult> DarDeBajaTurnoFijo([FromBody] BajaTurnoFijoDto request)
         {
-            request.UsuarioId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            request.UsuarioId = ResolverUsuarioObjetivo(request.UsuarioId);
 
             var (exito, mensaje) = await _reservaService.DarDeBajaTurnoFijoAsync(request);
             if (!exito) return BadRequest(new { message = mensaje });
@@ -73,6 +85,14 @@ namespace MMEntrenamiento.Api.Controllers
         {
             var grilla = await _reservaService.ObtenerGrillaPorFechaAsync(fecha);
             return Ok(grilla);
+        }
+
+        [HttpGet("usuario/{usuarioId}")]
+        [Authorize(Roles = "Admin, Profe")]
+        public async Task<IActionResult> ObtenerTurnosDeUsuario(Guid usuarioId)
+        {
+            var dashboard = await _reservaService.ObtenerMisTurnosAsync(usuarioId);
+            return Ok(dashboard);
         }
 
         [HttpGet("mis-turnos")]

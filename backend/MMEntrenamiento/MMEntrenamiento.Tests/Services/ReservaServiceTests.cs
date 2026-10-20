@@ -25,6 +25,13 @@ namespace MMEntrenamiento.Tests.Services
             _unitOfWorkMock = new Mock<IUnitOfWork>();
             _membresiaServiceMock = new Mock<IMembresiaService>();
 
+            // Sin horarios reducidos/feriados configurados.
+            var reducidosMock = new Mock<IGenericRepository<HorarioReducido>>();
+            reducidosMock
+                .Setup(r => r.FirstOrDefaultAsync(It.IsAny<Expression<Func<HorarioReducido, bool>>>(), It.IsAny<Expression<Func<HorarioReducido, object>>[]>()))
+                .ReturnsAsync((HorarioReducido?)null);
+            _unitOfWorkMock.Setup(u => u.HorariosReducidos).Returns(reducidosMock.Object);
+
             // Inyectamos los simuladores en tu servicio real
             _reservaService = new ReservaService(_unitOfWorkMock.Object, _membresiaServiceMock.Object);
         }

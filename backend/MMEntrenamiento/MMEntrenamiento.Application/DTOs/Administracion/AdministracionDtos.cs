@@ -9,6 +9,9 @@
         public bool Activo { get; set; }
         public int CreditosDisponibles { get; set; }
         public string? DriveItemId { get; set; }
+        public string Rol { get; set; } = "Alumno";
+        public int? MembresiaId { get; set; }
+        public bool Deudor { get; set; }
     }
 
     public class CrearMembresiaDto
@@ -43,5 +46,38 @@
     public class ActualizarAnuncioDto
     {
         public string Mensaje { get; set; } = string.Empty;
+    }
+
+    public class PagoDto
+    {
+        public int Id { get; set; }
+        public decimal Monto { get; set; }
+        public int MesAbonado { get; set; }
+        public int AnioAbonado { get; set; }
+        public string MetodoPago { get; set; } = string.Empty;
+        public DateTime FechaPago { get; set; }
+    }
+
+    public class OcupacionDiaDto
+    {
+        public DayOfWeek DiaSemana { get; set; }
+        public DateOnly Fecha { get; set; }
+        public int Porcentaje { get; set; }
+    }
+
+    public class MetricasDto
+    {
+        public int OcupacionSemanal { get; set; }
+        public int AlumnosActivos { get; set; }
+        public int PagosPendientes { get; set; }
+        public List<OcupacionDiaDto> OcupacionPorDia { get; set; } = new();
+    }
+
+    public class ConfiguracionGimnasioDto
+    {
+        public string Nombre { get; set; } = string.Empty;
+        public string? Telefono { get; set; }
+        public string? Direccion { get; set; }
+        public string? Instagram { get; set; }
     }
 }

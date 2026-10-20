@@ -21,6 +21,10 @@ export const reservasService = {
     const response = await api.get(`/reservas/grilla/${fecha}`);
     return response.data;
   },
+  getTurnosDeUsuario: async (usuarioId) => {
+    const response = await api.get(`/reservas/usuario/${usuarioId}`);
+    return response.data;
+  },
   getMisTurnos: async () => {
     const response = await api.get('/reservas/mis-turnos');
     return response.data;

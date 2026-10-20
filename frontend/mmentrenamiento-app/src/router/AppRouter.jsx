@@ -1,21 +1,25 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
 
 import { AlumnoLayout } from '../layouts/AlumnoLayout';
 import { AdminLayout } from '../layouts/AdminLayout';
+import { ProfeLayout } from '../layouts/ProfeLayout';
 
 import { Login } from '../pages/auth/Login';
+
 import { InicioAlumno } from '../pages/alumno/InicioAlumno';
 import { GrillaReservas } from '../pages/alumno/GrillaReservas';
 import { MisTurnosAlumno } from '../pages/alumno/MisTurnosAlumno';
+import { PerfilAlumno } from '../pages/alumno/PerfilAlumno';
+
 import { InicioAdmin } from '../pages/admin/InicioAdmin';
 import { AjustesAdmin } from '../pages/admin/AjustesAdmin';
 import { UsuariosAdmin } from '../pages/admin/UsuariosAdmin';
 import { PerfilUsuarioAdmin } from '../pages/admin/usuarios/PerfilUsuarioAdmin';
 import { HorariosAdmin } from '../pages/admin/HorariosAdmin';
 
-// Mocks temporales de Layouts para estructurar las rutas
-const ProfeLayout = () => <div className="h-screen bg-mm-light"><Outlet /></div>;
+import { GrillaProfe } from '../pages/profe/GrillaProfe';
+import { AsistenciaClase } from '../pages/profe/AsistenciaClase';
 
 export const AppRouter = () => {
   return (
@@ -30,14 +34,15 @@ export const AppRouter = () => {
             <Route index element={<InicioAlumno />} />
             <Route path="clases" element={<GrillaReservas />} />
             <Route path="mis-turnos" element={<MisTurnosAlumno />} />
-            <Route path="perfil" element={<div className="p-4">Mi Perfil</div>} />
+            <Route path="perfil" element={<PerfilAlumno />} />
           </Route>
         </Route>
 
         {/* Zona Profe */}
         <Route element={<ProtectedRoute allowedRoles={['Profe', 'Admin']} />}>
           <Route path="/profe" element={<ProfeLayout />}>
-            <Route index element={<div className="p-4">Grilla del Día (Profe)</div>} />
+            <Route index element={<GrillaProfe />} />
+            <Route path="clase/:turnoId" element={<AsistenciaClase />} />
           </Route>
         </Route>
 

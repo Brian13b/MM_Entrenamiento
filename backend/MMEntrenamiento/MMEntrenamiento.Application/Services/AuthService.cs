@@ -50,7 +50,8 @@ namespace MMEntrenamiento.Application.Services
             {
                 UserName = request.Email,
                 Email = request.Email,
-                NombreCompleto = request.NombreCompleto
+                NombreCompleto = request.NombreCompleto,
+                PhoneNumber = string.IsNullOrWhiteSpace(request.Telefono) ? null : request.Telefono.Trim()
             };
 
             var result = await _userManager.CreateAsync(user, request.Password);

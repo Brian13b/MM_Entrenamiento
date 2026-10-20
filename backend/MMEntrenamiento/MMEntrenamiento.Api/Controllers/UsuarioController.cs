@@ -29,6 +29,16 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(perfil);
         }
 
+        [HttpGet("mi-resumen")]
+        public async Task<IActionResult> ObtenerMiResumen()
+        {
+            var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+            var resumen = await _usuarioService.ObtenerResumenAsync(userId);
+
+            if (resumen == null) return NotFound(new { message = "Usuario no encontrado." });
+            return Ok(resumen);
+        }
+
         [HttpPut("mi-perfil")]
         public async Task<IActionResult> ActualizarMiPerfil([FromBody] ActualizarPerfilDto request)
         {
