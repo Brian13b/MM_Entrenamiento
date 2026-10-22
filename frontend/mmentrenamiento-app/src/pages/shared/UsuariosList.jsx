@@ -1,24 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ChevronRightIcon, ChevronLeftIcon, PencilSquareIcon, 
-  NoSymbolIcon, CheckCircleIcon, ChatBubbleLeftRightIcon
-} from '@heroicons/react/24/outline';
+import { ChevronRightIcon, ChevronLeftIcon, PencilSquareIcon, NoSymbolIcon, CheckCircleIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import { urlAvatar } from '../../utils/avatar';
 
-export const UsuariosLista = ({ usuarios, isLoading, onBloquear }) => {
+export const UsuariosLista = ({ usuarios, isLoading, onBloquear, basePath = '/admin/usuarios' }) => {
   const navigate = useNavigate();
-
-  // --- ESTADOS DE PAGINACIÓN ---
   const [paginaActual, setPaginaActual] = useState(1);
-  const usuariosPorPagina = 10; // Cantidad de alumnos por vista
+  const usuariosPorPagina = 10; 
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPaginaActual(1);
   }, [usuarios]);
 
-  // Lógica matemática para cortar el array
   const indiceUltimoUsuario = paginaActual * usuariosPorPagina;
   const indicePrimerUsuario = indiceUltimoUsuario - usuariosPorPagina;
   const usuariosPaginados = usuarios.slice(indicePrimerUsuario, indiceUltimoUsuario);
@@ -57,12 +52,13 @@ export const UsuariosLista = ({ usuarios, isLoading, onBloquear }) => {
         {usuariosPaginados.map((usuario) => (
           <li 
             key={usuario.id}
-            onClick={() => navigate(`/admin/usuarios/${usuario.id}`)}
+            onClick={() => navigate(`${basePath}/${usuario.id}`)}
             className="p-4 sm:p-5 hover:bg-gray-50 transition-colors cursor-pointer flex items-center gap-4 group"
           >
-            <div className="w-12 h-12 bg-[#F8F9FA] rounded-[0.85rem] flex items-center justify-center shrink-0 border border-gray-100 text-mm-dark font-display font-bold shadow-sm">
-              {usuario.nombreCompleto?.charAt(0).toUpperCase() || '?'}
-            </div>
+            <img
+              src={urlAvatar(usuario.nombreCompleto, usuario.fotoPerfilUrl)} alt=""
+              className="w-12 h-12 rounded-[0.85rem] object-cover border border-gray-100 shrink-0"
+            />
             
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
@@ -107,7 +103,7 @@ export const UsuariosLista = ({ usuarios, isLoading, onBloquear }) => {
               </button>
 
               <button 
-                onClick={(e) => { e.stopPropagation(); navigate(`/admin/usuarios/${usuario.id}`); }}
+                onClick={(e) => { e.stopPropagation(); navigate(`${basePath}/${usuario.id}`); }}
                 title="Editar Perfil"
                 className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
               >

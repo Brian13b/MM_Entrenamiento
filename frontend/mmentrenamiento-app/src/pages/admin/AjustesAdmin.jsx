@@ -23,9 +23,6 @@ export const AjustesAdmin = () => {
   const [datosGym, setDatosGym] = useState({ nombre: '', telefono: '', direccion: '', instagram: '' });
   const [isSavingGym, setIsSavingGym] = useState(false);
 
-  // ---------------------------------------------------------
-  // CARGA INICIAL
-  // ---------------------------------------------------------
   useEffect(() => {
     const fetchAnuncio = async () => {
       try {
@@ -34,7 +31,6 @@ export const AjustesAdmin = () => {
           administracionService.getAnuncioGlobal(),
           administracionService.getConfiguracion()
         ]);
-        // GET anuncio devuelve 204 (sin cuerpo) cuando no hay anuncio.
         if (anuncio) {
           setMensaje(anuncio.mensaje || '');
           setUltimaModificacion(anuncio.ultimaModificacion);
@@ -55,10 +51,6 @@ export const AjustesAdmin = () => {
 
     fetchAnuncio();
   }, []);
-
-  // ---------------------------------------------------------
-  // HANDLERS
-  // ---------------------------------------------------------
 
   const handleGuardarAnuncio = async () => {
     if (mensaje.trim() === '') return toast.error('El anuncio no puede estar vacío.');
@@ -127,7 +119,7 @@ export const AjustesAdmin = () => {
   }
 
   return (
-    <div className="animate-fade-in max-w-5xl mx-auto pb-10">
+    <div className="animate-fade-in max-w-6xl mx-auto pb-10">
       <header className="mb-6">
         <h1 className="text-2xl md:text-3xl font-display font-bold text-mm-dark">Ajustes Generales</h1>
         <p className="text-gray-500 mt-1 text-sm md:text-base font-medium">Configurá los avisos, seguridad y datos de tu gimnasio.</p>

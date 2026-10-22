@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import {
-  ArrowLeftIcon, ExclamationTriangleIcon, CheckIcon, XMarkIcon
-} from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ExclamationTriangleIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { asistenciaService } from '../../services/asistenciaService';
 import { seguimientoService } from '../../services/seguimientoService';
 import { etiquetaTurno, formatearHora, esNotFound } from '../../utils/fechas';
@@ -152,7 +150,7 @@ export const AsistenciaClase = () => {
 
             <div className="flex-1 flex flex-col">
               <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">Plan de Entrenamiento (OneDrive)</h3>
-              <div className="flex-1 min-h-[400px] bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 relative">
+              <div className="flex-1 min-h-100 bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 relative">
                 {ficha.driveItemId ? (
                   <PlanFrame driveItemId={ficha.driveItemId} />
                 ) : (
@@ -172,7 +170,6 @@ export const AsistenciaClase = () => {
   return (
     <div className="animate-fade-in max-w-7xl mx-auto pb-10">
       
-      {/* Título adaptado al turno actual */}
       <div className="flex items-center gap-4 mb-6 md:mb-8">
         <button onClick={volver} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-mm-dark shadow-sm hover:bg-gray-50 transition-colors active:scale-95">
           <ArrowLeftIcon className="w-5 h-5" />
@@ -214,7 +211,7 @@ export const AsistenciaClase = () => {
                         isSelected 
                           ? 'bg-white border-mm-purple shadow-md scale-[1.02]' 
                           : 'bg-white border-transparent shadow-sm hover:border-purple-100'
-                      } ${!presente ? 'opacity-60 grayscale-[30%]' : ''}`}
+                      } ${!presente ? 'opacity-60 grayscale-30' : ''}`}
                     >
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-sm ${isSelected ? 'bg-purple-100 text-mm-purple' : 'bg-gray-100 text-gray-500'}`}>
                         {iniciales}
@@ -271,12 +268,11 @@ export const AsistenciaClase = () => {
             </div>
           )}
 
-          {/* Botón Guardar movido al final de la columna izquierda */}
           {alumnos.length > 0 && (
              <div className="mt-6 pb-6">
                <button
                 onClick={handleGuardar} disabled={isSaving}
-                className="w-full bg-mm-purple text-white font-bold rounded-2xl py-4 text-sm shadow-sm disabled:opacity-70 active:scale-95 transition-all hover:bg-purple-700"
+                className="w-full bg-mm-purple text-white font-bold rounded-2xl py-4 text-sm shadow-sm disabled:opacity-70 active:scale-95 transition-all hover:bg-mm-purple/80"
               >
                 {isSaving ? 'Guardando...' : 'Guardar asistencia'}
               </button>
@@ -284,14 +280,13 @@ export const AsistenciaClase = () => {
           )}
         </div>
 
-        {/* COLUMNA DERECHA: Ficha y Plan (Visible solo en Desktop) */}
+        {/* COLUMNA DERECHA: Ficha y Plan */}
         <div className="hidden lg:block lg:col-span-8">
           {alumnoActivo ? (
             // eslint-disable-next-line react-hooks/static-components
             <PanelDetalles alumno={alumnoActivo} ficha={fichaActiva} />
           ) : (
              <div className="bg-white rounded-3xl p-12 border border-gray-100 shadow-sm text-center h-full flex flex-col items-center justify-center">
-                <span className="text-5xl mb-4 opacity-50">👈</span>
                 <p className="text-lg font-bold text-gray-400">Seleccioná un alumno de la lista para ver su ficha y plan.</p>
              </div>
           )}

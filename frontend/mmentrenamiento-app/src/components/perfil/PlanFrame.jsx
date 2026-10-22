@@ -3,7 +3,7 @@ import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 
 const esUrlHttp = (valor) => /^https?:\/\//i.test(valor || '');
 
-// Pide a OneDrive/SharePoint la vista incrustada de solo lectura.
+// Pide a OneDrive la vista incrustada de solo lectura.
 const construirUrlEmbed = (url) => {
   if (/[?&]action=/i.test(url)) return url;
   return `${url}${url.includes('?') ? '&' : '?'}action=embedview`;

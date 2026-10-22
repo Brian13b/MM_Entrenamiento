@@ -9,8 +9,6 @@ const TAMANO_MAXIMO_FOTO = 5 * 1024 * 1024;
 
 const inputClase = 'w-full bg-mm-light border border-transparent focus:border-mm-purple focus:bg-white rounded-2xl px-4 py-3.5 text-sm text-mm-dark outline-none transition-all';
 
-// Formulario de datos personales del usuario logueado (Admin, Profe o Alumno):
-// nombre, email, teléfono y foto, vía PUT /api/Usuarios/mi-perfil.
 export const FormEditarPerfil = ({ perfil, onGuardado, onCancelar }) => {
   const [form, setForm] = useState({
     nombreCompleto: perfil.nombreCompleto || '',
@@ -57,7 +55,6 @@ export const FormEditarPerfil = ({ perfil, onGuardado, onCancelar }) => {
       setGuardando(true);
       const respuesta = await usuarioService.actualizarMiPerfil(datos, foto);
 
-      // Se vuelve a leer el perfil para sincronizar el store (nombre, email y foto nueva).
       const actualizado = await usuarioService.getMiPerfil();
       const { usuario, setUsuario } = useAuthStore.getState();
       setUsuario({
@@ -121,7 +118,7 @@ export const FormEditarPerfil = ({ perfil, onGuardado, onCancelar }) => {
       <div>
         <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1 block mb-1">Teléfono</label>
         <input
-          type="tel" value={form.telefono} placeholder="+54 9 11 1234-5678"
+          type="tel" value={form.telefono} placeholder="+54 9 343 1234-5678"
           onChange={(e) => setForm({ ...form, telefono: e.target.value })}
           className={inputClase}
         />

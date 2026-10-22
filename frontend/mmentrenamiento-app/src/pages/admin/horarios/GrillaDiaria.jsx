@@ -5,7 +5,6 @@ import toast from 'react-hot-toast';
 import { horariosService } from '../../../services/horariosService';
 import { ModalGestionTurno } from './ModalGestionTurno';
 
-// Función helper para formatear fechas a YYYY-MM-DD en horario LOCAL (evita desfases UTC)
 const getLocalDateString = (date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -14,11 +13,10 @@ const getLocalDateString = (date) => {
 };
 
 export const GrillaDiaria = () => {
-  // Calculamos el lunes pero usando la zona horaria local
   const [lunesSemana, setLunesSemana] = useState(() => {
     const d = new Date();
     const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Ajustar al lunes
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); 
     const monday = new Date(d.setDate(diff));
     return getLocalDateString(monday);
   });
@@ -30,9 +28,7 @@ export const GrillaDiaria = () => {
   const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
   const [fechaTurnoSeleccionado, setFechaTurnoSeleccionado] = useState('');
 
-  // Generamos los 5 días sumando días al lunes de forma segura
   const diasSemana = useMemo(() => {
-    // Parseamos el string "YYYY-MM-DD" a números para evitar saltos raros de JS
     const [year, month, day] = lunesSemana.split('-').map(Number);
 
     return [0, 1, 2, 3, 4].map(i => {
@@ -41,7 +37,7 @@ export const GrillaDiaria = () => {
       
       return {
         nombre: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'][i],
-        fechaIso: getLocalDateString(d), // Usamos el helper local
+        fechaIso: getLocalDateString(d),
         diaMes: d.getDate(),
         mesNombre: d.toLocaleString('es', { month: 'long' })
       };

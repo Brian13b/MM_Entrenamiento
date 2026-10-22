@@ -3,9 +3,9 @@ import toast from 'react-hot-toast';
 
 import { administracionService } from '../../services/administracionService';
 import { useConfirm } from '../../hooks/useConfirm';
-import { UsuariosHeader } from '../../pages/admin/usuarios/UsuariosHeader';
-import { UsuariosLista } from '../../pages/admin/usuarios/UsuariosList';
-import { ModalNuevoUsuario } from '../../pages/admin/usuarios/ModalNuevoUsuario';
+import { UsuariosHeader } from '../shared/UsuariosHeader';
+import { UsuariosLista } from '../shared/UsuariosList';
+import { ModalNuevoUsuario } from '../shared/ModalNuevoUsuario';
 
 export const UsuariosAdmin = () => {
   const [usuarios, setUsuarios] = useState([]);
@@ -82,7 +82,7 @@ export const UsuariosAdmin = () => {
   }, [usuarios, busqueda, filtroEstado, filtroDeuda, filtroRol]);
 
   return (
-    <div className="animate-fade-in max-w-5xl mx-auto">
+    <div className="animate-fade-in max-w-6xl mx-auto">
       {confirmDialog}
       <UsuariosHeader
         busqueda={busqueda} setBusqueda={setBusqueda}

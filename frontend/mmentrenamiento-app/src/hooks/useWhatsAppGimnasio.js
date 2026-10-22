@@ -3,10 +3,8 @@ import toast from 'react-hot-toast';
 import { administracionService } from '../services/administracionService';
 import { construirLinkWhatsApp } from '../utils/whatsapp';
 
-// La configuración del gimnasio se pide una sola vez por sesión de la app.
 let configuracionEnCache = null;
 
-// Devuelve `abrir(mensaje)`: abre WhatsApp con el número del gimnasio y el mensaje prearmado.
 export const useWhatsAppGimnasio = () => {
   const [telefono, setTelefono] = useState(configuracionEnCache?.telefono ?? null);
 

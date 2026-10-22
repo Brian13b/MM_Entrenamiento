@@ -1,14 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  CalendarDaysIcon, UsersIcon, ChartBarIcon,
-  CurrencyDollarIcon, MegaphoneIcon, PlusCircleIcon, MagnifyingGlassIcon
-} from '@heroicons/react/24/outline';
+import { CalendarDaysIcon, UsersIcon, ChartBarIcon, CurrencyDollarIcon, MegaphoneIcon, PlusCircleIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { administracionService } from '../../services/administracionService';
 import { useAuthStore } from '../../store/useAuthStore';
 import { nombreDiaPorIndice } from '../../utils/fechas';
-import { ModalNuevoUsuario } from './usuarios/ModalNuevoUsuario';
+import { ModalNuevoUsuario } from '../shared/ModalNuevoUsuario';
 
 export const InicioAdmin = () => {
   const navigate = useNavigate();
@@ -48,7 +45,6 @@ export const InicioAdmin = () => {
     cargarMetricas();
   }, []);
 
-  // Filtro en tiempo real para el buscador de pagos
   const usuariosFiltrados = useMemo(() => {
     if (!busquedaPago) return [];
     return usuarios
@@ -68,9 +64,7 @@ export const InicioAdmin = () => {
         <p className="text-gray-500 mt-1 text-sm md:text-base font-medium">Panel de control y accesos rápidos.</p>
       </header>
 
-      {/* ==============================================
-          1. SECCIÓN DE MÉTRICAS Y GRÁFICOS
-          ============================================== */}
+      {/* Seccion de metricas y graficos */}
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
 
         {/* Card: Usuarios Activos */}
@@ -106,7 +100,7 @@ export const InicioAdmin = () => {
         </div>
       </section>
 
-      {/* Ocupación por turno (semana en curso) */}
+      {/* Ocupación por turno */}
       <section className="bg-mm-surface p-5 rounded-3xl border border-gray-100 shadow-sm mb-8">
         <div className="flex items-center justify-between mb-4">
           <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Ocupación por día · semana en curso</p>
@@ -136,11 +130,9 @@ export const InicioAdmin = () => {
         )}
       </section>
 
-      {/* ==============================================
-          2. ACCESOS RÁPIDOS Y BUSCADOR DE PAGOS
-          ============================================== */}
+      {/* Accesos Rápidos y Buscador de Pagos */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* BUSCADOR DE COBRO RÁPIDO */}
+        {/* Buscador */}
         <div className="lg:col-span-1 bg-mm-dark p-6 rounded-4xl shadow-sm relative flex flex-col">
           <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-4xl">
             <div className="absolute top-0 right-0 p-6 opacity-5">

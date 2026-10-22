@@ -15,7 +15,7 @@ import { PerfilAlumno } from '../pages/alumno/PerfilAlumno';
 import { InicioAdmin } from '../pages/admin/InicioAdmin';
 import { AjustesAdmin } from '../pages/admin/AjustesAdmin';
 import { UsuariosAdmin } from '../pages/admin/UsuariosAdmin';
-import { PerfilUsuarioAdmin } from '../pages/admin/usuarios/PerfilUsuarioAdmin';
+import { PerfilUsuario } from '../pages/shared/PerfilUsuario';
 import { HorariosAdmin } from '../pages/admin/HorariosAdmin';
 
 import { GrillaProfe } from '../pages/profe/GrillaProfe';
@@ -61,9 +61,10 @@ export const AppRouter = () => {
             <Route path="horarios" element={<HorariosAdmin />} />
             <Route path="usuarios">
               <Route index element={<UsuariosAdmin />} />
-              <Route path=":id" element={<PerfilUsuarioAdmin />} />
+              <Route path=":id" element={<PerfilUsuario />} />
             </Route>
             <Route path="ajustes" element={<AjustesAdmin />} />
+            <Route path="perfil" element={<MiPerfil />} />
           </Route>
         </Route>
 

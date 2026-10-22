@@ -50,7 +50,12 @@ export const GrillaProfe = () => {
   const titulo = fmtFechaLarga.format(parsearFechaIso(fecha));
 
   return (
-    <div className="animate-fade-in max-w-lg mx-auto pb-10">
+    <div className="animate-fade-in max-w-6xl mx-auto pb-10">
+      <header className="mb-6">
+        <h1 className="text-2xl md:text-3xl font-display font-black text-mm-dark">Turnos</h1>
+        <p className="text-gray-500 mt-1 text-sm md:text-base font-medium">Turnos del gimnasio: horarios, cupos y alumnos.</p>
+      </header>
+      
       <div className="flex items-center justify-between bg-mm-surface p-4 rounded-2xl border border-gray-100 shadow-sm mb-6">
         <button onClick={() => moverDia(-1)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors">
           <ChevronLeftIcon className="w-6 h-6" />

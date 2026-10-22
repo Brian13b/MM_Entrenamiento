@@ -9,7 +9,6 @@ const hoyIso = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-// Permite al admin anotar a un alumno a una clase única o fijarle un turno semanal.
 export const AgregarTurnoUsuario = ({ usuarioId, onAgregado }) => {
   const [abierto, setAbierto] = useState(false);
   const [fecha, setFecha] = useState(hoyIso());
@@ -56,7 +55,6 @@ export const AgregarTurnoUsuario = ({ usuarioId, onAgregado }) => {
       toast.success(respuesta?.message || 'Turno agregado.');
       setHorarioId('');
       await onAgregado();
-      // Refresca los cupos mostrados para el día elegido.
       setFranjas(await reservasService.getGrillaPorFecha(fecha));
     } catch (error) {
       toast.error(error.response?.data?.message || 'No se pudo agregar el turno.');

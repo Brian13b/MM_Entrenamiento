@@ -1,12 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 
-// Reemplazo de window.confirm basado en promesas:
-//
-//   const [confirmar, confirmDialog] = useConfirm();
-//   if (!(await confirmar({ title: '...', message: '...', confirmText: '...' }))) return;
-//   ...
-//   return (<>{...}{confirmDialog}</>);
 export const useConfirm = () => {
   const [abierto, setAbierto] = useState(false);
   const [opciones, setOpciones] = useState({});

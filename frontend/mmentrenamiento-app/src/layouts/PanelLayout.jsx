@@ -7,7 +7,6 @@ import { urlAvatar } from '../utils/avatar';
 import logo from '../assets/Logo_MM_sin_fondo.png';
 
 // Layout compartido por Admin y Profe: Sidebar en desktop y barra inferior en mobile.
-// items: [{ to, label, labelCorto?, Outline, Solid, exact? }]
 export const PanelLayout = ({ items, perfilPath, rolPorDefecto, mensajeCierre }) => {
   const { usuario, logout } = useAuthStore();
   const navigate = useNavigate();
@@ -35,7 +34,7 @@ export const PanelLayout = ({ items, perfilPath, rolPorDefecto, mensajeCierre })
       <aside className="hidden md:flex flex-col w-64 bg-mm-dark text-white max-h-screen sticky top-0 shrink-0">
         <div className="p-6 flex items-center gap-3 border-b border-gray-700">
           <img src={logo} alt="Logo MM Entrenamiento" className="w-8 h-8 object-contain" />
-          <span className="text-lg font-bold text-mm-light font-display tracking-tight">
+          <span className="text-base text-mm-light font-display tracking-tight">
             MM Entrenamiento
           </span>
         </div>

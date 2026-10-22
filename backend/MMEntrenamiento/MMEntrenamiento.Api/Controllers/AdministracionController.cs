@@ -9,7 +9,7 @@ namespace MMEntrenamiento.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public class AdministracionController : ControllerBase
     {
         private readonly IAdministracionService _adminService;
@@ -21,6 +21,7 @@ namespace MMEntrenamiento.Api.Controllers
             _usuarioService = usuarioService;
         }
 
+        [Authorize(Roles = "Admin, Profe")] // Acceso compartido
         [HttpGet("usuarios")]
         public async Task<IActionResult> ObtenerUsuariosDirectorio()
         {
@@ -35,6 +36,7 @@ namespace MMEntrenamiento.Api.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin, Profe")] // Acceso compartido
         [HttpGet("usuarios/{id}")]
         public async Task<IActionResult> ObtenerUsuarioPorId(Guid id)
         {
@@ -44,6 +46,7 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(usuario);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost("membresias")]
         public async Task<IActionResult> CrearMembresia([FromBody] CrearMembresiaDto request)
         {
@@ -52,6 +55,7 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(new { message = mensaje });
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("membresias")]
         public async Task<IActionResult> ObtenerMembresias()
         {
@@ -59,6 +63,7 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(membresias);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost("pagos")]
         public async Task<IActionResult> RegistrarPago([FromBody] RegistrarPagoDto request)
         {
@@ -75,6 +80,7 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(config);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("configuracion")]
         public async Task<IActionResult> ActualizarConfiguracion([FromBody] ConfiguracionGimnasioDto request)
         {
@@ -83,6 +89,7 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(new { message = mensaje });
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("metricas")]
         public async Task<IActionResult> ObtenerMetricas()
         {
@@ -90,6 +97,7 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(metricas);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("pagos/{usuarioId}")]
         public async Task<IActionResult> ObtenerPagosUsuario(Guid usuarioId)
         {
@@ -97,6 +105,7 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(pagos);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("usuarios/{usuarioId}/perfil")]
         public async Task<IActionResult> ActualizarPerfilUsuario(Guid usuarioId, [FromBody] ActualizarPerfilDto request)
         {
@@ -105,6 +114,7 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(new { message = mensaje });
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("usuarios/{usuarioId}/bloqueo")]
         public async Task<IActionResult> CambiarEstadoBloqueo(Guid usuarioId, [FromQuery] bool suspender)
         {
@@ -113,7 +123,7 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(new { message = mensaje });
         }
 
-        [AllowAnonymous] 
+        [AllowAnonymous]
         [HttpGet("anuncio")]
         public async Task<IActionResult> ObtenerAnuncio()
         {
@@ -122,6 +132,7 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(anuncio);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("anuncio")]
         public async Task<IActionResult> ActualizarAnuncio([FromBody] ActualizarAnuncioDto request)
         {

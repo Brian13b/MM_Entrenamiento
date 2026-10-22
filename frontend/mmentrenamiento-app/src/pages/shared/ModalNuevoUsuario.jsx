@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { EnvelopeIcon, LockClosedIcon, UserIcon, PhoneIcon } from '@heroicons/react/24/outline';
-import { authService } from '../../../services/auth';
-import { Modal } from '../../../components/ui/Modal';
-import { useConfirm } from '../../../hooks/useConfirm';
+import { authService } from '../../services/auth';
+import { Modal } from '../../components/ui/Modal';
+import { useConfirm } from '../../hooks/useConfirm';
 
 export const ModalNuevoUsuario = ({ isOpen, onClose, onUsuarioCreado }) => {
   const [formData, setFormData] = useState({
