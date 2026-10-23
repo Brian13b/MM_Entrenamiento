@@ -51,27 +51,36 @@ export const PerfilAlumno = () => {
   
   const [guardando, setGuardando] = useState(false);
 
-  const cargarResumen = useCallback(async () => {
+const cargarResumen = useCallback(async () => {
     try {
       setCargando(true);
       setError(false);
       
-      // Cargamos resumen y el ID del plan de OneDrive en paralelo
       const [dataResumen, dataPlan] = await Promise.allSettled([
         usuarioService.getMiResumen(),
-        seguimientoService.getMiPlan()
+        seguimientoService.getMiPlan() 
       ]);
 
-      if (dataResumen.status === 'rejected') throw new Error('Falló resumen');
+      if (dataResumen.status === 'rejected') {
+        throw dataResumen.reason; 
+      }
       
       setResumen(dataResumen.value);
+      
       if (dataPlan.status === 'fulfilled') {
         setPlanDriveItem(dataPlan.value.driveItemId);
       }
 
       const { usuario: actual, setUsuario } = useAuthStore.getState();
-      setUsuario({ ...actual, nombreCompleto: dataResumen.value.nombreCompleto, foto: dataResumen.value.fotoPerfilUrl });
+      setUsuario({ 
+        ...actual, 
+        nombreCompleto: dataResumen.value.nombreCompleto, 
+        foto: dataResumen.value.fotoPerfilUrl 
+      });
+
     } catch (err) {
+      if (err.response && err.response.status === 404) return;
+      
       console.error('Error al cargar el perfil', err);
       setError(true);
     } finally {

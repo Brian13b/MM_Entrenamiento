@@ -10,13 +10,20 @@ namespace MMEntrenamiento.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-
+            migrationBuilder.AddColumn<int>(
+                name: "LimiteTurnosFijos",
+                table: "Membresias",
+                type: "integer",
+                nullable: false,
+                defaultValue: 0);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-
+            migrationBuilder.DropColumn(
+                name: "LimiteTurnosFijos",
+                table: "Membresias");
         }
     }
 }

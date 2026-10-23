@@ -5,11 +5,12 @@ export const usuarioService = {
     const response = await api.get('/usuarios/mi-perfil');
     return response.data;
   },
+
   getMiResumen: async () => {
     const response = await api.get('/usuarios/mi-resumen');
     return response.data;
   },
-  // Con `foto` se envía multipart/form-data (todo en una sola llamada); sin foto, JSON.
+
   actualizarMiPerfil: async ({ nombreCompleto, email, telefono }, foto = null) => {
     if (foto) {
       const formData = new FormData();
@@ -27,6 +28,7 @@ export const usuarioService = {
     const response = await api.put('/usuarios/mi-perfil', { nombreCompleto, email, telefono: telefono || null });
     return response.data;
   },
+  
   subirFotoPerfil: async (archivoFoto) => {
     const formData = new FormData();
     formData.append('foto', archivoFoto);
