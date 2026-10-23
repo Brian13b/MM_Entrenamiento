@@ -1,11 +1,7 @@
 import { useState, useEffect } from 'react';
-import {
-  MegaphoneIcon, ArrowPathIcon, LockClosedIcon,
-  BuildingStorefrontIcon, PhoneIcon, MapPinIcon
-} from '@heroicons/react/24/outline';
+import { MegaphoneIcon, ArrowPathIcon, BuildingStorefrontIcon, PhoneIcon, MapPinIcon, StarIcon, PlusCircleIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { administracionService } from '../../services/administracionService';
-import { authService } from '../../services/auth';
 
 export const AjustesAdmin = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -15,32 +11,39 @@ export const AjustesAdmin = () => {
   const [ultimaModificacion, setUltimaModificacion] = useState(null);
   const [isSavingAnuncio, setIsSavingAnuncio] = useState(false);
 
-  // Estados Cambio de Contraseña
-  const [passwords, setPasswords] = useState({ actual: '', nueva: '', confirmar: '' });
-  const [isSavingPassword, setIsSavingPassword] = useState(false);
-
   // Estados Datos del Gimnasio
   const [datosGym, setDatosGym] = useState({ nombre: '', telefono: '', direccion: '', instagram: '' });
   const [isSavingGym, setIsSavingGym] = useState(false);
 
+  // Estados Membresías
+  const [membresias, setMembresias] = useState([]);
+  const [nuevaMembresia, setNuevaMembresia] = useState({ nombre: '', precio: '', creditosOtorgados: '', limiteTurnosFijos: '' });
+  const [isSavingMembresia, setIsSavingMembresia] = useState(false);
+
   useEffect(() => {
-    const fetchAnuncio = async () => {
+    const fetchAjustes = async () => {
       try {
         setIsLoading(true);
-        const [anuncio, config] = await Promise.all([
+        const [anuncio, config, listaMembresias] = await Promise.all([
           administracionService.getAnuncioGlobal(),
-          administracionService.getConfiguracion()
+          administracionService.getConfiguracion(),
+          administracionService.getMembresiasActivas()
         ]);
+        
         if (anuncio) {
           setMensaje(anuncio.mensaje || '');
           setUltimaModificacion(anuncio.ultimaModificacion);
         }
+        
         setDatosGym({
           nombre: config.nombre || '',
           telefono: config.telefono || '',
           direccion: config.direccion || '',
           instagram: config.instagram || ''
         });
+
+        setMembresias(listaMembresias || []);
+
       } catch (error) {
         toast.error('No se pudo cargar la configuración actual.');
         console.error(error);
@@ -49,7 +52,7 @@ export const AjustesAdmin = () => {
       }
     };
 
-    fetchAnuncio();
+    fetchAjustes();
   }, []);
 
   const handleGuardarAnuncio = async () => {
@@ -64,24 +67,6 @@ export const AjustesAdmin = () => {
       console.error(error);
     } finally {
       setIsSavingAnuncio(false);
-    }
-  };
-
-  const handleCambiarPassword = async (e) => {
-    e.preventDefault();
-    if (passwords.nueva !== passwords.confirmar) return toast.error('Las contraseñas nuevas no coinciden.');
-    if (passwords.nueva.length < 6) return toast.error('La contraseña debe tener al menos 6 caracteres.');
-
-    try {
-      setIsSavingPassword(true);
-      const respuesta = await authService.cambiarPassword(passwords.actual, passwords.nueva);
-      toast.success(respuesta?.message || 'Contraseña actualizada correctamente.');
-      setPasswords({ actual: '', nueva: '', confirmar: '' });
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'No se pudo cambiar la contraseña.');
-      console.error(error);
-    } finally {
-      setIsSavingPassword(false);
     }
   };
 
@@ -104,6 +89,34 @@ export const AjustesAdmin = () => {
     }
   };
 
+  const handleCrearMembresia = async (e) => {
+    e.preventDefault();
+    try {
+      setIsSavingMembresia(true);
+      
+      const payload = {
+        nombre: nuevaMembresia.nombre.trim(),
+        precio: Number(nuevaMembresia.precio),
+        creditosOtorgados: Number(nuevaMembresia.creditosOtorgados),
+        limiteTurnosFijos: Number(nuevaMembresia.limiteTurnosFijos)
+      };
+
+      const respuesta = await administracionService.crearMembresia(payload);
+      toast.success(respuesta?.message || 'Membresía creada con éxito.');
+      
+      // Recargar lista y limpiar form
+      const actualizadas = await administracionService.getMembresiasActivas();
+      setMembresias(actualizadas || []);
+      setNuevaMembresia({ nombre: '', precio: '', creditosOtorgados: '', limiteTurnosFijos: '' });
+
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error al crear la membresía.');
+      console.error(error);
+    } finally {
+      setIsSavingMembresia(false);
+    }
+  };
+
   const formatearFecha = (fechaString) => {
     if (!fechaString) return 'Nunca';
     const opciones = { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
@@ -122,12 +135,12 @@ export const AjustesAdmin = () => {
     <div className="animate-fade-in max-w-6xl mx-auto pb-10">
       <header className="mb-6">
         <h1 className="text-2xl md:text-3xl font-display font-bold text-mm-dark">Ajustes Generales</h1>
-        <p className="text-gray-500 mt-1 text-sm md:text-base font-medium">Configurá los avisos, seguridad y datos de tu gimnasio.</p>
+        <p className="text-gray-500 mt-1 text-sm md:text-base font-medium">Configurá los avisos, planes y datos de tu gimnasio.</p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* COLUMNA IZQUIERDA: Anuncio Global y Seguridad */}
+        {/* COLUMNA IZQUIERDA: Anuncio Global y Datos Gym */}
         <div className="flex flex-col gap-6">
 
           {/* ANUNCIO GLOBAL */}
@@ -165,58 +178,8 @@ export const AjustesAdmin = () => {
             </div>
           </section>
 
-          {/* CAMBIAR CONTRASEÑA */}
-          <section className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm flex flex-col gap-4">
-            <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-              <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center shrink-0">
-                <LockClosedIcon className="w-5 h-5 text-red-500" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-mm-dark">Seguridad</h2>
-                <p className="text-xs text-gray-500">Actualizá tu contraseña de administrador.</p>
-              </div>
-            </div>
-
-            <form onSubmit={handleCambiarPassword} className="flex flex-col gap-4 mt-2">
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1 block mb-1">Contraseña Actual</label>
-                <input
-                  type="password" required value={passwords.actual} onChange={e => setPasswords({...passwords, actual: e.target.value})}
-                  className="w-full bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1 block mb-1">Nueva Contraseña</label>
-                  <input
-                    type="password" required minLength={6} value={passwords.nueva} onChange={e => setPasswords({...passwords, nueva: e.target.value})}
-                    className="w-full bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1 block mb-1">Repetir Nueva</label>
-                  <input
-                    type="password" required minLength={6} value={passwords.confirmar} onChange={e => setPasswords({...passwords, confirmar: e.target.value})}
-                    className="w-full bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
-                  />
-                </div>
-              </div>
-              <button
-                type="submit" disabled={isSavingPassword || !passwords.actual || !passwords.nueva || !passwords.confirmar}
-                className="self-end bg-mm-dark text-white px-6 py-3 rounded-xl font-bold text-xs hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 mt-2"
-              >
-                {isSavingPassword ? <><ArrowPathIcon className="w-4 h-4 animate-spin" /> Actualizando...</> : 'Cambiar Contraseña'}
-              </button>
-            </form>
-          </section>
-
-        </div>
-
-        {/* COLUMNA DERECHA: Datos del Gimnasio */}
-        <div className="flex flex-col gap-6">
+          {/* DATOS DEL GIMNASIO */}
           <section className="bg-mm-dark p-6 rounded-4xl shadow-sm flex flex-col gap-4 border border-gray-800 relative overflow-hidden">
-
-            {/* Decal Background */}
             <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
               <BuildingStorefrontIcon className="w-40 h-40" />
             </div>
@@ -278,6 +241,95 @@ export const AjustesAdmin = () => {
                 {isSavingGym ? <><ArrowPathIcon className="w-4 h-4 animate-spin" /> Guardando...</> : 'Actualizar Datos'}
               </button>
             </form>
+          </section>
+        </div>
+
+        {/* COLUMNA DERECHA: Membresías */}
+        <div className="flex flex-col gap-6">
+          <section className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm flex flex-col gap-4 h-full">
+            <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+              <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center shrink-0">
+                <StarIcon className="w-6 h-6 text-mm-purple" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-mm-dark">Planes y Membresías</h2>
+                <p className="text-xs text-gray-500">Creá nuevos planes o visualizá los vigentes.</p>
+              </div>
+            </div>
+
+            {/* FORMULARIO CREAR MEMBRESÍA */}
+            <form onSubmit={handleCrearMembresia} className="flex flex-col gap-4 mt-2 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Crear Nuevo Plan</h3>
+              
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide ml-1 block mb-1">Nombre del Plan</label>
+                <input
+                  type="text" required placeholder="Ej: Pase Libre Mensual"
+                  value={nuevaMembresia.nombre} onChange={e => setNuevaMembresia({...nuevaMembresia, nombre: e.target.value})}
+                  className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide ml-1 block mb-1">Precio ($)</label>
+                  <input
+                    type="number" required placeholder="0" min="0"
+                    value={nuevaMembresia.precio} onChange={e => setNuevaMembresia({...nuevaMembresia, precio: e.target.value})}
+                    className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide ml-1 block mb-1">Clases x Mes</label>
+                  <input
+                    type="number" required placeholder="12" min="1"
+                    value={nuevaMembresia.creditosOtorgados} onChange={e => setNuevaMembresia({...nuevaMembresia, creditosOtorgados: e.target.value})}
+                    className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide ml-1 block mb-1">Turnos Fijos</label>
+                  <input
+                    type="number" required placeholder="3" min="0"
+                    value={nuevaMembresia.limiteTurnosFijos} onChange={e => setNuevaMembresia({...nuevaMembresia, limiteTurnosFijos: e.target.value})}
+                    className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit" disabled={isSavingMembresia}
+                className="w-full bg-mm-purple text-white px-6 py-3 rounded-xl font-bold text-xs hover:bg-mm-purple/80 transition-colors flex items-center justify-center gap-2 active:scale-95 disabled:opacity-70 mt-1"
+              >
+                {isSavingMembresia ? <><ArrowPathIcon className="w-4 h-4 animate-spin" /> Creando...</> : <><PlusCircleIcon className="w-4 h-4"/> Crear Plan</>}
+              </button>
+            </form>
+
+            {/* LISTA DE MEMBRESÍAS ACTUALES */}
+            <div className="mt-4 flex-1">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Planes Activos ({membresias.length})</h3>
+              
+              {membresias.length === 0 ? (
+                <p className="text-xs text-gray-400 italic text-center p-4">No hay planes creados aún.</p>
+              ) : (
+                <div className="flex flex-col gap-2 max-h-87.5 overflow-y-auto pr-2">
+                  {membresias.map(m => (
+                    <div key={m.id} className="flex justify-between items-center bg-white border border-gray-200 p-4 rounded-2xl shadow-sm hover:border-mm-purple transition-colors">
+                      <div>
+                        <p className="font-bold text-sm text-mm-dark">{m.nombre}</p>
+                        <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                          {m.creditosOtorgados} clases totales | {m.limiteTurnosFijos} turnos fijos
+                        </p>
+                      </div>
+                      <span className="text-xs font-black text-green-600 bg-green-50 border border-green-100 px-3 py-1.5 rounded-lg">
+                        ${m.precio}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
           </section>
         </div>
 
