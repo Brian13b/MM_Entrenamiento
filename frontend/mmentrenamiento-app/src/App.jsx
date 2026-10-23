@@ -2,8 +2,12 @@ import { AppRouter } from './router/AppRouter';
 import { useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { usePwaStore } from './store/usePwaStore';
 
 function App() {
+  const setDeferredPrompt = usePwaStore((state) => state.setDeferredPrompt);
+  const clearPrompt = usePwaStore((state) => state.clearPrompt);
+
   useEffect(() => {
     // Red de seguridad: una promesa rechazada sin catch no debe fallar en silencio.
     const alRechazar = (evento) => {
@@ -13,6 +17,25 @@ function App() {
     window.addEventListener('unhandledrejection', alRechazar);
     return () => window.removeEventListener('unhandledrejection', alRechazar);
   }, []);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault(); 
+      setDeferredPrompt(e); 
+    };
+
+    const handleAppInstalled = () => {
+      clearPrompt(); 
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, [setDeferredPrompt, clearPrompt]);
 
   return (
     <>

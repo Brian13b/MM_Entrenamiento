@@ -89,11 +89,11 @@ export const Login = () => {
         }}
       />
 
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+        <BotonInstalarApp />
+      </div>
+      
       <div className="bg-mm-surface w-full max-w-sm rounded-4xl p-8 shadow-sm border border-gray-100 animate-fade-in z-10">
-        
-        <div className="absolute top-6 right-6 z-50">
-          <BotonInstalarApp />
-        </div>
 
         {/* Header */}
         <div className="flex flex-col items-center mb-8 gap-3">

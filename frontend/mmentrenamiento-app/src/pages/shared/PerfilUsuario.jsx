@@ -17,6 +17,7 @@ import { useConfirm } from '../../hooks/useConfirm';
 import { etiquetaTurno, formatearHora, nombreDiaSemana, etiquetaTipoReserva, esNotFound } from '../../utils/fechas';
 import { PlanFrame } from '../../components/perfil/PlanFrame';
 import { useAuthStore } from '../../store/useAuthStore';
+import { urlAvatar } from '../../utils/avatar';
 
 const TURNOS_VACIOS = { proximasClases: [], misSuscripcionesFijas: [] };
 
@@ -24,7 +25,8 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  const isAdmin = useAuthStore(state => state.usuario?.rol === 'Admin');
+  // AHORA VALIDA TANTO ADMIN COMO PROFE
+  const esStaff = useAuthStore(state => ['Admin', 'Profe'].includes(state.usuario?.rol));
 
   const [isLoading, setIsLoading] = useState(true);
   const [confirmar, confirmDialog] = useConfirm();
@@ -38,12 +40,12 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
   const [ficha, setFicha] = useState({ objetivos: '', lesiones: '' });
   const [planLink, setPlanLink] = useState('');
 
-  // Estados de Membresía y Créditos (Solo Admin)
+  // Estados de Membresía y Créditos
   const [creditosAOtorgar, setCreditosAOtorgar] = useState(0);
   const [membresiasDisponibles, setMembresiasDisponibles] = useState([]);
   const [membresiaSeleccionada, setMembresiaSeleccionada] = useState('');
 
-  // Estados de Pagos (Solo Admin)
+  // Estados de Pagos
   const [pago, setPago] = useState({ monto: '', metodo: 'Transferencia', mes: new Date().getMonth() + 1 });
   const [historialPagos, setHistorialPagos] = useState([]);
 
@@ -66,7 +68,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
   };
 
   const recargarPagos = async () => {
-    if (!isAdmin) return;
+    if (!esStaff) return;
     const pagos = await administracionService.getPagosUsuario(id);
     setHistorialPagos(pagos || []);
   };
@@ -85,7 +87,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
           cargarTurnos()
         ];
         
-        if (isAdmin) {
+        if (esStaff) {
           promesas.push(administracionService.getMembresiasActivas());
           promesas.push(administracionService.getPagosUsuario(id));
         }
@@ -96,7 +98,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
         setDatosEdicion({ nombreCompleto: datosUsuario.nombreCompleto || '', telefono: datosUsuario.telefono || '' });
         setTurnosData(datosTurnos || TURNOS_VACIOS);
         
-        if (isAdmin) {
+        if (esStaff) {
           setMembresiasDisponibles(listaMembresias || []);
           setMembresiaSeleccionada(datosUsuario.membresiaId ?? '');
           setHistorialPagos(datosPagos || []);
@@ -119,7 +121,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
     };
 
     if (id) fetchDatosCRM();
-  }, [id, isAdmin, cargarTurnos]);
+  }, [id, esStaff, cargarTurnos]);
 
   const handleGuardarPerfil = async (e) => {
     e.preventDefault();
@@ -301,9 +303,10 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
 
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm">
           <div className="flex items-center gap-5">
-            <div className="w-20 h-20 bg-[#F8F9FA] rounded-3xl flex items-center justify-center text-3xl text-mm-dark font-display font-black border border-gray-200 shadow-sm shrink-0">
-              {usuario.nombreCompleto.charAt(0).toUpperCase()}
-            </div>
+            <img
+              src={urlAvatar(usuario.nombreCompleto, usuario.fotoPerfilUrl)} alt=""
+              className="w-12 h-12 rounded-[0.85rem] object-cover border border-gray-100 shrink-0"
+            />
             <div>
               <h1 className="text-2xl font-display font-bold text-mm-dark flex items-center gap-3 mb-1 tracking-tight">
                 {usuario.nombreCompleto}
@@ -343,7 +346,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.418-.099.824z"/></svg>
               WhatsApp
             </button>
-            {isAdmin && (
+            {esStaff && (
               <button
                 onClick={handleBloquear}
                 className={`flex justify-center items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors border ${
@@ -358,8 +361,8 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
         </div>
       </header>
 
-      {/* Si no es admin, centramos la columna única ajustando el grid */}
-      <div className={`grid grid-cols-1 ${isAdmin ? 'lg:grid-cols-2' : 'max-w-3xl mx-auto'} gap-6`}>
+      {/* Grid: 2 columnas si esStaff, de lo contrario 1 */}
+      <div className={`grid grid-cols-1 ${esStaff ? 'lg:grid-cols-2' : 'max-w-3xl mx-auto'} gap-6`}>
         
         {/* COLUMNA IZQUIERDA: Entrenamiento y Turnos (Para Todos) */}
         <div className="flex flex-col gap-6">
@@ -476,13 +479,13 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
           </section>
         </div>
 
-        {/* COLUMNA DERECHA: Pagos y Membresías (SOLO ADMIN) */}
-        {isAdmin && (
+        {/* COLUMNA DERECHA: Pagos y Membresías (AHORA PARA ADMIN Y PROFE) */}
+        {esStaff && (
           <div className="flex flex-col gap-6">
             <section className="bg-mm-dark p-6 rounded-4xl shadow-sm text-white relative overflow-hidden border border-gray-800">
               <div className="relative z-10 flex flex-col gap-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center shrink-0 border border-purple-500/30">
+                  <div className="w-10 h-10 bg-mm-purple/45 rounded-xl flex items-center justify-center shrink-0 border border-mm-purple/30">
                     <StarIcon className="w-5 h-5 text-mm-purple" />
                   </div>
                   <h2 className="text-lg font-bold text-white">Membresía</h2>
@@ -579,7 +582,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
                       <div key={hp.id} className="flex justify-between items-center bg-gray-50 border border-gray-100 p-3 rounded-xl">
                         <div>
                           <p className="font-bold text-sm text-mm-dark">${hp.monto}</p>
-                          <p className="text-[10px] text-gray-500 font-medium">{new Date(hp.fechaPago).toLocaleDateString('es-AR')} - {hp.metodoPago}</p>
+                          <p className="text-[10px] text-gray-500 font-medium">{new Date(hp.fechaPago).toLocaleDateString('es-AR')} {hp.metodoPago}</p>
                         </div>
                         <span className="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded-md uppercase tracking-wider">
                           {new Date(hp.anioAbonado, hp.mesAbonado - 1).toLocaleString('es', { month: 'long' })} {hp.anioAbonado}
@@ -621,7 +624,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
                   value={datosEdicion.telefono} onChange={(e) => setDatosEdicion({...datosEdicion, telefono: e.target.value})}
                 />
               </div>
-              <button type="submit" className="w-full bg-mm-purple text-white py-3 rounded-xl font-bold text-sm hover:bg-purple-600 transition-colors mt-2">
+              <button type="submit" className="w-full bg-mm-purple text-white py-3 rounded-xl font-bold text-sm hover:bg-mm-purple/60 transition-colors mt-2">
                 Guardar Cambios
               </button>
             </form>

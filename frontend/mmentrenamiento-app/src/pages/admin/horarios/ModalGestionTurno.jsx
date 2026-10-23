@@ -192,7 +192,7 @@ export const ModalGestionTurno = ({ isOpen, onClose, turno, fechaOperativa, onRe
             <button
               onClick={() => handleAnotar('Fija')}
               disabled={isProcessing || turno.estaLleno || !usuarioSeleccionado}
-              className="flex-1 bg-mm-purple text-white font-bold rounded-xl py-3 text-xs flex justify-center items-center gap-2 disabled:opacity-50 transition-all hover:bg-purple-700"
+              className="flex-1 bg-mm-purple text-white font-bold rounded-xl py-3 text-xs flex justify-center items-center gap-2 disabled:opacity-50 transition-all hover:bg-mm-purple/60"
             >
               Hacer Fijo
             </button>

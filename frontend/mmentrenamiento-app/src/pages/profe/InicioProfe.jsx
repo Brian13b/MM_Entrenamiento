@@ -47,7 +47,7 @@ export const InicioProfe = () => {
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Buscador Rápido (Diseño oscuro, igual al de pagos) */}
-        <div className="lg:col-span-1 bg-mm-dark p-6 rounded-4xl shadow-sm relative flex flex-col h-full min-h-[300px]">
+        <div className="lg:col-span-1 bg-mm-dark p-6 rounded-4xl shadow-sm relative flex flex-col h-full min-h-75">
           <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-4xl">
             <div className="absolute top-0 right-0 p-6 opacity-5">
               <CurrencyDollarIcon className="w-32 h-32" />

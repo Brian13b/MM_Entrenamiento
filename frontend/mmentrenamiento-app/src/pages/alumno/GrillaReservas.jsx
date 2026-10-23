@@ -242,7 +242,7 @@ export const GrillaReservas = () => {
                           ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                           : isFull
                           ? "bg-red-50 text-red-500 cursor-not-allowed"
-                          : "bg-mm-purple text-white hover:bg-purple-700 shadow-sm"
+                          : "bg-mm-purple text-white hover:bg-mm-purple/60 shadow-sm"
                       }`}
                     >
                       {hasBookingToday ? "Bloqueado" : isFull ? "Agotado" : "Reservar"}

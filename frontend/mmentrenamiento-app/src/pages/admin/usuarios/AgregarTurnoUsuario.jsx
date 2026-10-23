@@ -132,7 +132,7 @@ export const AgregarTurnoUsuario = ({ usuarioId, onAgregado }) => {
         </button>
         <button
           onClick={() => handleAnotar('Fija')} disabled={procesando || !horarioId}
-          className="flex-1 bg-mm-purple text-white font-bold rounded-xl py-3 text-xs disabled:opacity-50 hover:bg-purple-700 transition-colors"
+          className="flex-1 bg-mm-purple text-white font-bold rounded-xl py-3 text-xs disabled:opacity-50 hover:bg-mm-purple/60 transition-colors"
         >
           Turno fijo
         </button>

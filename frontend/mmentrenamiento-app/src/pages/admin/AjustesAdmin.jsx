@@ -222,7 +222,7 @@ export const AjustesAdmin = () => {
             </div>
 
             <div className="flex items-center gap-3 border-b border-gray-700/50 pb-4 relative z-10">
-              <div className="w-10 h-10 bg-purple-500/20 border border-purple-500/30 rounded-xl flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 bg-mm-purple/30 border border-mm-purple/30 rounded-xl flex items-center justify-center shrink-0">
                 <BuildingStorefrontIcon className="w-5 h-5 text-mm-purple" />
               </div>
               <div>
@@ -273,7 +273,7 @@ export const AjustesAdmin = () => {
 
               <button
                 type="submit" disabled={isSavingGym}
-                className="w-full bg-mm-purple text-white px-6 py-3.5 rounded-xl font-bold text-sm hover:bg-purple-600 transition-colors flex items-center justify-center gap-2 active:scale-95 disabled:opacity-70 mt-3"
+                className="w-full bg-mm-purple text-white px-6 py-3.5 rounded-xl font-bold text-sm hover:bg-mm-purple/60 transition-colors flex items-center justify-center gap-2 active:scale-95 disabled:opacity-70 mt-3"
               >
                 {isSavingGym ? <><ArrowPathIcon className="w-4 h-4 animate-spin" /> Guardando...</> : 'Actualizar Datos'}
               </button>

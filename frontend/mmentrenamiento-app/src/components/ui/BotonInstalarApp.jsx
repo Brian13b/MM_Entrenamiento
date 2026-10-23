@@ -1,46 +1,22 @@
-import { useState, useEffect } from 'react';
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { usePwaStore } from '../../store/usePwaStore';
 
 export const BotonInstalarApp = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [isInstallable, setIsInstallable] = useState(false);
-
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e); 
-      setIsInstallable(true);
-    };
-
-    const handleAppInstalled = () => {
-      setIsInstallable(false);
-      setDeferredPrompt(null);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-    };
-  }, []);
+  const deferredPrompt = usePwaStore((state) => state.deferredPrompt);
+  const clearPrompt = usePwaStore((state) => state.clearPrompt);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
 
     deferredPrompt.prompt();
-
     const { outcome } = await deferredPrompt.userChoice;
     
-    setDeferredPrompt(null);
-    
     if (outcome === 'accepted') {
-      setIsInstallable(false);
+      clearPrompt(); 
     }
   };
 
-  if (!isInstallable) return null;
+  if (!deferredPrompt) return null;
 
   return (
     <button

@@ -167,7 +167,7 @@ export const ConfiguracionPlantilla = () => {
           {modalidad === 'masivo' && (
             <form onSubmit={handleCrearMasivo} className="flex flex-col gap-4 animate-fade-in">
               <div className="bg-purple-50/50 p-3 rounded-xl border border-purple-100 mb-1">
-                <p className="text-[11px] text-purple-800 font-medium leading-relaxed">Genera <span className="font-bold">turnos de 1 hora</span> automáticamente en este rango.</p>
+                <p className="text-[11px] text-mm-purple/60 font-medium leading-relaxed">Genera <span className="font-bold">turnos de 1 hora</span> automáticamente en este rango.</p>
               </div>
 
               <div>
@@ -206,7 +206,7 @@ export const ConfiguracionPlantilla = () => {
                 <input type="number" min="1" required className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark outline-none focus:ring-2 focus:ring-mm-purple" value={formMasivo?.cupoMaximo || ''} onChange={(e) => setFormMasivo({...formMasivo, cupoMaximo: e.target.value})} />
               </div>
 
-              <button type="submit" disabled={isSaving || !formMasivo?.diasSemana?.length} className="w-full bg-mm-purple text-white py-3 rounded-xl font-bold text-sm hover:bg-purple-700 transition-colors mt-2 disabled:opacity-70 active:scale-95">
+              <button type="submit" disabled={isSaving || !formMasivo?.diasSemana?.length} className="w-full bg-mm-purple text-white py-3 rounded-xl font-bold text-sm hover:bg-mm-purple/60 transition-colors mt-2 disabled:opacity-70 active:scale-95">
                 {isSaving ? 'Creando...' : 'Generar Turnos'}
               </button>
             </form>
@@ -243,7 +243,7 @@ export const ConfiguracionPlantilla = () => {
                 <input type="number" min="1" required className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark outline-none focus:ring-2 focus:ring-mm-purple" value={formUnico?.cupoMaximo || ''} onChange={(e) => setFormUnico({...formUnico, cupoMaximo: e.target.value})} />
               </div>
 
-              <button type="submit" disabled={isSaving} className="w-full bg-mm-purple text-white py-3 rounded-xl font-bold text-sm hover:bg-purple-700 transition-colors mt-2 disabled:opacity-70 active:scale-95">
+              <button type="submit" disabled={isSaving} className="w-full bg-mm-purple text-white py-3 rounded-xl font-bold text-sm hover:bg-mm-purple/60 transition-colors mt-2 disabled:opacity-70 active:scale-95">
                 {isSaving ? 'Guardando...' : 'Crear Bloque'}
               </button>
             </form>
