@@ -6,6 +6,7 @@ import { EnvelopeIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/
 import { authService } from '../../services/auth';
 import { useAuthStore } from '../../store/useAuthStore';
 import { RecuperarPassword } from './RecuperarPassword';
+import { BotonInstalarApp } from '../../components/ui/BotonInstalarApp';
 import logoMM from '../../assets/Logo-MM.png';
 
 export const Login = () => {
@@ -90,6 +91,10 @@ export const Login = () => {
 
       <div className="bg-mm-surface w-full max-w-sm rounded-4xl p-8 shadow-sm border border-gray-100 animate-fade-in z-10">
         
+        <div className="absolute top-6 right-6 z-50">
+          <BotonInstalarApp />
+        </div>
+
         {/* Header */}
         <div className="flex flex-col items-center mb-8 gap-3">
           <img src={logoMM} alt="Logo MM Entrenamiento" className="w-20 h-20" />
