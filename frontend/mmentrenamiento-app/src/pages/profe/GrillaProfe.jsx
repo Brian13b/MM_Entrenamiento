@@ -10,19 +10,16 @@ const aFechaIso = (d) =>
 
 const fmtFechaLarga = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
 
-// Función para determinar si un turno ya terminó
 const turnoYaPaso = (horaFinCadena, fechaIso) => {
   const fechaTurno = parsearFechaIso(fechaIso);
   const hoy = new Date();
   
-  // Normalizamos a medianoche para comparar solo días
   fechaTurno.setHours(0, 0, 0, 0);
   hoy.setHours(0, 0, 0, 0);
 
-  if (fechaTurno < hoy) return true; // Día anterior
-  if (fechaTurno > hoy) return false; // Día futuro
+  if (fechaTurno < hoy) return true;
+  if (fechaTurno > hoy) return false;
 
-  // Si es hoy, comparamos la hora
   const ahora = new Date();
   const [hora, min] = horaFinCadena.split(':').map(Number);
   const finTurno = new Date();
@@ -31,7 +28,7 @@ const turnoYaPaso = (horaFinCadena, fechaIso) => {
 };
 
 // ==========================================
-// VISTA: DIARIA (La que tenías original)
+// VISTA: DIARIA
 // ==========================================
 const VistaDiaria = ({ navigate }) => {
   const [fecha, setFecha] = useState(() => aFechaIso(new Date()));
@@ -115,7 +112,7 @@ const VistaDiaria = ({ navigate }) => {
             return (
               <button
                 key={turno.horarioId}
-                onClick={() => navigate(`/profe/clase/${idNavegacion}?fecha=${fecha}`)}
+                onClick={() => navigate(`/profe/clase/${idNavegacion}?fecha=${fecha}&hora=${turno.horaInicio}`)}
                 className={`w-full text-left rounded-2xl p-4 flex items-center gap-4 border transition-all active:scale-[0.99] ${
                   paso 
                     ? 'bg-gray-50 border-gray-100 opacity-60 grayscale hover:opacity-80' 
@@ -153,7 +150,7 @@ const VistaDiaria = ({ navigate }) => {
 };
 
 // ==========================================
-// VISTA: SEMANAL (Adaptada del Admin)
+// VISTA: SEMANAL
 // ==========================================
 const VistaSemanal = ({ navigate }) => {
   const [lunesSemana, setLunesSemana] = useState(() => {
@@ -243,7 +240,7 @@ const VistaSemanal = ({ navigate }) => {
         </div>
       ) : (
         <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden overflow-x-auto">
-          <div className="min-w-[800px]">
+          <div className="min-w-200">
             
             <div className="grid grid-cols-6 bg-[#F8F9FA] border-b border-gray-200">
               <div className="p-4 flex items-center justify-center border-r border-gray-100">
@@ -280,7 +277,7 @@ const VistaSemanal = ({ navigate }) => {
                     return (
                       <div key={dia.fechaIso} className="p-2 border-r border-gray-100 last:border-0">
                         <div 
-                          onClick={() => navigate(`/profe/clase/${idNavegacion}?fecha=${dia.fechaIso}`)}
+                          onClick={() => navigate(`/profe/clase/${idNavegacion}?fecha=${dia.fechaIso}&hora=${turno.horaInicio}`)}
                           className={`h-full p-2.5 rounded-xl cursor-pointer transition-all border flex flex-col justify-between group shadow-sm hover:shadow-md ${
                             paso 
                               ? 'bg-gray-50 border-gray-100 opacity-60 grayscale' 
@@ -318,7 +315,7 @@ const VistaSemanal = ({ navigate }) => {
 // COMPONENTE PRINCIPAL
 // ==========================================
 export const GrillaProfe = () => {
-  const [vista, setVista] = useState('diaria'); // 'diaria' o 'semanal'
+  const [vista, setVista] = useState('diaria');
   const navigate = useNavigate();
 
   return (

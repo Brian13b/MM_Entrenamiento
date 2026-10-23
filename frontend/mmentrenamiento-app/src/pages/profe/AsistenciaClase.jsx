@@ -84,7 +84,6 @@ export const AsistenciaClase = () => {
   const [usuariosSistema, setUsuariosSistema] = useState([]);
   const [isBuscando, setIsBuscando] = useState(false);
 
-  // Cargar lista global de usuarios al inicio (solo una vez)
   useEffect(() => {
     administracionService.getUsuarios().then(res => setUsuariosSistema(res || []));
   }, []);
@@ -95,13 +94,11 @@ export const AsistenciaClase = () => {
       setHayError(false);
       setNoEncontrado(false);
 
-      // Si es un turno que nunca tuvo reservas, la API asume que buscamos por Horario ID.
-      // Le pasamos la fecha por si necesita crear el turno virtualmente.
       const fecha = searchParams.get('fecha');
+      
       const data = await asistenciaService.getDetalleClase(turnoId, fecha);
       
       if (fecha) data.fecha = fecha;
-      
       setDetalle(data);
 
       const inicial = {};
@@ -123,7 +120,16 @@ export const AsistenciaClase = () => {
       
     } catch (error) {
       if (esNotFound(error)) {
-        setNoEncontrado(true);
+        setDetalle({
+          turnoId: null,
+          horarioId: turnoId, 
+          fecha: searchParams.get('fecha'),
+          horaInicio: searchParams.get('hora') || '00:00:00',
+          alumnosPresentes: [],
+          alumnosQueAvisaron: []
+        });
+        setAsistencia({});
+        setFichas({});
       } else {
         setHayError(true);
         toast.error('No se pudo cargar la clase.');
