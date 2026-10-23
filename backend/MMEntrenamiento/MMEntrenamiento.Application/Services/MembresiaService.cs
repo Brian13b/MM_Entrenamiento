@@ -35,7 +35,17 @@ namespace MMEntrenamiento.Application.Services
                 c => c.UsuarioId == usuarioId && c.Anio == fechaActual.Year && c.Mes == fechaActual.Month
             );
 
-            if (creditoMes == null) return null;
+            if (creditoMes == null)
+            {
+                return new CreditosResponseDto
+                {
+                    Anio = fechaActual.Year,
+                    Mes = fechaActual.Month,
+                    CreditosBase = 0,
+                    CreditosArrastrados = 0,
+                    CreditosUsados = 0
+                };
+            }
 
             return new CreditosResponseDto
             {
