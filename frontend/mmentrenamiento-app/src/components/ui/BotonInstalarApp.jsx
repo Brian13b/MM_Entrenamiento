@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowDownTrayIcon, ShareIcon, PlusSquareIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ArrowDownTrayIcon, ShareIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { usePwaStore } from '../../store/usePwaStore';
 
 export const BotonInstalarApp = () => {
@@ -54,7 +54,7 @@ export const BotonInstalarApp = () => {
         </button>
         <p className="font-bold text-mm-purple pr-4">Instalar en iPhone</p>
         <p className="text-xs text-gray-600 leading-relaxed">
-          Tocá <ShareIcon className="w-4 h-4 inline-block text-blue-500 mx-0.5" /> <strong>Compartir</strong> en la barra de Safari y luego <PlusSquareIcon className="w-4 h-4 inline-block text-gray-600 mx-0.5" /> <strong>Agregar a inicio</strong>.
+          Tocá <ShareIcon className="w-4 h-4 inline-block text-blue-500 mx-0.5" /> <strong>Compartir</strong> en la barra de Safari y luego <PlusIcon className="w-4 h-4 inline-block text-gray-600 mx-0.5" /> <strong>Agregar a inicio</strong>.
         </p>
       </div>
     );
