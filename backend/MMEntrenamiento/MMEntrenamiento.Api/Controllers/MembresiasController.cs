@@ -19,7 +19,7 @@ namespace MMEntrenamiento.Api.Controllers
         }
 
         [HttpPost("asignar")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Profe")]
         public async Task<IActionResult> AsignarMembresia([FromBody] AsignarMembresiaDto request)
         {
             var (exito, mensaje) = await _membresiaService.AsignarMembresiaAsync(request);

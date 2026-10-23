@@ -21,7 +21,7 @@ namespace MMEntrenamiento.Api.Controllers
             _usuarioService = usuarioService;
         }
 
-        [Authorize(Roles = "Admin, Profe")] // Acceso compartido
+        [Authorize(Roles = "Admin, Profe")]
         [HttpGet("usuarios")]
         public async Task<IActionResult> ObtenerUsuariosDirectorio()
         {
@@ -36,7 +36,7 @@ namespace MMEntrenamiento.Api.Controllers
             }
         }
 
-        [Authorize(Roles = "Admin, Profe")] // Acceso compartido
+        [Authorize(Roles = "Admin, Profe")]
         [HttpGet("usuarios/{id}")]
         public async Task<IActionResult> ObtenerUsuarioPorId(Guid id)
         {
@@ -46,7 +46,7 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(usuario);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Profe")]
         [HttpPost("membresias")]
         public async Task<IActionResult> CrearMembresia([FromBody] CrearMembresiaDto request)
         {
@@ -55,7 +55,7 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(new { message = mensaje });
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Profe")]
         [HttpGet("membresias")]
         public async Task<IActionResult> ObtenerMembresias()
         {
@@ -63,7 +63,7 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(membresias);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Profe")]
         [HttpPost("pagos")]
         public async Task<IActionResult> RegistrarPago([FromBody] RegistrarPagoDto request)
         {
@@ -97,7 +97,7 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(metricas);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Profe")]
         [HttpGet("pagos/{usuarioId}")]
         public async Task<IActionResult> ObtenerPagosUsuario(Guid usuarioId)
         {
@@ -105,7 +105,7 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(pagos);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Profe")]
         [HttpPut("usuarios/{usuarioId}/perfil")]
         public async Task<IActionResult> ActualizarPerfilUsuario(Guid usuarioId, [FromBody] ActualizarPerfilDto request)
         {
