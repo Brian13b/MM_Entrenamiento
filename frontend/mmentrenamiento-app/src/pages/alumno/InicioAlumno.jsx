@@ -13,7 +13,6 @@ import { etiquetaTurno, etiquetaTipoReserva, diasHasta, esNotFound } from '../..
 
 const MENSAJE_SIN_AVISOS = "No hay avisos nuevos por el momento.";
 
-// Un 404 significa "no hay datos" (estado vacío); cualquier otro error se propaga.
 const vacioSi404 = (promesa, valorVacio) =>
   promesa.catch((error) => {
     if (esNotFound(error)) return valorVacio;

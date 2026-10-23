@@ -15,7 +15,6 @@ using MMEntrenamiento.Infrastructure.Data;
 using MMEntrenamiento.Infrastructure.Repositories;
 
 using Scalar.AspNetCore;
-
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -95,6 +94,20 @@ builder.Services.AddOpenApi(options =>
 builder.Services.AddHostedService<TurnosWorker>();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        await DataSeeder.SeedRolesAndAdminAsync(services);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Ocurrió un error al insertar el administrador por defecto.");
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {
