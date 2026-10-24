@@ -52,20 +52,20 @@ export const MiPerfil = ({ titulo = 'Mi perfil' }) => {
   };
 
   if (cargando && !perfil) {
-    return <div className="text-center p-8 text-gray-500 animate-pulse font-bold">Cargando perfil...</div>;
+    return <div className="text-center p-8 text-mm-purple animate-pulse font-bold">Cargando perfil...</div>;
   }
 
   if (hayError || !perfil) {
     return (
       <div className="text-center p-8">
-        <p className="text-sm font-medium text-gray-500 mb-4">No pudimos cargar tu perfil.</p>
+        <p className="text-sm font-medium text-mm-dark mb-4">No pudimos cargar tu perfil.</p>
         <button onClick={cargar} className="bg-mm-purple text-white px-6 py-2 rounded-full font-semibold text-sm">Reintentar</button>
       </div>
     );
   }
 
   return (
-    <div className="animate-fade-in max-w-5xl mx-auto pb-10">
+    <div className="animate-fade-in max-w-6xl mx-auto pb-10">
       <header className="mb-6">
         <h1 className="text-2xl md:text-3xl font-display font-black text-mm-dark">{titulo}</h1>
         <p className="text-gray-500 mt-1 text-sm md:text-base font-medium">Actualizá tus datos personales y tu foto.</p>

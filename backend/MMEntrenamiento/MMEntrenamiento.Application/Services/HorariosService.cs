@@ -116,8 +116,10 @@ namespace MMEntrenamiento.Application.Services
             {
                 var turno = turnosDelDia.FirstOrDefault(t => t.HorarioId == horario.Id);
 
-                var reservasActivas = turno?.Reservas
-                    .Where(r => r.Estado == EstadoReserva.Activa)
+                var reservasValidas = turno?.Reservas
+                    .Where(r => r.Estado == EstadoReserva.Activa ||
+                                r.Estado == EstadoReserva.Asistio ||
+                                r.Estado == EstadoReserva.Ausente)
                     .ToList() ?? new List<Reserva>();
 
                 resultado.Add(new TurnoDisponibleDto
@@ -127,8 +129,8 @@ namespace MMEntrenamiento.Application.Services
                     HoraInicio = horario.HoraInicio,
                     HoraFin = horario.HoraFin,
                     CupoMaximo = horario.CupoMaximo,
-                    OcupacionActual = reservasActivas.Count,
-                    Inscriptos = reservasActivas.Select(r => new AlumnoInscriptoDto
+                    OcupacionActual = reservasValidas.Count,
+                    Inscriptos = reservasValidas.Select(r => new AlumnoInscriptoDto
                     {
                         UsuarioId = r.UsuarioId,
                         NombreCompleto = r.Usuario?.NombreCompleto ?? "Alumno",

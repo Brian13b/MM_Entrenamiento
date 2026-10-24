@@ -12,7 +12,7 @@ export default defineConfig({
       includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
         name: 'MM Entrenamiento',
-        short_name: 'MM Gym',
+        short_name: 'MM Entrenamiento',
         description: 'Plataforma de reservas y seguimiento para MM Entrenamientos',
         theme_color: '#1f1e2e',
         background_color: '#f5f6fb',
