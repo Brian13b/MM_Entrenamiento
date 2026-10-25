@@ -32,7 +32,7 @@ namespace MMEntrenamiento.Api.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> RegistrarAlumno([FromBody] RegisterRequestDto request)
         {
-            var (exito, mensaje) = await _authService.RegisterAsync(request, request.Rol);
+            var (exito, mensaje, usuarioId) = await _authService.RegisterAsync(request, request.Rol ?? "Alumno");
             if (!exito) return BadRequest(new { message = mensaje });
 
             return Ok(new { message = mensaje });

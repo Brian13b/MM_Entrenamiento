@@ -5,6 +5,10 @@ export const horariosService = {
     const response = await api.post('/horarios/crear', datos);
     return response.data;
   },
+  actualizarHorario: async (id, cupoMaximo) => {
+    const response = await api.put(`/horarios/${id}`, { cupoMaximo });
+    return response.data;
+  },
   getHorarios: async () => {
     const response = await api.get('/horarios');
     return response.data;

@@ -42,6 +42,20 @@ namespace MMEntrenamiento.Application.Services
             return (true, "Horario creado exitosamente.");
         }
 
+        public async Task<(bool Exito, string Mensaje)> ActualizarHorarioAsync(int id, int nuevoCupo)
+        {
+            var horario = await _unitOfWork.Horarios.GetByIdAsync(id);
+            if (horario == null)
+                return (false, "El horario no existe.");
+
+            horario.CupoMaximo = nuevoCupo;
+
+            _unitOfWork.Horarios.Update(horario);
+            await _unitOfWork.CompleteAsync();
+
+            return (true, "Cupo del horario actualizado correctamente.");
+        }
+
         public async Task<IEnumerable<HorarioDto>> ObtenerTodosAsync()
         {
             var horarios = await _unitOfWork.Horarios.GetAllAsync();

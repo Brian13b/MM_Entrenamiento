@@ -27,6 +27,16 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(new { message = mensaje });
         }
 
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ActualizarHorario(int id, [FromBody] ActualizarHorarioDto request)
+        {
+            var (exito, mensaje) = await _horarioService.ActualizarHorarioAsync(id, request.CupoMaximo);
+            if (!exito) return BadRequest(new { message = mensaje });
+
+            return Ok(new { message = mensaje });
+        }
+
         [HttpGet]
         public async Task<IActionResult> ObtenerHorarios()
         {

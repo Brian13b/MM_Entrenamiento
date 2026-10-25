@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { PlusIcon, ClockIcon, TrashIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, ClockIcon, TrashIcon, ExclamationTriangleIcon, PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { horariosService } from '../../../services/horariosService';
 import { useConfirm } from '../../../hooks/useConfirm';
@@ -15,6 +15,10 @@ export const ConfiguracionPlantilla = () => {
   const [formMasivo, setFormMasivo] = useState({ diasSemana: [], horaInicio: '', horaFin: '', cupoMaximo: '' });
   const [formUnico, setFormUnico] = useState({ diaSemana: 1, horaInicio: '', horaFin: '', cupoMaximo: '' });
   const [formFeriado, setFormFeriado] = useState({ fechaFeriado: '', nuevaHoraInicio: '', nuevaHoraFin: '' });
+
+  // Estados para la Edición en línea
+  const [editandoId, setEditandoId] = useState(null);
+  const [nuevoCupo, setNuevoCupo] = useState('');
 
   const diasSemana = [
     { id: 1, nombre: 'Lunes' }, { id: 2, nombre: 'Martes' },
@@ -120,12 +124,35 @@ export const ConfiguracionPlantilla = () => {
 
     try {
       await horariosService.eliminarHorario(id);
-
       setHorarios(prev => prev.filter(h => h.id !== id));
       toast.success("Horario eliminado.");
-
     } catch (error) {
       toast.error("Error al eliminar el horario.");
+      console.error(error);
+    }
+  };
+
+  // --- Funciones para Editar Cupo ---
+  const iniciarEdicion = (clase) => {
+    setEditandoId(clase.id);
+    setNuevoCupo(clase.cupoMaximo);
+  };
+
+  const cancelarEdicion = () => {
+    setEditandoId(null);
+    setNuevoCupo('');
+  };
+
+  const handleActualizarCupo = async (id) => {
+    if (!nuevoCupo || nuevoCupo <= 0) return toast.error("El cupo debe ser mayor a 0");
+    try {
+      await horariosService.actualizarHorario(id, Number(nuevoCupo));
+      toast.success("Cupo actualizado.");
+      // Actualizamos el estado local sin recargar todo de la BD
+      setHorarios(prev => prev.map(h => h.id === id ? { ...h, cupoMaximo: Number(nuevoCupo) } : h));
+      cancelarEdicion();
+    } catch (error) {
+      toast.error("Error al actualizar el cupo.");
       console.error(error);
     }
   };
@@ -303,6 +330,7 @@ export const ConfiguracionPlantilla = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {clasesDelDia.sort((a,b) => a.horaInicio.localeCompare(b.horaInicio)).map(clase => (
                     <div key={clase.id} className="flex items-center justify-between bg-[#F8F9FA] border border-gray-200/60 p-2.5 pr-4 rounded-2xl group transition-all hover:border-gray-300">
+                      
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-white rounded-[0.85rem] flex items-center justify-center shadow-sm border border-gray-100 shrink-0">
                           <ClockIcon className="w-6 h-6 text-mm-purple" />
@@ -311,18 +339,67 @@ export const ConfiguracionPlantilla = () => {
                           <span className="text-[15px] font-bold text-mm-dark leading-tight mb-0.5">
                             {clase.horaInicio.slice(0,5)} - {clase.horaFin.slice(0,5)}
                           </span>
-                          <span className="text-[10px] font-bold text-slate-500 tracking-wide uppercase">
-                            {clase.cupoMaximo} LUGARES
-                          </span>
+                          
+                          {/* MODO EDICIÓN VS MODO LECTURA */}
+                          {editandoId === clase.id ? (
+                            <div className="flex items-center mt-0.5">
+                              <input
+                                type="number"
+                                min="1"
+                                autoFocus
+                                value={nuevoCupo}
+                                onChange={(e) => setNuevoCupo(e.target.value)}
+                                className="w-14 bg-white border border-mm-purple rounded-md px-1 py-0.5 text-[11px] font-bold text-mm-dark outline-none"
+                              />
+                            </div>
+                          ) : (
+                            <span className="text-[10px] font-bold text-slate-500 tracking-wide uppercase">
+                              {clase.cupoMaximo} LUGARES
+                            </span>
+                          )}
+
                         </div>
                       </div>
-                      <button
-                        onClick={() => handleEliminarHorario(clase.id)}
-                        className="text-gray-300 hover:text-red-500 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-                        title="Eliminar horario"
-                      >
-                        <TrashIcon className="w-5 h-5" />
-                      </button>
+                      
+                      {/* BOTONES */}
+                      <div className="flex gap-2">
+                        {editandoId === clase.id ? (
+                          <>
+                            <button
+                              onClick={() => handleActualizarCupo(clase.id)}
+                              className="text-green-500 hover:text-green-600 transition-colors bg-green-50 p-1.5 rounded-lg"
+                              title="Guardar"
+                            >
+                              <CheckIcon className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={cancelarEdicion}
+                              className="text-gray-400 hover:text-gray-600 transition-colors bg-gray-100 p-1.5 rounded-lg"
+                              title="Cancelar"
+                            >
+                              <XMarkIcon className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => iniciarEdicion(clase)}
+                              className="text-gray-300 hover:text-blue-500 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                              title="Editar cupo"
+                            >
+                              <PencilIcon className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleEliminarHorario(clase.id)}
+                              className="text-gray-300 hover:text-red-500 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                              title="Eliminar horario"
+                            >
+                              <TrashIcon className="w-5 h-5" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+
                     </div>
                   ))}
                 </div>

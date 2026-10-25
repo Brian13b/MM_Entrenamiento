@@ -8,6 +8,7 @@ namespace MMEntrenamiento.Application.Interfaces
         Task<(bool Exito, string Mensaje)> CrearHorarioAsync(CrearHorarioDto request);
         Task<IEnumerable<HorarioDto>> ObtenerTodosAsync();
         Task<(bool Exito, string Mensaje)> CrearHorariosMasivosAsync(CrearHorarioMasivoDto request);
+        Task<(bool Exito, string Mensaje)> ActualizarHorarioAsync(int id, int nuevoCupo);
         Task<IEnumerable<TurnoDisponibleDto>> ObtenerOperativaDiariaAsync(DateOnly fecha);
         Task<(bool Exito, string Mensaje)> ConfigurarHorarioReducidoAsync(ConfigurarHorarioReducidoDto request);
         Task<(bool Exito, string Mensaje)> EliminarHorarioAsync(int id);

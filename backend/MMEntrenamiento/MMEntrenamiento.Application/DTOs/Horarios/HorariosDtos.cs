@@ -26,6 +26,11 @@
         public int CupoMaximo { get; set; }
     }
 
+    public class ActualizarHorarioDto
+    {
+        public int CupoMaximo { get; set; }
+    }
+
     public class ConfigurarHorarioReducidoDto
     {
         public DateOnly FechaFeriado { get; set; }
