@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
-import { MegaphoneIcon, ArrowPathIcon, BuildingStorefrontIcon, PhoneIcon, MapPinIcon, StarIcon, PlusCircleIcon } from '@heroicons/react/24/outline';
+import { 
+  MegaphoneIcon, ArrowPathIcon, BuildingStorefrontIcon, 
+  PhoneIcon, MapPinIcon, StarIcon, PlusCircleIcon,
+  PencilIcon, TrashIcon, XMarkIcon
+} from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { administracionService } from '../../services/administracionService';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 export const AjustesAdmin = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -19,6 +24,12 @@ export const AjustesAdmin = () => {
   const [membresias, setMembresias] = useState([]);
   const [nuevaMembresia, setNuevaMembresia] = useState({ nombre: '', precio: '', creditosOtorgados: '', limiteTurnosFijos: '' });
   const [isSavingMembresia, setIsSavingMembresia] = useState(false);
+  const [membresiaEditando, setMembresiaEditando] = useState(null);
+
+  // Estados ConfirmDialog para eliminar
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [membresiaAEliminar, setMembresiaAEliminar] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const fetchAjustes = async () => {
@@ -89,7 +100,7 @@ export const AjustesAdmin = () => {
     }
   };
 
-  const handleCrearMembresia = async (e) => {
+  const handleGuardarMembresia = async (e) => {
     e.preventDefault();
     try {
       setIsSavingMembresia(true);
@@ -101,19 +112,60 @@ export const AjustesAdmin = () => {
         limiteTurnosFijos: Number(nuevaMembresia.limiteTurnosFijos)
       };
 
-      const respuesta = await administracionService.crearMembresia(payload);
-      toast.success(respuesta?.message || 'Membresía creada con éxito.');
+      if (membresiaEditando) {
+        await administracionService.actualizarMembresia(membresiaEditando, payload);
+        toast.success('Membresía actualizada con éxito.');
+      } else {
+        await administracionService.crearMembresia(payload);
+        toast.success('Membresía creada con éxito.');
+      }
       
-      // Recargar lista y limpiar form
       const actualizadas = await administracionService.getMembresiasActivas();
       setMembresias(actualizadas || []);
-      setNuevaMembresia({ nombre: '', precio: '', creditosOtorgados: '', limiteTurnosFijos: '' });
+      cancelarEdicionMembresia();
 
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error al crear la membresía.');
+      toast.error(error.response?.data?.message || 'Error al guardar la membresía.');
       console.error(error);
     } finally {
       setIsSavingMembresia(false);
+    }
+  };
+
+  const iniciarEdicionMembresia = (m) => {
+    setMembresiaEditando(m.id);
+    setNuevaMembresia({
+      nombre: m.nombre,
+      precio: m.precio,
+      creditosOtorgados: m.creditosOtorgados,
+      limiteTurnosFijos: m.limiteTurnosFijos
+    });
+  };
+
+  const cancelarEdicionMembresia = () => {
+    setMembresiaEditando(null);
+    setNuevaMembresia({ nombre: '', precio: '', creditosOtorgados: '', limiteTurnosFijos: '' });
+  };
+
+  const confirmarEliminar = (id) => {
+    setMembresiaAEliminar(id);
+    setIsConfirmDialogOpen(true);
+  };
+
+  const handleEliminarMembresia = async () => {
+    if (!membresiaAEliminar) return;
+    try {
+      setIsDeleting(true);
+      await administracionService.eliminarMembresia(membresiaAEliminar);
+      toast.success('Membresía eliminada correctamente.');
+      setMembresias(membresias.filter(m => m.id !== membresiaAEliminar));
+      if (membresiaEditando === membresiaAEliminar) cancelarEdicionMembresia();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error al eliminar la membresía.');
+    } finally {
+      setIsDeleting(false);
+      setIsConfirmDialogOpen(false);
+      setMembresiaAEliminar(null);
     }
   };
 
@@ -142,7 +194,6 @@ export const AjustesAdmin = () => {
 
         {/* COLUMNA IZQUIERDA: Anuncio Global y Datos Gym */}
         <div className="flex flex-col gap-6">
-
           {/* ANUNCIO GLOBAL */}
           <section className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm flex flex-col gap-4">
             <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
@@ -253,13 +304,22 @@ export const AjustesAdmin = () => {
               </div>
               <div>
                 <h2 className="text-lg font-bold text-mm-dark">Planes y Membresías</h2>
-                <p className="text-xs text-gray-500">Creá nuevos planes o visualizá los vigentes.</p>
+                <p className="text-xs text-gray-500">Creá nuevos planes o modificá los vigentes.</p>
               </div>
             </div>
 
-            {/* FORMULARIO CREAR MEMBRESÍA */}
-            <form onSubmit={handleCrearMembresia} className="flex flex-col gap-4 mt-2 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Crear Nuevo Plan</h3>
+            {/* FORMULARIO MEMBRESÍA */}
+            <form onSubmit={handleGuardarMembresia} className={`flex flex-col gap-4 mt-2 p-4 rounded-2xl border transition-colors ${membresiaEditando ? 'bg-purple-50 border-purple-200' : 'bg-gray-50 border-gray-100'}`}>
+              <div className="flex justify-between items-center mb-1">
+                <h3 className={`text-xs font-bold uppercase tracking-wide ${membresiaEditando ? 'text-mm-purple' : 'text-gray-500'}`}>
+                  {membresiaEditando ? 'Editando Plan' : 'Crear Nuevo Plan'}
+                </h3>
+                {membresiaEditando && (
+                  <button type="button" onClick={cancelarEdicionMembresia} className="text-gray-400 hover:text-mm-dark">
+                    <XMarkIcon className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
               
               <div>
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide ml-1 block mb-1">Nombre del Plan</label>
@@ -301,7 +361,13 @@ export const AjustesAdmin = () => {
                 type="submit" disabled={isSavingMembresia}
                 className="w-full bg-mm-purple text-white px-6 py-3 rounded-xl font-bold text-xs hover:bg-mm-purple/80 transition-colors flex items-center justify-center gap-2 active:scale-95 disabled:opacity-70 mt-1"
               >
-                {isSavingMembresia ? <><ArrowPathIcon className="w-4 h-4 animate-spin" /> Creando...</> : <><PlusCircleIcon className="w-4 h-4"/> Crear Plan</>}
+                {isSavingMembresia ? (
+                  <><ArrowPathIcon className="w-4 h-4 animate-spin" /> Guardando...</>
+                ) : membresiaEditando ? (
+                  <><ArrowPathIcon className="w-4 h-4"/> Guardar Cambios</>
+                ) : (
+                  <><PlusCircleIcon className="w-4 h-4"/> Crear Plan</>
+                )}
               </button>
             </form>
 
@@ -314,16 +380,26 @@ export const AjustesAdmin = () => {
               ) : (
                 <div className="flex flex-col gap-2 max-h-87.5 overflow-y-auto pr-2">
                   {membresias.map(m => (
-                    <div key={m.id} className="flex justify-between items-center bg-white border border-gray-200 p-4 rounded-2xl shadow-sm hover:border-mm-purple transition-colors">
-                      <div>
-                        <p className="font-bold text-sm text-mm-dark">{m.nombre}</p>
-                        <p className="text-[11px] text-gray-500 font-medium mt-0.5">
-                          {m.creditosOtorgados} clases totales | {m.limiteTurnosFijos} turnos fijos
-                        </p>
+                    <div key={m.id} className="flex flex-col gap-2 bg-white border border-gray-200 p-4 rounded-2xl shadow-sm hover:border-mm-purple transition-colors">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-sm text-mm-dark">{m.nombre}</p>
+                          <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                            {m.creditosOtorgados} clases totales | {m.limiteTurnosFijos} turnos fijos
+                          </p>
+                        </div>
+                        <span className="text-xs font-black text-green-600 bg-green-50 border border-green-100 px-3 py-1.5 rounded-lg shrink-0">
+                          ${m.precio}
+                        </span>
                       </div>
-                      <span className="text-xs font-black text-green-600 bg-green-50 border border-green-100 px-3 py-1.5 rounded-lg">
-                        ${m.precio}
-                      </span>
+                      <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-gray-50">
+                        <button onClick={() => iniciarEdicionMembresia(m)} className="text-xs font-bold text-gray-400 hover:text-mm-purple flex items-center gap-1 transition-colors">
+                          <PencilIcon className="w-3.5 h-3.5" /> Editar
+                        </button>
+                        <button onClick={() => confirmarEliminar(m.id)} className="text-xs font-bold text-gray-400 hover:text-red-500 flex items-center gap-1 transition-colors">
+                          <TrashIcon className="w-3.5 h-3.5" /> Eliminar
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -334,6 +410,21 @@ export const AjustesAdmin = () => {
         </div>
 
       </div>
+
+      <ConfirmDialog
+        isOpen={isConfirmDialogOpen}
+        title="Eliminar Membresía"
+        message="¿Estás seguro de eliminar este plan? Los alumnos que ya lo tengan asignado no se verán afectados, pero ya no se podrá asignar a alumnos nuevos."
+        confirmText="Eliminar Plan"
+        cancelText="Cancelar"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleEliminarMembresia}
+        onCancel={() => {
+          setIsConfirmDialogOpen(false);
+          setMembresiaAEliminar(null);
+        }}
+      />
     </div>
   );
 };

@@ -33,6 +33,14 @@ export const administracionService = {
     const response = await api.post('/administracion/membresias', datos);
     return response.data;
   },
+  actualizarMembresia: async (id, datos) => {
+    const response = await api.put(`/administracion/membresias/${id}`, datos);
+    return response.data;
+  },
+  eliminarMembresia: async (id) => {
+    const response = await api.delete(`/administracion/membresias/${id}`);
+    return response.data;
+  },
   getMembresiasActivas: async () => {
     const response = await api.get('/administracion/membresias');
     return response.data;

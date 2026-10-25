@@ -112,6 +112,35 @@ namespace MMEntrenamiento.Application.Services
             });
         }
 
+        public async Task<(bool Exito, string Mensaje)> ActualizarMembresiaAsync(int id, CrearMembresiaDto request)
+        {
+            var membresia = await _unitOfWork.Membresias.GetByIdAsync(id);
+            if (membresia == null) return (false, "La membresía no existe.");
+
+            membresia.Nombre = request.Nombre;
+            membresia.CreditosOtorgados = request.CreditosOtorgados;
+            membresia.LimiteTurnosFijos = request.LimiteTurnosFijos;
+            membresia.Precio = request.Precio;
+
+            _unitOfWork.Membresias.Update(membresia);
+            await _unitOfWork.CompleteAsync();
+
+            return (true, "Membresía actualizada exitosamente.");
+        }
+
+        public async Task<(bool Exito, string Mensaje)> EliminarMembresiaAsync(int id)
+        {
+            var membresia = await _unitOfWork.Membresias.GetByIdAsync(id);
+            if (membresia == null) return (false, "La membresía no existe.");
+
+            membresia.Activa = false;
+
+            _unitOfWork.Membresias.Update(membresia);
+            await _unitOfWork.CompleteAsync();
+
+            return (true, "Membresía eliminada correctamente.");
+        }
+
         public async Task<(bool Exito, string Mensaje)> RegistrarPagoManualAsync(RegistrarPagoDto request)
         {
             var usuario = await _unitOfWork.Usuarios.GetByIdAsync(request.UsuarioId);

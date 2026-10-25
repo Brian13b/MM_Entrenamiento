@@ -63,6 +63,24 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(membresias);
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpPut("membresias/{id}")]
+        public async Task<IActionResult> ActualizarMembresia(int id, [FromBody] CrearMembresiaDto request)
+        {
+            var (exito, mensaje) = await _adminService.ActualizarMembresiaAsync(id, request);
+            if (!exito) return BadRequest(new { message = mensaje });
+            return Ok(new { message = mensaje });
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("membresias/{id}")]
+        public async Task<IActionResult> EliminarMembresia(int id)
+        {
+            var (exito, mensaje) = await _adminService.EliminarMembresiaAsync(id);
+            if (!exito) return BadRequest(new { message = mensaje });
+            return Ok(new { message = mensaje });
+        }
+
         [Authorize(Roles = "Admin,Profe")]
         [HttpPost("pagos")]
         public async Task<IActionResult> RegistrarPago([FromBody] RegistrarPagoDto request)
