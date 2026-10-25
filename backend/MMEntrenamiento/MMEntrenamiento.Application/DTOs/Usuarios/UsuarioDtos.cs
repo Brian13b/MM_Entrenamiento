@@ -1,4 +1,6 @@
-﻿namespace MMEntrenamiento.Application.DTOs.Usuarios
+﻿using Microsoft.AspNetCore.Http;
+
+namespace MMEntrenamiento.Application.DTOs.Usuarios
 {
     public class PerfilUsuarioDto
     {
@@ -20,10 +22,9 @@
         public string? Telefono { get; set; }
     }
 
-    // Variante multipart/form-data: mismos campos + foto opcional, en una sola llamada.
     public class ActualizarPerfilConFotoDto : ActualizarPerfilDto
     {
-        public Microsoft.AspNetCore.Http.IFormFile? Foto { get; set; }
+        public IFormFile? Foto { get; set; }
     }
 
     public class EstadisticasAlumnoDto
