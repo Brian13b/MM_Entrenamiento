@@ -100,6 +100,21 @@ export const PerfilAlumno = () => {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     cargarResumen();
+    
+    const verificarSuscripcionReal = async () => {
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          const subscription = await registration.pushManager.getSubscription();
+          setPushEnabled(!!subscription);
+        } catch (error) {
+          console.error("Error al verificar la suscripción:", error);
+          setPushEnabled(false);
+        }
+      }
+    };
+
+    verificarSuscripcionReal();
   }, [cargarResumen]);
 
   const handleCambiarFoto = async (e) => {

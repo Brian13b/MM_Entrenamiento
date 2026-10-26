@@ -20,7 +20,6 @@ export const MiPerfil = ({ titulo = 'Mi perfil' }) => {
   const [verNueva, setVerNueva] = useState(false);
   const [verConfirmar, setVerConfirmar] = useState(false);
 
-  // Estados Notificaciones Push
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
 
@@ -42,10 +41,20 @@ export const MiPerfil = ({ titulo = 'Mi perfil' }) => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     cargar();
     
-    // Verificamos si ya tiene el permiso otorgado al navegador
-    if ('Notification' in window && Notification.permission === 'granted') {
-      setPushEnabled(true);
-    }
+    const verificarSuscripcionReal = async () => {
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          const subscription = await registration.pushManager.getSubscription();
+          setPushEnabled(!!subscription);
+        } catch (error) {
+          console.error("Error al verificar la suscripción:", error);
+          setPushEnabled(false);
+        }
+      }
+    };
+
+    verificarSuscripcionReal();
   }, [cargar]);
 
   const handleCambiarPassword = async (e) => {
