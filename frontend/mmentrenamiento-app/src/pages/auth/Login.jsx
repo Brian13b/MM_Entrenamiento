@@ -7,6 +7,7 @@ import { authService } from '../../services/auth';
 import { useAuthStore } from '../../store/useAuthStore';
 import { RecuperarPassword } from './RecuperarPassword';
 import { BotonInstalarApp } from '../../components/ui/BotonInstalarApp';
+import { pushService } from '../../services/pushService';
 import logoMM from '../../assets/Logo-MM.png';
 
 export const Login = () => {
@@ -48,6 +49,8 @@ export const Login = () => {
       };
 
       loginUser(usuarioLogueado, data.token);
+      
+      pushService.suscribirDispositivo().catch(err => console.error("Error en push:", err));
       
       toast.dismiss();
       setIsTransitioning(true);
