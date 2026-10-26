@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { EnvelopeIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
@@ -180,6 +180,19 @@ export const Login = () => {
             </button>
           </div>
         </form>
+
+        {/* Legales */}
+        <p className="mt-8 text-center text-xs text-gray-500 leading-relaxed">
+          Al ingresar, aceptás nuestros{' '}
+          <Link to="/terminos-y-condiciones" className="underline font-semibold hover:text-mm-purple transition-colors">
+            Términos y Condiciones
+          </Link>{' '}
+          y{' '}
+          <Link to="/privacidad" className="underline font-semibold hover:text-mm-purple transition-colors">
+            Política de Privacidad
+          </Link>.
+        </p>
+
       </div>
 
       {/* Pantalla de transición */}

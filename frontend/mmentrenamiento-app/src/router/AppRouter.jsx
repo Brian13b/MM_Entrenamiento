@@ -24,6 +24,8 @@ import { InicioProfe } from '../pages/profe/InicioProfe';
 import { ProfeUsuarios } from '../pages/profe/ProfeUsuarios';
 import { PerfilAlumnoProfe } from '../pages/profe/PerfilAlumnoProfe';
 import { MiPerfil } from '../pages/shared/MiPerfil';
+import { TerminosCondiciones } from './pages/legales/TerminosCondiciones';
+import { PoliticaPrivacidad } from './pages/legales/PoliticaPrivacidad';
 
 export const AppRouter = () => {
   return (
@@ -31,6 +33,8 @@ export const AppRouter = () => {
       <Routes>
         {/* Rutas Públicas */}
         <Route path="/login" element={<Login />} />
+        <Route path="/terminos-y-condiciones" element={<TerminosCondiciones />} />
+        <Route path="/privacidad" element={<PoliticaPrivacidad />} />
 
         {/* Zona Alumno */}
         <Route element={<ProtectedRoute allowedRoles={['Alumno']} />}>
