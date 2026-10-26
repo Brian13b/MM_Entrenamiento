@@ -4,11 +4,13 @@ import toast from 'react-hot-toast';
 import { administracionService } from '../../services/administracionService';
 import { UsuariosHeader } from '../shared/UsuariosHeader';
 import { UsuariosLista } from '../shared/UsuariosList';
+import { ModalNuevoUsuario } from '../shared/ModalNuevoUsuario';
 
 export const ProfeUsuarios = () => {
   const [usuarios, setUsuarios] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [modalRegistroAbierto, setModalRegistroAbierto] = useState(false);
 
   const [filtroRol, setFiltroRol] = useState('Alumno');
   const [filtroEstado, setFiltroEstado] = useState('Todos');
@@ -61,7 +63,7 @@ export const ProfeUsuarios = () => {
     <div className="animate-fade-in max-w-6xl mx-auto">
       <UsuariosHeader
         busqueda={busqueda} setBusqueda={setBusqueda}
-        onNuevoUsuario={handleAccionRestringida}
+        onNuevoUsuario={() => setModalRegistroAbierto(true)}
         filtros={{ filtroRol, setFiltroRol, filtroEstado, setFiltroEstado, filtroDeuda, setFiltroDeuda }}
       />
 
@@ -70,6 +72,12 @@ export const ProfeUsuarios = () => {
         isLoading={isLoading}
         onBloquear={handleAccionRestringida}
         basePath="/profe/usuarios"
+      />
+
+      <ModalNuevoUsuario
+        isOpen={modalRegistroAbierto}
+        onClose={() => setModalRegistroAbierto(false)}
+        onUsuarioCreado={fetchUsuarios}
       />
     </div>
   );
