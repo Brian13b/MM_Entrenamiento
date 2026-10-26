@@ -25,7 +25,7 @@ import { ProfeUsuarios } from '../pages/profe/ProfeUsuarios';
 import { PerfilAlumnoProfe } from '../pages/profe/PerfilAlumnoProfe';
 import { MiPerfil } from '../pages/shared/MiPerfil';
 import { TerminosCondiciones } from '../pages/legales/TerminosCondiciones';
-import { PoliticaPrivacidad } from '../pages/legales/TerminosCondiciones';
+import { PoliticaPrivacidad } from '../pages/legales/PoliticaPrivacidad';
 
 export const AppRouter = () => {
   return (

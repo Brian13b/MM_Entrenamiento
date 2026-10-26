@@ -1,4 +1,4 @@
-import api from './api';
+import { api } from "./api";
 
 const PUBLIC_VAPID_KEY = 'BPcGEZHhlkLUfo2Y92UId9EffwAUBm1VD_7MNxfRE16caFpwr66lwSpMKJzrXcwXjtJEqSBwk2nDimX8LYXRSpk';
 
