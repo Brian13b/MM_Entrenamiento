@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, CurrencyDollarIcon, ClipboardDocumentCheckIcon, LinkIcon, NoSymbolIcon, PlusCircleIcon, MinusCircleIcon, PhoneIcon, StarIcon, CalendarDaysIcon, TrashIcon, PencilSquareIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, CurrencyDollarIcon, ClipboardDocumentCheckIcon, LinkIcon, NoSymbolIcon, PlusCircleIcon, MinusCircleIcon, PhoneIcon, StarIcon, CalendarDaysIcon, TrashIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
 import { seguimientoService } from '../../services/seguimientoService';
@@ -13,6 +13,7 @@ import { etiquetaTurno, formatearHora, nombreDiaSemana, etiquetaTipoReserva, esN
 import { PlanFrame } from '../../components/perfil/PlanFrame';
 import { useAuthStore } from '../../store/useAuthStore';
 import { urlAvatar } from '../../utils/avatar';
+import { Modal } from '../../components/ui/Modal';
 
 const TURNOS_VACIOS = { proximasClases: [], misSuscripcionesFijas: [] };
 
@@ -29,6 +30,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
   // Estados de Edición de Perfil
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
   const [datosEdicion, setDatosEdicion] = useState({ nombreCompleto: '', telefono: '' });
+  const [guardandoPerfil, setGuardandoPerfil] = useState(false);
 
   // Estados de Ficha y Plan
   const [ficha, setFicha] = useState({ objetivos: '', lesiones: '' });
@@ -120,6 +122,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
   const handleGuardarPerfil = async (e) => {
     e.preventDefault();
     try {
+      setGuardandoPerfil(true);
       await administracionService.actualizarPerfilUsuario(id, {
         nombreCompleto: datosEdicion.nombreCompleto.trim(),
         telefono: datosEdicion.telefono.trim() || null
@@ -129,6 +132,8 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
       setModalEditarAbierto(false);
     } catch (error) {
       toast.error(error.response?.data?.message || "Error al actualizar el perfil.");
+    } finally {
+      setGuardandoPerfil(false);
     }
   };
 
@@ -273,6 +278,9 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
     const numeroLimpio = usuario.telefono.replace(/\D/g, '');
     window.open(`https://wa.me/${numeroLimpio}`, '_blank');
   };
+
+  // PUNTO 4: Clase estándar para los inputs del modal, para que se vean como el resto de la app
+  const inputClase = 'w-full bg-mm-light focus:border-mm-purple focus:bg-white rounded-2xl px-4 py-3.5 text-sm outline-none transition-all border border-transparent';
 
   if (isLoading || !usuario) {
     return (
@@ -572,7 +580,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
                   <p className="text-xs text-gray-400 italic">No hay pagos recientes.</p>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    {historialPagos.map((hp) => (
+                    {historialPagos.slice(0, 5).map((hp) => (
                       <div key={hp.id} className="flex justify-between items-center bg-gray-50 border border-gray-100 p-3 rounded-xl">
                         <div>
                           <p className="font-bold text-sm text-mm-dark">${hp.monto}</p>
@@ -591,40 +599,25 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
         )}
       </div>
 
-      {/* OVERLAY DEL MODAL DE EDICIÓN DE PERFIL */}
-      {modalEditarAbierto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-mm-dark/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-mm-dark">Editar Perfil</h2>
-              <button onClick={() => setModalEditarAbierto(false)} className="text-gray-400 hover:text-mm-dark transition-colors">
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
-            <form onSubmit={handleGuardarPerfil} className="p-5 flex flex-col gap-4">
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Nombre Completo</label>
-                <input
-                  type="text" required
-                  className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
-                  value={datosEdicion.nombreCompleto} onChange={(e) => setDatosEdicion({...datosEdicion, nombreCompleto: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Teléfono (WhatsApp)</label>
-                <input
-                  type="text"
-                  className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
-                  value={datosEdicion.telefono} onChange={(e) => setDatosEdicion({...datosEdicion, telefono: e.target.value})}
-                />
-              </div>
-              <button type="submit" className="w-full bg-mm-purple text-white py-3 rounded-xl font-bold text-sm hover:bg-mm-purple/60 transition-colors mt-2">
-                Guardar Cambios
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Modal de edicion */}
+      <Modal isOpen={modalEditarAbierto} onClose={() => !guardandoPerfil && setModalEditarAbierto(false)} title="Editar Perfil">
+        <form onSubmit={handleGuardarPerfil} className="flex flex-col gap-4 mt-2">
+          <input
+            type="text" required value={datosEdicion.nombreCompleto} placeholder="Nombre y Apellido"
+            onChange={(e) => setDatosEdicion({ ...datosEdicion, nombreCompleto: e.target.value })}
+            className={inputClase}
+          />
+          <input
+            type="tel" value={datosEdicion.telefono} placeholder="Teléfono"
+            onChange={(e) => setDatosEdicion({ ...datosEdicion, telefono: e.target.value })}
+            className={inputClase}
+          />
+          <button type="submit" disabled={guardandoPerfil} className="w-full bg-mm-purple text-white font-bold rounded-xl py-3.5 text-sm hover:opacity-90 disabled:opacity-70 mt-2">
+            {guardandoPerfil ? 'Guardando...' : 'Guardar cambios'}
+          </button>
+        </form>
+      </Modal>
+      
     </div>
   );
 };
