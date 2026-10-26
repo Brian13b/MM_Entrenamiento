@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { EyeIcon, EyeSlashIcon, BellIcon, BellAlertIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, EyeSlashIcon, BellIcon, ArrowPathIcon, BellSlashIcon } from '@heroicons/react/24/outline';
 import { usuarioService } from '../../services/usuarioService';
 import { authService } from '../../services/auth';
 import { pushService } from '../../services/pushService';
@@ -77,6 +77,22 @@ export const MiPerfil = ({ titulo = 'Mi perfil' }) => {
       }
     } catch (error) {
       toast.error('Ocurrió un error al suscribir el dispositivo.');
+      console.log(error);
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
+
+  const handleDesactivarNotificaciones = async () => {
+    setIsSubscribing(true);
+    try {
+      const exito = await pushService.desuscribirDispositivo();
+      if (exito) {
+        toast.success('Notificaciones desactivadas.');
+        setPushEnabled(false);
+      }
+    } catch (error) {
+      toast.error('Error al desactivar las notificaciones.');
       console.log(error);
     } finally {
       setIsSubscribing(false);
@@ -186,24 +202,33 @@ export const MiPerfil = ({ titulo = 'Mi perfil' }) => {
               <span className="font-bold text-gray-500">Usuarios de iPhone:</span> Para que funcionen, instalá la app tocando "Compartir" en Safari y luego "Agregar a Inicio".
             </p>
 
-            <button
-              type="button"
-              onClick={handleActivarNotificaciones}
-              disabled={isSubscribing || pushEnabled}
-              className={`w-full px-4 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
-                pushEnabled
-                  ? 'bg-green-50 text-green-600 border border-green-200 cursor-not-allowed'
-                  : 'bg-mm-purple text-white hover:bg-mm-purple/90 active:scale-95'
-              }`}
-            >
-              {isSubscribing ? (
-                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Procesando...</>
-              ) : pushEnabled ? (
-                <><BellAlertIcon className="w-4 h-4" /> Notificaciones Activadas</>
-              ) : (
-                <><BellIcon className="w-4 h-4" /> Activar Notificaciones</>
-              )}
-            </button>
+            {pushEnabled ? (
+              <button
+                type="button"
+                onClick={handleDesactivarNotificaciones}
+                disabled={isSubscribing}
+                className="w-full sm:w-auto px-6 py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500 active:scale-95"
+              >
+                {isSubscribing ? (
+                  <><ArrowPathIcon className="w-4 h-4 animate-spin" /> Procesando...</>
+                ) : (
+                  <><BellSlashIcon className="w-5 h-5" /> Desactivar Notificaciones</>
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleActivarNotificaciones}
+                disabled={isSubscribing}
+                className="w-full sm:w-auto px-6 py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all bg-mm-purple text-white hover:bg-mm-purple/80 active:scale-95"
+              >
+                {isSubscribing ? (
+                  <><ArrowPathIcon className="w-4 h-4 animate-spin" /> Procesando...</>
+                ) : (
+                  <><BellIcon className="w-5 h-5" /> Activar Notificaciones</>
+                )}
+              </button>
+            )}
           </section>
 
         </div>

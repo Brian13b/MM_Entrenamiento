@@ -44,5 +44,21 @@ export const pushService = {
       }
     }
     return false;
+  },
+
+  desuscribirDispositivo: async () => {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      
+      if (subscription) {
+        await subscription.unsubscribe(); // Destruye el permiso en el navegador
+        // Opcional: Acá podrías hacer un api.delete('/notificaciones/desuscribir') si tu backend tiene el endpoint
+      }
+      return true;
+    } catch (error) {
+      console.error('Error al desuscribir:', error);
+      return false;
+    }
   }
 };

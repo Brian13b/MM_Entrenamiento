@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 using MMEntrenamiento.Application.DTOs.Notificaciones;
 using MMEntrenamiento.Application.Interfaces;
 using MMEntrenamiento.Application.Interfaces.Repositories;
@@ -20,10 +21,10 @@ namespace MMEntrenamiento.Application.Services
 
         public async Task<(bool Exito, string Mensaje)> GuardarSuscripcionAsync(Guid usuarioId, SuscripcionPushDto request)
         {
-            var existe = await _unitOfWork.SuscripcionesPush.AnyAsync(
-                s => s.UsuarioId == usuarioId && s.Endpoint == request.Endpoint);
+            var suscripcionExistente = await _unitOfWork.SuscripcionesPush.FirstOrDefaultAsync(
+                s => s.Endpoint == request.Endpoint);
 
-            if (!existe)
+            if (suscripcionExistente == null)
             {
                 var suscripcion = new SuscripcionPush
                 {
@@ -34,6 +35,12 @@ namespace MMEntrenamiento.Application.Services
                 };
 
                 await _unitOfWork.SuscripcionesPush.AddAsync(suscripcion);
+                await _unitOfWork.CompleteAsync();
+            }
+            else if (suscripcionExistente.UsuarioId != usuarioId)
+            {
+                suscripcionExistente.UsuarioId = usuarioId;
+                _unitOfWork.SuscripcionesPush.Update(suscripcionExistente);
                 await _unitOfWork.CompleteAsync();
             }
 
@@ -53,7 +60,13 @@ namespace MMEntrenamiento.Application.Services
             var vapidDetails = new VapidDetails(subject, publicKey, privateKey);
             var webPushClient = new WebPushClient();
 
-            var payload = $"{{\"title\": \"{titulo}\", \"body\": \"{mensaje}\", \"icon\": \"/icon-192x192.png\"}}";
+            var payloadObj = new
+            {
+                title = titulo,
+                body = mensaje,
+                icon = "/icon-192x192.png"
+            };
+            var payload = JsonSerializer.Serialize(payloadObj);
 
             foreach (var sub in suscripciones)
             {
