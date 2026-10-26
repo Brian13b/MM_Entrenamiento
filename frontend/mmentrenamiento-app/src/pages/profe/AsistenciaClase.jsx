@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ArrowLeftIcon, ExclamationTriangleIcon, CheckIcon, XMarkIcon, MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ExclamationTriangleIcon, CheckIcon, XMarkIcon, MagnifyingGlassIcon, PlusIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 import { asistenciaService } from '../../services/asistenciaService';
 import { seguimientoService } from '../../services/seguimientoService';
 import { administracionService } from '../../services/administracionService';
 import { reservasService } from '../../services/reservasService';
 import { etiquetaTurno, formatearHora, esNotFound } from '../../utils/fechas';
 import { PlanFrame } from '../../components/perfil/PlanFrame';
+import { obtenerUrlEditable } from '../../utils/onedrive';
 
 // ==========================================
 // DETALLE Y ASISTENCIA DE LA CLASE
@@ -49,7 +50,14 @@ const PanelDetalles = ({ alumno, ficha }) => {
           </div>
 
           <div className="flex-1 flex flex-col">
-            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">Plan de Entrenamiento (OneDrive)</h3>
+            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center justify-between">
+              <span>Plan de Entrenamiento</span>
+              {ficha.driveItemId && (
+                 <a href={obtenerUrlEditable(ficha.driveItemId)} target="_blank" rel="noopener noreferrer" className="text-mm-purple hover:underline flex items-center gap-1">
+                    Abrir normal <ArrowTopRightOnSquareIcon className="w-3 h-3" />
+                 </a>
+              )}
+            </h3>
             <div className="flex-1 min-h-100 bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 relative">
               {ficha.driveItemId ? (
                 <PlanFrame url={ficha.driveItemId} />

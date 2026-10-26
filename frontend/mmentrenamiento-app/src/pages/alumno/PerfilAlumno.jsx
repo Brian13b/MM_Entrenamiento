@@ -8,7 +8,8 @@ import { Modal } from '../../components/ui/Modal';
 import { useConfirm } from '../../hooks/useConfirm';
 import { useWhatsAppGimnasio } from '../../hooks/useWhatsAppGimnasio';
 import { PlanFrame } from '../../components/perfil/PlanFrame';
-import { PencilIcon, LockClosedIcon, ArrowRightOnRectangleIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { obtenerUrlEditable } from '../../utils/onedrive';
+import { PencilIcon, LockClosedIcon, ArrowRightOnRectangleIcon, ChevronRightIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 
 const formatearVencimiento = (fechaIso) => {
   if (!fechaIso) return '';
@@ -359,7 +360,17 @@ const cargarResumen = useCallback(async () => {
           <section className="bg-mm-surface rounded-4xl shadow-[0_2px_12px_rgba(31,30,46,0.06)] border border-gray-100 overflow-hidden flex flex-col">
             <div className="p-6 md:p-8 border-b border-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-50/50">
               <div>
-                <h3 className="text-mm-dark font-display font-black text-xl mb-1">Mi Plan de Entrenamiento</h3>
+                <div className="flex items-center gap-4 mb-1">
+                  <h3 className="text-mm-dark font-display font-black text-xl">Mi Plan de Entrenamiento</h3>
+                  {planDriveItem && (
+                    <a
+                      href={obtenerUrlEditable(planDriveItem)} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-xs font-bold text-mm-purple bg-purple-50 px-3 py-1.5 rounded-lg hover:bg-purple-100 transition-colors"
+                    >
+                      Abrir normal <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+                    </a>
+                  )}
+                </div>
                 {planTexto.valor !== null ? (
                   <p className="text-sm text-gray-500 font-medium">Membresía: <strong className="text-mm-purple">{planTexto.valor} {planTexto.detalle}</strong></p>
                 ) : (

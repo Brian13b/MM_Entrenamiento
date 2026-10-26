@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeftIcon, CurrencyDollarIcon, ClipboardDocumentCheckIcon, 
   LinkIcon, NoSymbolIcon, PlusCircleIcon, MinusCircleIcon, 
-  PhoneIcon, StarIcon, CalendarDaysIcon, TrashIcon, PencilSquareIcon 
+  PhoneIcon, StarIcon, CalendarDaysIcon, TrashIcon, PencilSquareIcon, ArrowTopRightOnSquareIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -15,6 +15,7 @@ import { AgregarTurnoUsuario } from '../admin/usuarios/AgregarTurnoUsuario';
 import { useConfirm } from '../../hooks/useConfirm';
 import { etiquetaTurno, formatearHora, nombreDiaSemana, etiquetaTipoReserva, esNotFound } from '../../utils/fechas';
 import { PlanFrame } from '../../components/perfil/PlanFrame';
+import { obtenerUrlEditable } from '../../utils/onedrive';
 import { useAuthStore } from '../../store/useAuthStore';
 import { urlAvatar } from '../../utils/avatar';
 import { Modal } from '../../components/ui/Modal';
@@ -446,12 +447,17 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
                 <div className="w-10 h-10 bg-sky-50 rounded-xl flex items-center justify-center shrink-0">
                   <LinkIcon className="w-5 h-5 text-sky-500" />
                 </div>
-                <h2 className="text-lg font-bold text-mm-dark">Plan de Entrenamiento</h2>
+                <h2 className="text-lg font-bold text-mm-dark flex items-center gap-3">
+                  Plan de Entrenamiento
+                  {ficha?.driveItemId && (
+                    <a href={obtenerUrlEditable(ficha.driveItemId)} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-sky-600 bg-sky-50 px-3 py-1.5 rounded-lg hover:bg-sky-100 transition-colors flex items-center gap-1">
+                      Abrir normal <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+                    </a>
+                  )}
+                </h2>
               </div>
-              {ficha?.driveItemId ? <PlanFrame url={ficha.driveItemId} colapsable /> : <p className="text-sm text-gray-400 italic">Este alumno todavía no tiene un plan vinculado.</p>}
             </div>
             
-            {/* PUNTO 8: Input limpio, sin el botón "Leer Hojas" */}
             <div className="flex flex-col gap-3">
               <input
                 type="text" placeholder="Pegar ID o link del Drive..."
