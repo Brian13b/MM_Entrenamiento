@@ -52,7 +52,7 @@ const PanelDetalles = ({ alumno, ficha }) => {
             <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">Plan de Entrenamiento (OneDrive)</h3>
             <div className="flex-1 min-h-100 bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 relative">
               {ficha.driveItemId ? (
-                <PlanFrame driveItemId={ficha.driveItemId} />
+                <PlanFrame url={ficha.driveItemId} />
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
                   <span className="text-4xl mb-2">📋</span>

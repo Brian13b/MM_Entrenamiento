@@ -34,7 +34,6 @@ export const PerfilAlumno = () => {
   const [error, setError] = useState(false);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
 
-  // Modales y formularios
   const [modalPerfil, setModalPerfil] = useState(false);
   const [formPerfil, setFormPerfil] = useState({ nombreCompleto: '', telefono: '' });
   
@@ -88,7 +87,6 @@ const cargarResumen = useCallback(async () => {
     cargarResumen();
   }, [cargarResumen]);
 
-  // --- ACTIONS DE FOTO Y PERFIL ---
   const handleCambiarFoto = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -131,7 +129,6 @@ const cargarResumen = useCallback(async () => {
     }
   };
 
-  // --- ACTIONS DE CONTRASEÑA ---
   const handleCambiarPassword = async (e) => {
     e.preventDefault();
     if (formPassword.nueva !== formPassword.confirmar) return toast.error('Las contraseñas nuevas no coinciden.');
@@ -148,7 +145,6 @@ const cargarResumen = useCallback(async () => {
     }
   };
 
-  // --- ACTIONS DE FICHA TÉCNICA ---
   const abrirEditarFicha = () => {
     setFormFicha({ 
       objetivos: resumen.fichaTecnica?.objetivos || '', 
@@ -209,7 +205,6 @@ const cargarResumen = useCallback(async () => {
     <div className="max-w-6xl mx-auto pb-24 animate-fade-in font-sans">
       {confirmDialog}
 
-      {/* --- MODALES --- */}
       <Modal isOpen={modalPerfil} onClose={() => !guardando && setModalPerfil(false)} title="Editar perfil">
         <form onSubmit={handleGuardarPerfil} className="flex flex-col gap-4 mt-2">
           <input
@@ -275,12 +270,9 @@ const cargarResumen = useCallback(async () => {
         </form>
       </Modal>
 
-
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         
-        {/* COLUMNA IZQUIERDA (Perfil y Métricas) */}
         <div className="md:col-span-5 lg:col-span-4 flex flex-col gap-6">
-          
           <section className="bg-mm-surface rounded-4xl p-8 shadow-[0_2px_12px_rgba(31,30,46,0.06)] border border-gray-100 flex flex-col items-center text-center">
             <div
               className="relative w-32 h-32 rounded-full overflow-hidden mb-5 border-4 border-white shadow-md cursor-pointer group"
@@ -339,10 +331,7 @@ const cargarResumen = useCallback(async () => {
           </section>
         </div>
 
-        {/* COLUMNA DERECHA (Plan, Ficha, OneDrive) */}
         <div className="md:col-span-7 lg:col-span-8 flex flex-col gap-6">
-          
-          {/* Ficha Técnica */}
           <section className="bg-mm-surface rounded-4xl p-6 md:p-8 shadow-[0_2px_12px_rgba(31,30,46,0.06)] border border-gray-100">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-mm-dark font-display font-black text-xl">Ficha Técnica</h3>
@@ -367,7 +356,6 @@ const cargarResumen = useCallback(async () => {
             </div>
           </section>
 
-          {/* Plan y OneDrive */}
           <section className="bg-mm-surface rounded-4xl shadow-[0_2px_12px_rgba(31,30,46,0.06)] border border-gray-100 overflow-hidden flex flex-col">
             <div className="p-6 md:p-8 border-b border-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-50/50">
               <div>
@@ -398,7 +386,7 @@ const cargarResumen = useCallback(async () => {
             <div className="p-0 bg-mm-light min-h-100 flex flex-col">
               {planDriveItem ? (
                 <div className="flex-1 w-full relative">
-                   <PlanFrame driveItemId={planDriveItem} />
+                   <PlanFrame url={planDriveItem} />
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center flex-1 p-8 text-center">
