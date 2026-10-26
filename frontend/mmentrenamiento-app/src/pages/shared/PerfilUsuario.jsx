@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, CurrencyDollarIcon, ClipboardDocumentCheckIcon, LinkIcon, NoSymbolIcon, PlusCircleIcon, MinusCircleIcon, PhoneIcon, StarIcon, CalendarDaysIcon, TrashIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
+import { 
+  ArrowLeftIcon, CurrencyDollarIcon, ClipboardDocumentCheckIcon, 
+  LinkIcon, NoSymbolIcon, PlusCircleIcon, MinusCircleIcon, 
+  PhoneIcon, StarIcon, CalendarDaysIcon, TrashIcon, PencilSquareIcon 
+} from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
 import { seguimientoService } from '../../services/seguimientoService';
@@ -23,14 +27,13 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
   
   const usuarioLogueado = useAuthStore(state => state.usuario);
   const esStaff = ['Admin', 'Profe'].includes(usuarioLogueado?.rol);
-  
   const esAdmin = usuarioLogueado?.rol === 'Admin';
 
   const [isLoading, setIsLoading] = useState(true);
   const [confirmar, confirmDialog] = useConfirm();
   const [usuario, setUsuario] = useState(null);
 
-  // Estados de Edición de Perfil
+  // Estados de Edición
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
   const [datosEdicion, setDatosEdicion] = useState({ nombreCompleto: '', telefono: '', rol: 'Alumno', email: '' });
   const [guardandoPerfil, setGuardandoPerfil] = useState(false);
@@ -131,7 +134,6 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
     e.preventDefault();
     try {
       setGuardandoPerfil(true);
-      
       await administracionService.actualizarPerfilUsuario(id, {
         nombreCompleto: datosEdicion.nombreCompleto.trim(),
         telefono: datosEdicion.telefono.trim() || null,
@@ -172,7 +174,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
       setIsLoading(true);
       await administracionService.eliminarUsuario(id);
       toast.success('Usuario eliminado del sistema.');
-      navigate(basePath); 
+      navigate(basePath);
     } catch (error) {
       toast.error(error.response?.data?.message || "No se pudo eliminar el usuario.");
       setIsLoading(false);
@@ -187,11 +189,6 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
       toast.error("Error al actualizar ficha.");
       console.error(error);
     }
-  };
-
-  const handleBuscarPestanas = async () => {
-    if (!planLink) return toast.error("Ingresá un link de OneDrive primero.");
-    toast.error("La lectura de hojas de OneDrive aún no está disponible. Podés guardar el vínculo igualmente.");
   };
 
   const handleVincularPlan = async () => {
@@ -335,7 +332,6 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
     <div className="animate-fade-in max-w-6xl mx-auto pb-10 relative">
       {confirmDialog}
 
-      {/* HEADER */}
       <header className="mb-6">
         <button
           onClick={() => navigate(basePath)}
@@ -353,13 +349,16 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
             <div>
               <h1 className="text-2xl font-display font-bold text-mm-dark flex items-center gap-3 mb-1 tracking-tight">
                 {usuario.nombreCompleto}
-                
                 {!usuario.activo && (
                   <span className="text-[10px] font-bold bg-red-50 text-red-600 px-2.5 py-1 rounded-md uppercase tracking-wider border border-red-100">
                     Bloqueado
                   </span>
                 )}
-                
+                {usuario.deudor && (
+                  <span className="text-[10px] font-bold bg-amber-50 text-amber-600 px-2.5 py-1 rounded-md uppercase tracking-wider border border-amber-100">
+                    Deudor
+                  </span>
+                )}
               </h1>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-500 font-medium">
                 <span>{usuario.email}</span>
@@ -411,7 +410,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
 
       <div className={`grid grid-cols-1 ${esStaff ? 'lg:grid-cols-2' : 'max-w-3xl mx-auto'} gap-6`}>
         
-        {/* COLUMNA IZQUIERDA: Entrenamiento y Turnos */}
+        {/* COLUMNA IZQUIERDA */}
         <div className="flex flex-col gap-6">
           <section className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
@@ -451,6 +450,8 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
               </div>
               {ficha?.driveItemId ? <PlanFrame url={ficha.driveItemId} colapsable /> : <p className="text-sm text-gray-400 italic">Este alumno todavía no tiene un plan vinculado.</p>}
             </div>
+            
+            {/* PUNTO 8: Input limpio, sin el botón "Leer Hojas" */}
             <div className="flex flex-col gap-3">
               <input
                 type="text" placeholder="Pegar ID o link del Drive..."
@@ -521,7 +522,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
           </section>
         </div>
 
-        {/* COLUMNA DERECHA: Pagos y Membresías */}
+        {/* COLUMNA DERECHA */}
         {esStaff && (
           <div className="flex flex-col gap-6">
             <section className="bg-mm-dark p-6 rounded-4xl shadow-sm text-white relative overflow-hidden border border-gray-800">
@@ -639,7 +640,6 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
         )}
       </div>
 
-      {/* MODAL DE EDICIÓN CON SELECTOR DE ROL */}
       <Modal isOpen={modalEditarAbierto} onClose={() => !guardandoPerfil && setModalEditarAbierto(false)} title="Editar Perfil">
         <form onSubmit={handleGuardarPerfil} className="flex flex-col gap-4 mt-2">
           
@@ -668,9 +668,9 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
           </div>
 
           <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Email</label>
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Correo Electrónico</label>
             <input
-              type="email" required value={datosEdicion.email} placeholder="Email"
+              type="email" required value={datosEdicion.email} placeholder="correo@ejemplo.com"
               onChange={(e) => setDatosEdicion({ ...datosEdicion, email: e.target.value })}
               className={inputClase}
             />

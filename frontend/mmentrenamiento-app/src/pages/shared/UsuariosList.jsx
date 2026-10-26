@@ -65,7 +65,6 @@ export const UsuariosLista = ({ usuarios, isLoading, onBloquear, basePath = '/ad
                 <p className="text-sm font-bold text-mm-dark truncate">
                   {usuario.nombreCompleto}
                 </p>
-                {/* PUNTO 12: Badges con hidden sm:inline-block para ocultar en mobile */}
                 {!usuario.activo && (
                   <span className="hidden sm:inline-block text-[10px] font-bold bg-red-50 text-red-800 px-2 py-0.5 rounded-full uppercase tracking-wider border border-red-100">
                     Bloqueado
@@ -77,12 +76,12 @@ export const UsuariosLista = ({ usuarios, isLoading, onBloquear, basePath = '/ad
                   </span>
                 )}
                 {usuario.driveItemId && (
-                  <span className="hidden sm:inline-block text-[10px] font-bold bg-sky-50 text-green-800 px-2 py-0.5 rounded-full uppercase tracking-wider border border-sky-100">
+                  <span className="hidden sm:inline-block text-[10px] font-bold bg-green-50 text-green-800 px-2 py-0.5 rounded-full uppercase tracking-wider border border-sky-100">
                     Plan Activo
                   </span>
                 )}
                 {usuario.rol === 'Profe' && (
-                  <span className="hidden sm:inline-block text-[10px] font-bold bg-amber-50 text-blue-800 px-2 py-0.5 rounded-full uppercase tracking-wider border border-amber-100">
+                  <span className="hidden sm:inline-block text-[10px] font-bold bg-blue-50 text-blue-800 px-2 py-0.5 rounded-full uppercase tracking-wider border border-amber-100">
                     Profe
                   </span>
                 )}
