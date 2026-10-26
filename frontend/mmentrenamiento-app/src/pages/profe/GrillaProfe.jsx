@@ -35,10 +35,14 @@ const turnoYaPaso = (horaFinCadena, fechaIso) => {
 // VISTA: DIARIA
 // ==========================================
 const VistaDiaria = ({ navigate }) => {
-  const [fecha, setFecha] = useState(() => aFechaIso(new Date()));
+  const [fecha, setFecha] = useState(() => sessionStorage.getItem('profeFechaDiaria') || aFechaIso(new Date()));
   const [turnos, setTurnos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hayError, setHayError] = useState(false);
+
+  useEffect(() => {
+    sessionStorage.setItem('profeFechaDiaria', fecha);
+  }, [fecha]);
 
   const cargarTurnos = useCallback(async () => {
     try {
@@ -108,16 +112,15 @@ const VistaDiaria = ({ navigate }) => {
       ) : (
         <div className="flex flex-col gap-3">
           {turnos.map((turno) => {
-            // PUNTO 15: Forzamos el uso del horarioId 
-            const idNavegacion = turno.horarioId; 
             const sinInscriptos = turno.ocupacionActual === 0;
             const porcentaje = turno.cupoMaximo > 0 ? Math.min((turno.ocupacionActual / turno.cupoMaximo) * 100, 100) : 0;
             const paso = turnoYaPaso(turno.horaFin, fecha);
-
+            
             return (
               <button
                 key={turno.horarioId}
-                onClick={() => navigate(`/profe/clase/${idNavegacion}?fecha=${fecha}&hora=${turno.horaInicio}`)}
+                // ¡LA CLAVE ESTÁ ACÁ! Siempre usamos horarioId en la URL
+                onClick={() => navigate(`/profe/clase/${turno.horarioId}?fecha=${fecha}&hora=${turno.horaInicio}`)}
                 className={`w-full text-left rounded-2xl p-4 flex items-center gap-4 border transition-all active:scale-[0.99] ${
                   paso 
                     ? 'bg-gray-50 border-gray-100 opacity-60 grayscale hover:opacity-80' 
@@ -159,6 +162,8 @@ const VistaDiaria = ({ navigate }) => {
 // ==========================================
 const VistaSemanal = ({ navigate }) => {
   const [lunesSemana, setLunesSemana] = useState(() => {
+    const cached = sessionStorage.getItem('profeFechaSemanal');
+    if (cached) return cached;
     const d = new Date();
     const day = d.getDay();
     const diff = d.getDate() - day + (day === 0 ? -6 : 1); 
@@ -168,6 +173,10 @@ const VistaSemanal = ({ navigate }) => {
 
   const [turnosSemana, setTurnosSemana] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    sessionStorage.setItem('profeFechaSemanal', lunesSemana);
+  }, [lunesSemana]);
 
   const diasSemana = useMemo(() => {
     const [year, month, day] = lunesSemana.split('-').map(Number);
@@ -183,7 +192,6 @@ const VistaSemanal = ({ navigate }) => {
     });
   }, [lunesSemana]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const cargarOperativaSemanal = async () => {
     try {
       setIsLoading(true);
@@ -205,7 +213,8 @@ const VistaSemanal = ({ navigate }) => {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     cargarOperativaSemanal();
-  }, [cargarOperativaSemanal, lunesSemana]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lunesSemana]);
 
   const cambiarSemana = (semanas) => {
     const [year, month, day] = lunesSemana.split('-').map(Number);
@@ -278,13 +287,11 @@ const VistaSemanal = ({ navigate }) => {
                     const porcentaje = turno.cupoMaximo > 0 ? Math.round((turno.ocupacionActual / turno.cupoMaximo) * 100) : 0;
                     const paso = turnoYaPaso(turno.horaFin, dia.fechaIso);
                     
-                    // PUNTO 15: Forzamos el uso del horarioId 
-                    const idNavegacion = turno.horarioId; 
-
                     return (
                       <div key={dia.fechaIso} className="p-2 border-r border-gray-100 last:border-0">
                         <div 
-                          onClick={() => navigate(`/profe/clase/${idNavegacion}?fecha=${dia.fechaIso}&hora=${turno.horaInicio}`)}
+                          // ¡LA CLAVE ESTÁ ACÁ! Siempre usamos horarioId en la URL
+                          onClick={() => navigate(`/profe/clase/${turno.horarioId}?fecha=${dia.fechaIso}&hora=${turno.horaInicio}`)}
                           className={`h-full p-2.5 rounded-xl cursor-pointer transition-all border flex flex-col justify-between group shadow-sm hover:shadow-md ${
                             paso 
                               ? 'bg-gray-50 border-gray-100 opacity-60 grayscale' 
@@ -322,8 +329,12 @@ const VistaSemanal = ({ navigate }) => {
 // COMPONENTE PRINCIPAL (GRILLA)
 // ==========================================
 export const GrillaProfe = () => {
-  const [vista, setVista] = useState('diaria');
+  const [vista, setVista] = useState(() => sessionStorage.getItem('profeVistaGrilla') || 'diaria');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    sessionStorage.setItem('profeVistaGrilla', vista);
+  }, [vista]);
 
   return (
     <div className="animate-fade-in max-w-6xl mx-auto pb-10">

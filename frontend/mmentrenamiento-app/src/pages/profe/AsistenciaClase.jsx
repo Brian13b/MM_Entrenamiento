@@ -68,7 +68,8 @@ const PanelDetalles = ({ alumno, ficha }) => {
 };
 
 export const AsistenciaClase = () => {
-  const { turnoId } = useParams();
+  // Ahora tratamos el ID de la URL directamente como HorarioId
+  const { turnoId: horarioIdUrl } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -97,7 +98,9 @@ export const AsistenciaClase = () => {
       setNoEncontrado(false);
 
       const fecha = searchParams.get('fecha');
-      const data = await asistenciaService.getDetalleClase(turnoId, fecha);
+      
+      // Le mandamos el HorarioId al backend, que es lo que realmente espera
+      const data = await asistenciaService.getDetalleClase(horarioIdUrl, fecha);
       
       if (fecha) data.fecha = fecha;
       setDetalle(data);
@@ -123,7 +126,7 @@ export const AsistenciaClase = () => {
       if (esNotFound(error)) {
         setDetalle({
           turnoId: null,
-          horarioId: turnoId, 
+          horarioId: horarioIdUrl, 
           fecha: searchParams.get('fecha'),
           horaInicio: searchParams.get('hora') || '00:00:00',
           alumnosPresentes: [],
@@ -138,7 +141,8 @@ export const AsistenciaClase = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [searchParams, turnoId, alumnoSeleccionado]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [horarioIdUrl, searchParams]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -153,7 +157,7 @@ export const AsistenciaClase = () => {
   const handleGuardar = async () => {
     try {
       setIsSaving(true);
-      const idReal = detalle.turnoId || turnoId; 
+      const idReal = detalle.turnoId || horarioIdUrl; 
       
       const respuesta = await asistenciaService.guardarAsistencia({
         turnoId: Number(idReal),
@@ -186,7 +190,6 @@ export const AsistenciaClase = () => {
     }
   };
 
-  // PUNTO 16: El botón volver ahora respeta la historia (vuelve a la vista/fecha en la que estaba)
   const volver = () => navigate(-1);
 
   if (isLoading && !detalle) {
