@@ -1,10 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeftIcon, CurrencyDollarIcon, ClipboardDocumentCheckIcon, 
-  LinkIcon, NoSymbolIcon, PlusCircleIcon, MinusCircleIcon, 
-  PhoneIcon, StarIcon, CalendarDaysIcon, TrashIcon, PencilSquareIcon 
-} from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, CurrencyDollarIcon, ClipboardDocumentCheckIcon, LinkIcon, NoSymbolIcon, PlusCircleIcon, MinusCircleIcon, PhoneIcon, StarIcon, CalendarDaysIcon, TrashIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
 import { seguimientoService } from '../../services/seguimientoService';
@@ -28,7 +24,6 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
   const usuarioLogueado = useAuthStore(state => state.usuario);
   const esStaff = ['Admin', 'Profe'].includes(usuarioLogueado?.rol);
   
-  // PUNTO 9: Verificamos si es un Admin puro para los permisos destructivos
   const esAdmin = usuarioLogueado?.rol === 'Admin';
 
   const [isLoading, setIsLoading] = useState(true);
@@ -37,7 +32,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
 
   // Estados de Edición de Perfil
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
-  const [datosEdicion, setDatosEdicion] = useState({ nombreCompleto: '', telefono: '', rol: 'Alumno' });
+  const [datosEdicion, setDatosEdicion] = useState({ nombreCompleto: '', telefono: '', rol: 'Alumno', email: '' });
   const [guardandoPerfil, setGuardandoPerfil] = useState(false);
 
   // Estados de Ficha y Plan
@@ -99,11 +94,11 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
         const [datosUsuario, datosFicha, datosTurnos, listaMembresias, datosPagos] = await Promise.all(promesas);
 
         setUsuario(datosUsuario);
-        // PUNTO 9: Cargamos el rol actual en el estado de edición
         setDatosEdicion({ 
           nombreCompleto: datosUsuario.nombreCompleto || '', 
           telefono: datosUsuario.telefono || '',
-          rol: datosUsuario.rol || 'Alumno' 
+          rol: datosUsuario.rol || 'Alumno',
+          email: datosUsuario.email || ''
         });
         setTurnosData(datosTurnos || TURNOS_VACIOS);
         
@@ -139,7 +134,8 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
       
       await administracionService.actualizarPerfilUsuario(id, {
         nombreCompleto: datosEdicion.nombreCompleto.trim(),
-        telefono: datosEdicion.telefono.trim() || null
+        telefono: datosEdicion.telefono.trim() || null,
+        email: datosEdicion.email.trim()
       });
 
       if (datosEdicion.rol !== usuario.rol) {
@@ -150,6 +146,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
         ...prev, 
         nombreCompleto: datosEdicion.nombreCompleto.trim(), 
         telefono: datosEdicion.telefono.trim() || null,
+        email: datosEdicion.email.trim(),
         rol: datosEdicion.rol
       }));
       
@@ -356,22 +353,13 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
             <div>
               <h1 className="text-2xl font-display font-bold text-mm-dark flex items-center gap-3 mb-1 tracking-tight">
                 {usuario.nombreCompleto}
-                {/* Etiqueta de ROL (si es Staff) */}
-                {esStaff && usuario.rol !== 'Alumno' && (
-                  <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md uppercase tracking-wider border border-blue-100">
-                    {usuario.rol}
-                  </span>
-                )}
+                
                 {!usuario.activo && (
                   <span className="text-[10px] font-bold bg-red-50 text-red-600 px-2.5 py-1 rounded-md uppercase tracking-wider border border-red-100">
                     Bloqueado
                   </span>
                 )}
-                {usuario.deudor && (
-                  <span className="text-[10px] font-bold bg-amber-50 text-amber-600 px-2.5 py-1 rounded-md uppercase tracking-wider border border-amber-100">
-                    Deudor
-                  </span>
-                )}
+                
               </h1>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-500 font-medium">
                 <span>{usuario.email}</span>
@@ -680,6 +668,15 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
             <input
               type="text" required value={datosEdicion.nombreCompleto} placeholder="Nombre y Apellido"
               onChange={(e) => setDatosEdicion({ ...datosEdicion, nombreCompleto: e.target.value })}
+              className={inputClase}
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Email</label>
+            <input
+              type="email" required value={datosEdicion.email} placeholder="Email"
+              onChange={(e) => setDatosEdicion({ ...datosEdicion, email: e.target.value })}
               className={inputClase}
             />
           </div>
