@@ -442,7 +442,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
           </section>
 
           <section className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-sky-50 rounded-xl flex items-center justify-center shrink-0">
                   <LinkIcon className="w-5 h-5 text-sky-500" />
@@ -456,11 +456,13 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
                   )}
                 </h2>
               </div>
+              
+              {ficha?.driveItemId ? <PlanFrame url={ficha.driveItemId} colapsable /> : <p className="text-sm text-gray-400 italic">Este alumno todavía no tiene un plan vinculado.</p>}
             </div>
             
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 mt-2">
               <input
-                type="text" placeholder="Pegar ID o link del Drive..."
+                type="text" placeholder="Pegar código de inserción de OneDrive..."
                 className="w-full bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
                 value={planLink} onChange={(e) => setPlanLink(e.target.value)}
               />
