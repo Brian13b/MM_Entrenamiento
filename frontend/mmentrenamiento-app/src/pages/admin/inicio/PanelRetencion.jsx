@@ -57,7 +57,7 @@ export const PanelRetencion = () => {
         </div>
         <div>
           <h3 className="text-mm-dark font-bold">¡Todo en orden!</h3>
-          <p className="text-gray-500 text-sm">No hay alumnos en riesgo de abandono.</p>
+          <p className="text-gray-500 text-sm">No hay alumnos con cancelaciones previas.</p>
         </div>
       </div>
     );
