@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ExclamationTriangleIcon, ChatBubbleOvalLeftEllipsisIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
-import { seguimientoService } from '../../services/seguimientoService';
+import { seguimientoService } from '../../../services/seguimientoService';
 
 export const PanelRetencion = () => {
   const [alertas, setAlertas] = useState([]);
