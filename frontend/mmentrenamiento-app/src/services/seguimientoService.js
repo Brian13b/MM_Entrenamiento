@@ -34,5 +34,9 @@ export const seguimientoService = {
       params: { mes, anio }
     });
     return response.data;
+  },
+  obtenerAlertasRetencion: async () => {
+    const response = await api.get('/seguimiento/alertas-retencion');
+    return response.data;
   }
 };

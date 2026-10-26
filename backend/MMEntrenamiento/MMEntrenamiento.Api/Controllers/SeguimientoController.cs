@@ -103,5 +103,13 @@ namespace MMEntrenamiento.Api.Controllers
 
             return Ok(reporte);
         }
+
+        [HttpGet("alertas-retencion")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ObtenerAlertasRetencion()
+        {
+            var alertas = await _seguimientoService.ObtenerAlertasRetencionAsync();
+            return Ok(alertas);
+        }
     }
 }

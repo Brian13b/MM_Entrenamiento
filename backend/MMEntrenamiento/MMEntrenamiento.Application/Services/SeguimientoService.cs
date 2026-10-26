@@ -20,7 +20,6 @@ namespace MMEntrenamiento.Application.Services
 
         public async Task<IEnumerable<AlumnoDirectorioProfeDto>> ObtenerDirectorioAlumnosAsync()
         {
-            // Solo alumnos "puros": se excluyen las cuentas que además son Admin o Profe.
             var alumnoIds = (await _userManager.GetUsersInRoleAsync("Alumno")).Select(u => u.Id).ToHashSet();
             alumnoIds.ExceptWith((await _userManager.GetUsersInRoleAsync("Admin")).Select(u => u.Id));
             alumnoIds.ExceptWith((await _userManager.GetUsersInRoleAsync("Profe")).Select(u => u.Id));
@@ -153,6 +152,65 @@ namespace MMEntrenamiento.Application.Services
                 ClasesCanceladas = canceladas,
                 PorcentajeAsistencia = porcentaje
             };
+        }
+
+        public async Task<IEnumerable<AlertaRetencionDto>> ObtenerAlertasRetencionAsync()
+        {
+            var fechaHoy = DateOnly.FromDateTime(DateTime.UtcNow);
+
+            var alumnoIds = (await _userManager.GetUsersInRoleAsync("Alumno")).Select(u => u.Id).ToHashSet();
+            alumnoIds.ExceptWith((await _userManager.GetUsersInRoleAsync("Admin")).Select(u => u.Id));
+            alumnoIds.ExceptWith((await _userManager.GetUsersInRoleAsync("Profe")).Select(u => u.Id));
+
+            var alumnos = await _unitOfWork.Usuarios.FindAsync(
+                u => alumnoIds.Contains(u.Id) && u.EstadoCuenta == EstadoCuenta.Activo
+            );
+
+            var alertas = new List<AlertaRetencionDto>();
+
+            foreach (var alumno in alumnos)
+            {
+                bool tieneTurnosFuturos = await _unitOfWork.Reservas.AnyAsync(
+                    r => r.UsuarioId == alumno.Id && r.Turno.Fecha >= fechaHoy && r.Estado == EstadoReserva.Activa
+                );
+
+                if (tieneTurnosFuturos) continue;
+
+                var reservasPasadas = (await _unitOfWork.Reservas.FindAsync(
+                    r => r.UsuarioId == alumno.Id && r.Turno.Fecha < fechaHoy,
+                    r => r.Turno!
+                )).OrderByDescending(r => r.Turno.Fecha).ToList();
+
+                int ausenciasConsecutivas = 0;
+                DateOnly? ultimaFalta = null;
+
+                foreach (var reserva in reservasPasadas)
+                {
+                    if (reserva.Estado == EstadoReserva.Ausente || reserva.Estado == EstadoReserva.Cancelada)
+                    {
+                        ausenciasConsecutivas++;
+                        if (ultimaFalta == null) ultimaFalta = reserva.Turno.Fecha;
+                    }
+                    else if (reserva.Estado == EstadoReserva.Asistio)
+                    {
+                        break;
+                    }
+                }
+
+                if (ausenciasConsecutivas >= 3)
+                {
+                    alertas.Add(new AlertaRetencionDto
+                    {
+                        UsuarioId = alumno.Id,
+                        NombreCompleto = alumno.NombreCompleto ?? "Sin Nombre",
+                        Telefono = alumno.PhoneNumber ?? "",
+                        AusenciasConsecutivas = ausenciasConsecutivas,
+                        UltimaFechaFalta = ultimaFalta
+                    });
+                }
+            }
+
+            return alertas.OrderByDescending(a => a.AusenciasConsecutivas);
         }
     }
 }

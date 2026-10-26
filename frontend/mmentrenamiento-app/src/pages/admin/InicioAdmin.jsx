@@ -6,6 +6,7 @@ import { administracionService } from '../../services/administracionService';
 import { useAuthStore } from '../../store/useAuthStore';
 import { nombreDiaPorIndice } from '../../utils/fechas';
 import { ModalNuevoUsuario } from '../shared/ModalNuevoUsuario';
+import { PanelRetencion } from '../admin/inicio/PanelRetencion';
 
 export const InicioAdmin = () => {
   const navigate = useNavigate();
@@ -100,43 +101,47 @@ export const InicioAdmin = () => {
         </div>
       </section>
 
-      {/* PUNTO 1: Ocupación por turno */}
-      <section className="bg-mm-surface p-6 rounded-3xl border border-gray-100 shadow-sm mb-8 overflow-hidden">
-        <div className="flex items-center justify-between mb-8">
-          <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Ocupación por día · semana en curso</p>
-          {errorMetricas && (
-            <button onClick={cargarMetricas} className="text-xs font-bold text-mm-purple hover:underline">Reintentar</button>
-          )}
-        </div>
-        {!metricas ? (
-          <p className="text-sm text-gray-400 font-medium pb-4">{errorMetricas ? 'No se pudieron cargar los datos.' : 'Cargando...'}</p>
-        ) : metricas.ocupacionPorDia.length === 0 ? (
-          <p className="text-sm text-gray-400 font-medium pb-4">No hay horarios configurados.</p>
-        ) : (
-          <div className="flex items-end justify-between h-40 gap-2 pb-2 mt-4">
-            {metricas.ocupacionPorDia.map((t) => (
-              <div key={t.fecha} className="flex flex-col items-center justify-end h-full w-full group relative">
-                <span className="text-[10px] font-bold text-gray-500 mb-2 transition-opacity">
-                  {t.porcentaje}%
-                </span>
-                
-                {/* Barra Vertical */}
-                <div className="w-full max-w-10 bg-mm-light rounded-t-xl overflow-hidden flex flex-col justify-end">
-                  <div
-                    className={`w-full transition-all duration-700 ease-out rounded-t-xl ${t.porcentaje >= 85 ? 'bg-red-500' : 'bg-mm-purple'}`}
-                    style={{ height: `${t.porcentaje}%`, minHeight: t.porcentaje > 0 ? '4px' : '0' }}
-                  />
-                </div>
-                
-                {/* Nombre del Día */}
-                <span className="text-[10px] font-bold text-mm-dark mt-3 uppercase tracking-wider">
-                  {nombreDiaPorIndice(t.diaSemana).substring(0, 3)}
-                </span>
-              </div>
-            ))}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 items-start">
+        <section className="lg:col-span-2 bg-mm-surface p-6 rounded-3xl border border-gray-100 shadow-sm overflow-hidden h-full flex flex-col">
+          <div className="flex items-center justify-between mb-8">
+            <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Ocupación por día · semana en curso</p>
+            {errorMetricas && (
+              <button onClick={cargarMetricas} className="text-xs font-bold text-mm-purple hover:underline">Reintentar</button>
+            )}
           </div>
-        )}
-      </section>
+          {!metricas ? (
+            <p className="text-sm text-gray-400 font-medium pb-4 flex-1">{errorMetricas ? 'No se pudieron cargar los datos.' : 'Cargando...'}</p>
+          ) : metricas.ocupacionPorDia.length === 0 ? (
+            <p className="text-sm text-gray-400 font-medium pb-4 flex-1">No hay horarios configurados.</p>
+          ) : (
+            <div className="flex items-end justify-between h-40 gap-2 pb-2 mt-auto">
+              {metricas.ocupacionPorDia.map((t) => (
+                <div key={t.fecha} className="flex flex-col items-center justify-end h-full w-full group relative">
+                  <span className="text-[10px] font-bold text-gray-500 mb-2 transition-opacity">
+                    {t.porcentaje}%
+                  </span>
+                  
+                  <div className="w-full max-w-10 bg-mm-light rounded-t-xl overflow-hidden flex flex-col justify-end">
+                    <div
+                      className={`w-full transition-all duration-700 ease-out rounded-t-xl ${t.porcentaje >= 85 ? 'bg-red-500' : 'bg-mm-purple'}`}
+                      style={{ height: `${t.porcentaje}%`, minHeight: t.porcentaje > 0 ? '4px' : '0' }}
+                    />
+                  </div>
+                  
+                  <span className="text-[10px] font-bold text-mm-dark mt-3 uppercase tracking-wider">
+                    {nombreDiaPorIndice(t.diaSemana).substring(0, 3)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <div className="lg:col-span-1 h-full">
+          <PanelRetencion />
+        </div>
+
+      </div>
 
       {/* Accesos Rápidos y Buscador de Pagos */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -229,7 +234,6 @@ export const InicioAdmin = () => {
           </button>
 
         </div>
-
 
       </section>
 
