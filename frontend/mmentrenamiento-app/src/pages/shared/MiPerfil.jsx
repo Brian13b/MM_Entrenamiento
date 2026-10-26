@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { usuarioService } from '../../services/usuarioService';
 import { authService } from '../../services/auth';
 import { FormEditarPerfil } from '../../components/perfil/FormEditarPerfil';
 
-const inputClase = 'w-full bg-mm-light border border-transparent focus:border-mm-purple focus:bg-white rounded-2xl px-4 py-3.5 text-sm text-mm-dark outline-none transition-all';
+const inputClase = 'w-full bg-mm-light border border-transparent focus:border-mm-purple focus:bg-white rounded-2xl pl-4 pr-12 py-3.5 text-sm text-mm-dark outline-none transition-all';
 
-// "Mi perfil" para Admin y Profe: datos personales + foto + cambio de contraseña.
 export const MiPerfil = ({ titulo = 'Mi perfil' }) => {
   const [perfil, setPerfil] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -14,6 +14,10 @@ export const MiPerfil = ({ titulo = 'Mi perfil' }) => {
 
   const [passwords, setPasswords] = useState({ actual: '', nueva: '', confirmar: '' });
   const [guardandoPassword, setGuardandoPassword] = useState(false);
+
+  const [verActual, setVerActual] = useState(false);
+  const [verNueva, setVerNueva] = useState(false);
+  const [verConfirmar, setVerConfirmar] = useState(false);
 
   const cargar = useCallback(async () => {
     try {
@@ -81,18 +85,49 @@ export const MiPerfil = ({ titulo = 'Mi perfil' }) => {
           <h2 className="text-lg font-bold text-mm-dark mb-1">Seguridad</h2>
           <p className="text-xs text-gray-500 mb-4">Cambiá tu contraseña de acceso.</p>
           <form onSubmit={handleCambiarPassword} className="flex flex-col gap-4">
-            <input
-              type="password" required placeholder="Contraseña actual" value={passwords.actual}
-              onChange={(e) => setPasswords({ ...passwords, actual: e.target.value })} className={inputClase}
-            />
-            <input
-              type="password" required minLength={6} placeholder="Nueva contraseña" value={passwords.nueva}
-              onChange={(e) => setPasswords({ ...passwords, nueva: e.target.value })} className={inputClase}
-            />
-            <input
-              type="password" required minLength={6} placeholder="Repetí la nueva contraseña" value={passwords.confirmar}
-              onChange={(e) => setPasswords({ ...passwords, confirmar: e.target.value })} className={inputClase}
-            />
+            
+            {/* Password Actual */}
+            <div className="relative flex items-center">
+              <input
+                type={verActual ? "text" : "password"} required placeholder="Contraseña actual" value={passwords.actual}
+                onChange={(e) => setPasswords({ ...passwords, actual: e.target.value })} className={inputClase}
+              />
+              <button
+                type="button" onClick={() => setVerActual(!verActual)}
+                className="absolute right-4 text-gray-400 hover:text-mm-purple transition-colors p-1"
+              >
+                {verActual ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+              </button>
+            </div>
+
+            {/* Password Nueva */}
+            <div className="relative flex items-center">
+              <input
+                type={verNueva ? "text" : "password"} required minLength={6} placeholder="Nueva contraseña" value={passwords.nueva}
+                onChange={(e) => setPasswords({ ...passwords, nueva: e.target.value })} className={inputClase}
+              />
+              <button
+                type="button" onClick={() => setVerNueva(!verNueva)}
+                className="absolute right-4 text-gray-400 hover:text-mm-purple transition-colors p-1"
+              >
+                {verNueva ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+              </button>
+            </div>
+
+            {/* Confirmar Password */}
+            <div className="relative flex items-center">
+              <input
+                type={verConfirmar ? "text" : "password"} required minLength={6} placeholder="Repetí la nueva contraseña" value={passwords.confirmar}
+                onChange={(e) => setPasswords({ ...passwords, confirmar: e.target.value })} className={inputClase}
+              />
+              <button
+                type="button" onClick={() => setVerConfirmar(!verConfirmar)}
+                className="absolute right-4 text-gray-400 hover:text-mm-purple transition-colors p-1"
+              >
+                {verConfirmar ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+              </button>
+            </div>
+
             <button
               type="submit" disabled={guardandoPassword}
               className="self-end bg-mm-dark text-white px-6 py-3 rounded-xl font-bold text-xs hover:bg-gray-800 transition-colors disabled:opacity-60 active:scale-95"

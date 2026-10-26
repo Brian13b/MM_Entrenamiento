@@ -100,30 +100,38 @@ export const InicioAdmin = () => {
         </div>
       </section>
 
-      {/* Ocupación por turno */}
-      <section className="bg-mm-surface p-5 rounded-3xl border border-gray-100 shadow-sm mb-8">
-        <div className="flex items-center justify-between mb-4">
+      {/* PUNTO 1: Ocupación por turno */}
+      <section className="bg-mm-surface p-6 rounded-3xl border border-gray-100 shadow-sm mb-8 overflow-hidden">
+        <div className="flex items-center justify-between mb-8">
           <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Ocupación por día · semana en curso</p>
           {errorMetricas && (
             <button onClick={cargarMetricas} className="text-xs font-bold text-mm-purple hover:underline">Reintentar</button>
           )}
         </div>
         {!metricas ? (
-          <p className="text-sm text-gray-400 font-medium">{errorMetricas ? 'No se pudieron cargar los datos.' : 'Cargando...'}</p>
+          <p className="text-sm text-gray-400 font-medium pb-4">{errorMetricas ? 'No se pudieron cargar los datos.' : 'Cargando...'}</p>
         ) : metricas.ocupacionPorDia.length === 0 ? (
-          <p className="text-sm text-gray-400 font-medium">No hay horarios configurados.</p>
+          <p className="text-sm text-gray-400 font-medium pb-4">No hay horarios configurados.</p>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex items-end justify-between h-40 gap-2 pb-2 mt-4">
             {metricas.ocupacionPorDia.map((t) => (
-              <div key={t.fecha} className="flex items-center gap-3">
-                <span className="w-24 text-xs font-bold text-mm-dark">{nombreDiaPorIndice(t.diaSemana)}</span>
-                <div className="flex-1 h-2.5 rounded-full bg-mm-light overflow-hidden">
+              <div key={t.fecha} className="flex flex-col items-center justify-end h-full w-full group relative">
+                <span className="text-[10px] font-bold text-gray-500 mb-2 transition-opacity">
+                  {t.porcentaje}%
+                </span>
+                
+                {/* Barra Vertical */}
+                <div className="w-full max-w-10 bg-mm-light rounded-t-xl overflow-hidden flex flex-col justify-end">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${t.porcentaje >= 85 ? 'bg-red-500' : 'bg-mm-purple'}`}
-                    style={{ width: `${t.porcentaje}%` }}
+                    className={`w-full transition-all duration-700 ease-out rounded-t-xl ${t.porcentaje >= 85 ? 'bg-red-500' : 'bg-mm-purple'}`}
+                    style={{ height: `${t.porcentaje}%`, minHeight: t.porcentaje > 0 ? '4px' : '0' }}
                   />
                 </div>
-                <span className="w-10 text-right text-xs font-bold text-gray-500">{t.porcentaje}%</span>
+                
+                {/* Nombre del Día */}
+                <span className="text-[10px] font-bold text-mm-dark mt-3 uppercase tracking-wider">
+                  {nombreDiaPorIndice(t.diaSemana).substring(0, 3)}
+                </span>
               </div>
             ))}
           </div>
@@ -225,7 +233,6 @@ export const InicioAdmin = () => {
 
       </section>
 
-      {/* Inyectamos el Modal de Nuevo Usuario */}
       <ModalNuevoUsuario
         isOpen={modalRegistroAbierto}
         onClose={() => setModalRegistroAbierto(false)}
