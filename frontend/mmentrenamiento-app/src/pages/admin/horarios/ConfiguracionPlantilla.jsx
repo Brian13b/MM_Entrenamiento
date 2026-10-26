@@ -16,7 +16,6 @@ export const ConfiguracionPlantilla = () => {
   const [formUnico, setFormUnico] = useState({ diaSemana: 1, horaInicio: '', horaFin: '', cupoMaximo: '' });
   const [formFeriado, setFormFeriado] = useState({ fechaFeriado: '', nuevaHoraInicio: '', nuevaHoraFin: '' });
 
-  // Estados para la Edición en línea
   const [editandoId, setEditandoId] = useState(null);
   const [nuevoCupo, setNuevoCupo] = useState('');
 
@@ -123,16 +122,15 @@ export const ConfiguracionPlantilla = () => {
     if (!ok) return;
 
     try {
-      await horariosService.eliminarHorario(id);
+      const respuesta = await horariosService.eliminarHorario(id);
       setHorarios(prev => prev.filter(h => h.id !== id));
-      toast.success("Horario eliminado.");
+      toast.success(respuesta?.mensaje || respuesta?.message || "Horario eliminado.", { duration: 6000 });
     } catch (error) {
-      toast.error("Error al eliminar el horario.");
+      toast.error(error.response?.data?.message || "Error al eliminar el horario.");
       console.error(error);
     }
   };
 
-  // --- Funciones para Editar Cupo ---
   const iniciarEdicion = (clase) => {
     setEditandoId(clase.id);
     setNuevoCupo(clase.cupoMaximo);
@@ -148,7 +146,6 @@ export const ConfiguracionPlantilla = () => {
     try {
       await horariosService.actualizarHorario(id, Number(nuevoCupo));
       toast.success("Cupo actualizado.");
-      // Actualizamos el estado local sin recargar todo de la BD
       setHorarios(prev => prev.map(h => h.id === id ? { ...h, cupoMaximo: Number(nuevoCupo) } : h));
       cancelarEdicion();
     } catch (error) {
