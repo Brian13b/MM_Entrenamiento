@@ -20,6 +20,7 @@ namespace MMEntrenamiento.Infrastructure.Repositories
         public IGenericRepository<HorarioReducido> HorariosReducidos { get; private set; }
         public IGenericRepository<AnuncioGlobal> AnunciosGlobales { get; private set; }
         public IGenericRepository<ConfiguracionGimnasio> ConfiguracionesGimnasio { get; private set; }
+        public IGenericRepository<SuscripcionPush> SuscripcionesPush { get; private set; }
 
         public UnitOfWork(ApplicationDbContext context)
         {
@@ -36,6 +37,7 @@ namespace MMEntrenamiento.Infrastructure.Repositories
             HorariosReducidos = new GenericRepository<HorarioReducido>(_context);
             AnunciosGlobales = new GenericRepository<AnuncioGlobal>(_context);
             ConfiguracionesGimnasio = new GenericRepository<ConfiguracionGimnasio>(_context);
+            SuscripcionesPush = new GenericRepository<SuscripcionPush>(_context);
         }
 
         public async Task<int> CompleteAsync() => await _context.SaveChangesAsync();

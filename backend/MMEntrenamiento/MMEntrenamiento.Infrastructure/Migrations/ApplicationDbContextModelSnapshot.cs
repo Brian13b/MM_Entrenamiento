@@ -361,6 +361,36 @@ namespace MMEntrenamiento.Infrastructure.Migrations
                     b.ToTable("Reservas");
                 });
 
+            modelBuilder.Entity("MMEntrenamiento.Domain.Entities.SuscripcionPush", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Auth")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("P256dh")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("SuscripcionesPush");
+                });
+
             modelBuilder.Entity("MMEntrenamiento.Domain.Entities.Turno", b =>
                 {
                     b.Property<int>("Id")
@@ -698,6 +728,17 @@ namespace MMEntrenamiento.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Turno");
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("MMEntrenamiento.Domain.Entities.SuscripcionPush", b =>
+                {
+                    b.HasOne("MMEntrenamiento.Domain.Entities.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Usuario");
                 });

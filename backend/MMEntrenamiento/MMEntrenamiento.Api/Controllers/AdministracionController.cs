@@ -14,11 +14,16 @@ namespace MMEntrenamiento.Api.Controllers
     {
         private readonly IAdministracionService _adminService;
         private readonly IUsuarioService _usuarioService;
+        private readonly INotificacionPushService _pushService;
 
-        public AdministracionController(IAdministracionService adminService, IUsuarioService usuarioService)
+        public AdministracionController(
+            IAdministracionService adminService,
+            IUsuarioService usuarioService,
+            INotificacionPushService pushService)
         {
             _adminService = adminService;
             _usuarioService = usuarioService;
+            _pushService = pushService;
         }
 
         [Authorize(Roles = "Admin, Profe")]
@@ -174,6 +179,9 @@ namespace MMEntrenamiento.Api.Controllers
         {
             var (exito, mensaje) = await _adminService.ActualizarAnuncioGlobalAsync(request);
             if (!exito) return BadRequest(new { message = mensaje });
+
+            await _pushService.EnviarNotificacionGlobalAsync("Aviso de MM Entrenamiento", request.Mensaje);
+
             return Ok(new { message = mensaje });
         }
     }

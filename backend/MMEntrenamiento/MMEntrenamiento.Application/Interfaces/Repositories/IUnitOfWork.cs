@@ -19,6 +19,7 @@ namespace MMEntrenamiento.Application.Interfaces.Repositories
         IGenericRepository<HorarioReducido> HorariosReducidos { get; }
         IGenericRepository<AnuncioGlobal> AnunciosGlobales { get; }
         IGenericRepository<ConfiguracionGimnasio> ConfiguracionesGimnasio { get; }
+        IGenericRepository<SuscripcionPush> SuscripcionesPush { get; }
 
         Task<int> CompleteAsync();
     }

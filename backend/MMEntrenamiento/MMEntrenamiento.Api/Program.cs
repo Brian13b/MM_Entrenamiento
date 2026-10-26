@@ -32,6 +32,7 @@ builder.Services.AddScoped<IHorarioService, HorarioService>();
 builder.Services.AddScoped<ISeguimientoService, SeguimientoService>();
 builder.Services.AddScoped<IAsistenciaService, AsistenciaService>();
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
+builder.Services.AddScoped<INotificacionPushService, NotificacionPushService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Configuración de Identity

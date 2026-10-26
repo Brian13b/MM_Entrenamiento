@@ -23,6 +23,7 @@ namespace MMEntrenamiento.Infrastructure.Data
         public DbSet<AlertaActividad> AlertasActividad => Set<AlertaActividad>();
         public DbSet<AnuncioGlobal> AnunciosGlobales => Set<AnuncioGlobal>();
         public DbSet<ConfiguracionGimnasio> ConfiguracionesGimnasio => Set<ConfiguracionGimnasio>();
+        public DbSet<SuscripcionPush> SuscripcionesPush => Set<SuscripcionPush>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
