@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { EnvelopeIcon, LockClosedIcon, UserIcon, PhoneIcon, ArrowRightIcon, ForwardIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { authService } from '../../services/auth';
 import { administracionService } from '../../services/administracionService';
+import { membresiasService } from '../../services/membresiasService';
 import { Modal } from '../../components/ui/Modal';
 import { useConfirm } from '../../hooks/useConfirm';
 
@@ -80,7 +81,7 @@ export const ModalNuevoUsuario = ({ isOpen, onClose, onUsuarioCreado }) => {
   const handleAsignarMembresia = async (membresiaId) => {
     try {
       setIsLoading(true);
-      await administracionService.asignarMembresia(nuevoUsuarioId, membresiaId);
+      await membresiasService.asignarMembresia({usuarioId: nuevoUsuarioId, membresiaId: Number(membresiaId)});
       toast.success('Membresía asignada correctamente.');
       if (onUsuarioCreado) onUsuarioCreado();
       handleClose();
