@@ -11,6 +11,7 @@ export const PlanFrame = ({ url, alto = 'h-[70vh]' }) => {
   return (
     <div className={`relative w-full ${alto} rounded-xl border border-gray-200 bg-gray-50 overflow-hidden shadow-inner`}>
       
+      {/* SPINNER DE CARGA */}
       {cargando && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 z-0">
           <div className="w-8 h-8 border-4 border-mm-purple border-t-transparent rounded-full animate-spin mb-3"></div>
@@ -18,6 +19,7 @@ export const PlanFrame = ({ url, alto = 'h-[70vh]' }) => {
         </div>
       )}
 
+      {/* IFRAME DEL EXCEL */}
       <iframe
         title="Plan de entrenamiento"
         src={construirUrlEmbed(url)}
@@ -26,9 +28,6 @@ export const PlanFrame = ({ url, alto = 'h-[70vh]' }) => {
         referrerPolicy="no-referrer"
         className="relative z-10 w-full h-full"
       />
-
-      {/* Escudo Invisible */}
-      <div className="absolute top-0 left-0 right-0 bottom-11 z-20 bg-transparent cursor-default" title="Vista de solo lectura" />
       
     </div>
   );
