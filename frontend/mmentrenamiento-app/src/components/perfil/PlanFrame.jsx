@@ -3,14 +3,20 @@ import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 
 const esUrlHttp = (valor) => /^https?:\/\//i.test(valor || '');
 
-// Pide a OneDrive la vista incrustada de solo lectura.
 const construirUrlEmbed = (url) => {
-  if (/[?&]action=/i.test(url)) return url;
-  return `${url}${url.includes('?') ? '&' : '?'}action=embedview`;
+  let nuevaUrl = url;
+  
+  if (!/[?&]action=embedview/i.test(nuevaUrl)) {
+    nuevaUrl += nuevaUrl.includes('?') ? '&action=embedview' : '?action=embedview';
+  }
+  
+  if (!/wdAllowInteractivity/i.test(nuevaUrl)) {
+    nuevaUrl += '&wdAllowInteractivity=True&wdHideHeaders=True';
+  }
+
+  return nuevaUrl;
 };
 
-// Muestra el plan de entrenamiento (OneDrive) dentro de la app, en modo solo lectura.
-// Con `colapsable` el iframe recién se carga cuando la persona lo pide.
 export const PlanFrame = ({ url, colapsable = false, alto = 'h-[70vh]' }) => {
   const [visible, setVisible] = useState(!colapsable);
 
@@ -46,9 +52,9 @@ export const PlanFrame = ({ url, colapsable = false, alto = 'h-[70vh]' }) => {
             loading="lazy"
             referrerPolicy="no-referrer"
             sandbox="allow-scripts allow-same-origin allow-popups"
-            className={`w-full ${alto} rounded-xl border border-gray-200 bg-white`}
+            className={`w-full ${alto} rounded-xl border border-gray-200 bg-white shadow-inner`}
           />
-          <p className="text-[11px] text-gray-400">Vista de solo lectura. Si no carga, abrilo en una pestaña nueva.</p>
+          <p className="text-[11px] text-gray-400">Vista de solo lectura (podés navegar por las pestañas inferiores). Si no carga, abrilo en una pestaña nueva.</p>
         </>
       )}
     </div>

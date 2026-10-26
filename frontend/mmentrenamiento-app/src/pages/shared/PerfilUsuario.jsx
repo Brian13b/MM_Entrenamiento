@@ -452,16 +452,11 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
               {ficha?.driveItemId ? <PlanFrame url={ficha.driveItemId} colapsable /> : <p className="text-sm text-gray-400 italic">Este alumno todavía no tiene un plan vinculado.</p>}
             </div>
             <div className="flex flex-col gap-3">
-              <div className="flex gap-2">
-                <input
-                  type="text" placeholder="Pegar ID o link del Drive..."
-                  className="w-full bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
-                  value={planLink} onChange={(e) => setPlanLink(e.target.value)}
-                />
-                <button onClick={handleBuscarPestanas} disabled={!planLink} className="bg-mm-dark text-white px-4 rounded-xl font-bold text-xs hover:bg-gray-800 disabled:opacity-50 whitespace-nowrap">
-                  Leer Hojas
-                </button>
-              </div>
+              <input
+                type="text" placeholder="Pegar ID o link del Drive..."
+                className="w-full bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none"
+                value={planLink} onChange={(e) => setPlanLink(e.target.value)}
+              />
               <button onClick={handleVincularPlan} disabled={!planLink.trim()} className="w-full bg-sky-500 text-white py-3 rounded-xl font-bold text-sm hover:bg-sky-600 transition-colors disabled:opacity-50">
                 Guardar Vínculo
               </button>
