@@ -31,6 +31,14 @@ function toFormatYYYYMMDD(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function yaPaso(fechaString, horaString) {
+  if (!fechaString || !horaString) return false;
+  const [year, month, day] = fechaString.split('-').map(Number);
+  const [hours, minutes] = horaString.split(':').map(Number);
+  const fechaClase = new Date(year, month - 1, day, hours, minutes);
+  return fechaClase < new Date();
+}
+
 export const GrillaReservas = () => {
   const [selected, setSelected] = useState(new Date());
 
@@ -184,33 +192,41 @@ export const GrillaReservas = () => {
               const miReservaEnEsteHorario = misReservas.find(r =>
                 r.fecha === fechaFormat && formatearHora(r.horaInicio) === horaDisplay
               );
+              
               const isMyBooking = !!miReservaEnEsteHorario;
-
+              const clasePasada = yaPaso(fechaFormat, cls.horaInicio);
               const spotsLeft = Math.max(cls.cupoMaximo - cls.ocupacionActual, 0);
               const fillPct = Math.min((cls.ocupacionActual / cls.cupoMaximo) * 100, 100);
               const isFull = cls.estaLleno || spotsLeft === 0;
 
-              const barColor = isMyBooking ? "var(--color-mm-purple)" : (fillPct >= 85 ? "#e2574c" : "var(--color-mm-dark)");
+              // Ajuste de colores si la clase ya pasó
+              const barColor = clasePasada 
+                ? "#d1d5db" // gris si pasó
+                : isMyBooking 
+                  ? "var(--color-mm-purple)" 
+                  : (fillPct >= 85 ? "#e2574c" : "var(--color-mm-dark)");
 
               return (
                 <div
                   key={cls.horarioId}
                   className={`rounded-3xl p-5 flex items-center gap-4 bg-mm-surface shadow-[0_2px_12px_rgba(31,30,46,0.06)] transition-all ${
-                    isMyBooking ? "border-[3px] border-mm-purple" : "border border-gray-100"
+                    isMyBooking 
+                      ? clasePasada ? "border-2 border-gray-300 opacity-70" : "border-[3px] border-mm-purple" 
+                      : clasePasada ? "border border-gray-100 opacity-60" : "border border-gray-100"
                   }`}
                 >
-                  <div className="shrink-0 w-20 text-center rounded-2xl py-3 bg-mm-light">
-                    <p className="font-sans text-lg font-black text-mm-dark leading-none">
+                  <div className={`shrink-0 w-20 text-center rounded-2xl py-3 ${clasePasada ? 'bg-gray-100' : 'bg-mm-light'}`}>
+                    <p className={`font-sans text-lg font-black leading-none ${clasePasada ? 'text-gray-400' : 'text-mm-dark'}`}>
                       {horaDisplay}
                     </p>
-                    <p className="text-xs font-bold text-mm-dark opacity-40 mt-1">
+                    <p className={`text-xs font-bold mt-1 ${clasePasada ? 'text-gray-400' : 'text-mm-dark opacity-40'}`}>
                       hs
                     </p>
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-1.5">
-                      <span className="font-display text-3xl font-black text-mm-dark leading-none">
+                      <span className={`font-display text-3xl font-black leading-none ${clasePasada ? 'text-gray-400' : 'text-mm-dark'}`}>
                         {spotsLeft}
                       </span>
                       <span className="text-xs font-medium text-gray-500">
@@ -225,7 +241,15 @@ export const GrillaReservas = () => {
                     </div>
                   </div>
 
-                  {isMyBooking ? (
+                  {/* Lógica de botones */}
+                  {clasePasada ? (
+                    <button
+                      disabled
+                      className="shrink-0 text-sm font-bold px-4 py-2.5 rounded-xl bg-gray-100 text-gray-400 cursor-not-allowed"
+                    >
+                      {isMyBooking ? "Asistido" : "Finalizada"}
+                    </button>
+                  ) : isMyBooking ? (
                     <button
                       onClick={() => abrirModalCancelacion(cls, miReservaEnEsteHorario.turnoId)}
                       disabled={isProcessing}

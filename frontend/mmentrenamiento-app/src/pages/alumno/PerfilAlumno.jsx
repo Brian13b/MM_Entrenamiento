@@ -8,12 +8,7 @@ import { Modal } from '../../components/ui/Modal';
 import { useConfirm } from '../../hooks/useConfirm';
 import { useWhatsAppGimnasio } from '../../hooks/useWhatsAppGimnasio';
 import { PlanFrame } from '../../components/perfil/PlanFrame';
-import {
-  PencilIcon,
-  LockClosedIcon,
-  ArrowRightOnRectangleIcon,
-  ChevronRightIcon
-} from '@heroicons/react/24/outline';
+import { PencilIcon, LockClosedIcon, ArrowRightOnRectangleIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
 const formatearVencimiento = (fechaIso) => {
   if (!fechaIso) return '';
@@ -30,7 +25,7 @@ const textoPlan = (plan) => {
 export const PerfilAlumno = () => {
   const logout = useAuthStore((state) => state.logout);
   const [confirmar, confirmDialog] = useConfirm();
-  const whatsapp = useWhatsAppGimnasio();
+  const { abrir: whatsapp } = useWhatsAppGimnasio();
   const fileInputRef = useRef(null);
 
   const [resumen, setResumen] = useState(null);

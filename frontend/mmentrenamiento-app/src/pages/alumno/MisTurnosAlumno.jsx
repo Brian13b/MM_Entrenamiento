@@ -9,7 +9,7 @@ import { useWhatsAppGimnasio } from '../../hooks/useWhatsAppGimnasio';
 
 export const MisTurnosAlumno = () => {
   const navigate = useNavigate();
-  const whatsapp = useWhatsAppGimnasio();
+  const { abrir: whatsapp } = useWhatsAppGimnasio();
   const [turnosData, setTurnosData] = useState({ proximasClases: [], misSuscripcionesFijas: [] });
   const [isLoading, setIsLoading] = useState(true);
 
