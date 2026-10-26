@@ -236,10 +236,45 @@ namespace MMEntrenamiento.Application.Services
             if (horario == null)
                 return (false, "El horario no existe.");
 
+            var fechaHoy = DateOnly.FromDateTime(DateTime.UtcNow);
+
+            var turnosFuturos = await _unitOfWork.Turnos.FindAsync(
+                t => t.HorarioId == id && t.Fecha >= fechaHoy,
+                t => t.Reservas
+            );
+
+            int reservasCanceladas = 0;
+
+            foreach (var turno in turnosFuturos)
+            {
+                var reservasActivas = turno.Reservas.Where(r => r.Estado == EstadoReserva.Activa).ToList();
+
+                foreach (var reserva in reservasActivas)
+                {
+                    var creditoMes = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
+                        c => c.UsuarioId == reserva.UsuarioId && c.Anio == turno.Fecha.Year && c.Mes == turno.Fecha.Month
+                    );
+
+                    if (creditoMes != null && creditoMes.CreditosUsados > 0)
+                    {
+                        creditoMes.CreditosUsados--;
+                        _unitOfWork.CreditosMes.Update(creditoMes);
+                    }
+                    reservasCanceladas++;
+                }
+            }
+
+            var turnosFijos = await _unitOfWork.TurnosFijos.FindAsync(tf => tf.HorarioId == id && tf.Activo);
+            foreach (var tf in turnosFijos)
+            {
+                tf.Activo = false;
+                _unitOfWork.TurnosFijos.Update(tf);
+            }
+
             _unitOfWork.Horarios.Delete(horario);
             await _unitOfWork.CompleteAsync();
 
-            return (true, "Horario eliminado correctamente.");
+            return (true, $"Horario eliminado. Se cancelaron {reservasCanceladas} reservas futuras y se devolvieron los créditos correspondientes.");
         }
     }
 }
