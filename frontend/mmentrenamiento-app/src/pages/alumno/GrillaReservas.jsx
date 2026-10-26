@@ -199,9 +199,8 @@ export const GrillaReservas = () => {
               const fillPct = Math.min((cls.ocupacionActual / cls.cupoMaximo) * 100, 100);
               const isFull = cls.estaLleno || spotsLeft === 0;
 
-              // Ajuste de colores si la clase ya pasó
               const barColor = clasePasada 
-                ? "#d1d5db" // gris si pasó
+                ? "var(--color-mm-purple)"
                 : isMyBooking 
                   ? "var(--color-mm-purple)" 
                   : (fillPct >= 85 ? "#e2574c" : "var(--color-mm-dark)");

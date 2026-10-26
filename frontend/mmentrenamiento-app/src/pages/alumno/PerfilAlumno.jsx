@@ -206,7 +206,7 @@ const cargarResumen = useCallback(async () => {
   const inputClase = 'w-full bg-mm-light focus:border-mm-purple focus:bg-white rounded-2xl px-4 py-3.5 text-sm outline-none transition-all border border-transparent';
 
   return (
-    <div className="max-w-5xl mx-auto pb-24 animate-fade-in font-sans">
+    <div className="max-w-6xl mx-auto pb-24 animate-fade-in font-sans">
       {confirmDialog}
 
       {/* --- MODALES --- */}

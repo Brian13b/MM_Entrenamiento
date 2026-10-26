@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ChevronLeftIcon, ChevronRightIcon, UsersIcon, CalendarDaysIcon, ViewColumnsIcon } from '@heroicons/react/24/outline';
+import { 
+  ChevronLeftIcon, ChevronRightIcon, UsersIcon, 
+  CalendarDaysIcon, ViewColumnsIcon 
+} from '@heroicons/react/24/outline';
+
 import { horariosService } from '../../services/horariosService';
 import { formatearHora, parsearFechaIso, esNotFound } from '../../utils/fechas';
 
@@ -104,7 +108,8 @@ const VistaDiaria = ({ navigate }) => {
       ) : (
         <div className="flex flex-col gap-3">
           {turnos.map((turno) => {
-            const idNavegacion = turno.turnoId || turno.horarioId; 
+            // PUNTO 15: Forzamos el uso del horarioId 
+            const idNavegacion = turno.horarioId; 
             const sinInscriptos = turno.ocupacionActual === 0;
             const porcentaje = turno.cupoMaximo > 0 ? Math.min((turno.ocupacionActual / turno.cupoMaximo) * 100, 100) : 0;
             const paso = turnoYaPaso(turno.horaFin, fecha);
@@ -178,6 +183,7 @@ const VistaSemanal = ({ navigate }) => {
     });
   }, [lunesSemana]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const cargarOperativaSemanal = async () => {
     try {
       setIsLoading(true);
@@ -199,8 +205,7 @@ const VistaSemanal = ({ navigate }) => {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     cargarOperativaSemanal();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lunesSemana]);
+  }, [cargarOperativaSemanal, lunesSemana]);
 
   const cambiarSemana = (semanas) => {
     const [year, month, day] = lunesSemana.split('-').map(Number);
@@ -272,7 +277,9 @@ const VistaSemanal = ({ navigate }) => {
                     const estaLleno = turno.ocupacionActual >= turno.cupoMaximo;
                     const porcentaje = turno.cupoMaximo > 0 ? Math.round((turno.ocupacionActual / turno.cupoMaximo) * 100) : 0;
                     const paso = turnoYaPaso(turno.horaFin, dia.fechaIso);
-                    const idNavegacion = turno.turnoId || turno.horarioId; 
+                    
+                    // PUNTO 15: Forzamos el uso del horarioId 
+                    const idNavegacion = turno.horarioId; 
 
                     return (
                       <div key={dia.fechaIso} className="p-2 border-r border-gray-100 last:border-0">
@@ -312,7 +319,7 @@ const VistaSemanal = ({ navigate }) => {
 };
 
 // ==========================================
-// COMPONENTE PRINCIPAL
+// COMPONENTE PRINCIPAL (GRILLA)
 // ==========================================
 export const GrillaProfe = () => {
   const [vista, setVista] = useState('diaria');
@@ -321,7 +328,6 @@ export const GrillaProfe = () => {
   return (
     <div className="animate-fade-in max-w-6xl mx-auto pb-10">
       
-      {/* HEADER CON BOTONERA DE VISTAS */}
       <header className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-black text-mm-dark">Turnos</h1>
@@ -344,7 +350,6 @@ export const GrillaProfe = () => {
         </div>
       </header>
 
-      {/* RENDER CONDICIONAL DE VISTAS */}
       {vista === 'diaria' ? <VistaDiaria navigate={navigate} /> : <VistaSemanal navigate={navigate} />}
       
     </div>

@@ -9,6 +9,9 @@ import { reservasService } from '../../services/reservasService';
 import { etiquetaTurno, formatearHora, esNotFound } from '../../utils/fechas';
 import { PlanFrame } from '../../components/perfil/PlanFrame';
 
+// ==========================================
+// DETALLE Y ASISTENCIA DE LA CLASE
+// ==========================================
 const tieneLesiones = (ficha) => {
   const texto = ficha?.lesiones?.trim();
   return !!texto && !/^(ninguna?|no|-|n\/a)$/i.test(texto);
@@ -79,7 +82,6 @@ export const AsistenciaClase = () => {
   const [fichas, setFichas] = useState({});
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null);
 
-  // Estados para agregar un alumno no anotado
   const [busquedaAlumno, setBusquedaAlumno] = useState('');
   const [usuariosSistema, setUsuariosSistema] = useState([]);
   const [isBuscando, setIsBuscando] = useState(false);
@@ -95,7 +97,6 @@ export const AsistenciaClase = () => {
       setNoEncontrado(false);
 
       const fecha = searchParams.get('fecha');
-      
       const data = await asistenciaService.getDetalleClase(turnoId, fecha);
       
       if (fecha) data.fecha = fecha;
@@ -137,8 +138,7 @@ export const AsistenciaClase = () => {
     } finally {
       setIsLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [turnoId, searchParams]);
+  }, [searchParams, turnoId, alumnoSeleccionado]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -153,7 +153,6 @@ export const AsistenciaClase = () => {
   const handleGuardar = async () => {
     try {
       setIsSaving(true);
-      // Extraemos el TurnoId real del detalle, porque el turnoId de la URL podría ser solo el horarioId
       const idReal = detalle.turnoId || turnoId; 
       
       const respuesta = await asistenciaService.guardarAsistencia({
@@ -172,15 +171,14 @@ export const AsistenciaClase = () => {
   const anotarAlumnoRapido = async (usuarioId, nombre) => {
     try {
       setIsBuscando(true);
-      // Utilizamos el servicio de reservas para anotarlo a este horario específico.
       await reservasService.reservarTurnoEventual({
-        horarioId: detalle.horarioId, // Es vital enviar el HorarioId
+        horarioId: detalle.horarioId, 
         fecha: detalle.fecha,
         usuarioId: usuarioId
       });
       toast.success(`${nombre} anotado a la clase.`);
       setBusquedaAlumno('');
-      await cargar(); // Recargamos para que aparezca en la lista
+      await cargar();
     } catch (error) {
       toast.error(error.response?.data?.message || 'No se pudo anotar al alumno.');
     } finally {
@@ -188,7 +186,8 @@ export const AsistenciaClase = () => {
     }
   };
 
-  const volver = () => navigate('/profe/turnos');
+  // PUNTO 16: El botón volver ahora respeta la historia (vuelve a la vista/fecha en la que estaba)
+  const volver = () => navigate(-1);
 
   if (isLoading && !detalle) {
     return (
@@ -215,7 +214,6 @@ export const AsistenciaClase = () => {
   const alumnoActivo = alumnos.find(a => a.reservaId === alumnoSeleccionado);
   const fichaActiva = alumnoActivo ? fichas[alumnoActivo.usuarioId] : null;
 
-  // Filtrado del buscador rápido (excluyendo a los que ya están en la clase)
   const idsPresentes = alumnos.map(a => a.usuarioId);
   const resultadosBusqueda = busquedaAlumno 
     ? usuariosSistema
@@ -240,7 +238,7 @@ export const AsistenciaClase = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* COLUMNA IZQUIERDA: Lista de Asistencia y Anotador */}
+        {/* COLUMNA IZQUIERDA */}
         <div className="lg:col-span-4 flex flex-col gap-4">
 
           {/* BUSCADOR RÁPIDO PARA ANOTAR */}
