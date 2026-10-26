@@ -32,6 +32,53 @@ namespace MMEntrenamiento.Application.Services
             return directorio.FirstOrDefault();
         }
 
+        public async Task<(bool Exito, string Mensaje)> CambiarRolUsuarioAsync(Guid usuarioId, string nuevoRol)
+        {
+            var rolesValidos = new[] { "Alumno", "Profe", "Admin" };
+            if (!rolesValidos.Contains(nuevoRol))
+                return (false, "El rol especificado no es válido.");
+
+            var usuario = await _userManager.FindByIdAsync(usuarioId.ToString());
+            if (usuario == null)
+                return (false, "Usuario no encontrado.");
+
+            var rolesActuales = await _userManager.GetRolesAsync(usuario);
+            if (rolesActuales.Contains(nuevoRol))
+                return (true, "El usuario ya tiene este rol.");
+
+            await _userManager.RemoveFromRolesAsync(usuario, rolesActuales);
+            var result = await _userManager.AddToRoleAsync(usuario, nuevoRol);
+
+            if (!result.Succeeded)
+                return (false, "Ocurrió un error al intentar cambiar el rol del usuario.");
+
+            return (true, $"El rol del usuario se actualizó a {nuevoRol}.");
+        }
+
+        public async Task<(bool Exito, string Mensaje)> EliminarUsuarioAsync(Guid usuarioId)
+        {
+            var usuario = await _userManager.FindByIdAsync(usuarioId.ToString());
+            if (usuario == null)
+                return (false, "Usuario no encontrado.");
+
+            try
+            {
+                // UserManager.DeleteAsync borra al usuario y EF Core (por Cascade Delete) 
+                // se encarga de borrar sus reservas, ficha, etc.
+                var result = await _userManager.DeleteAsync(usuario);
+
+                if (!result.Succeeded)
+                    return (false, "No se pudo eliminar el usuario desde el gestor de identidades.");
+
+                return (true, "Usuario eliminado permanentemente del sistema.");
+            }
+            catch (Exception ex)
+            {
+                // Por si hay algún problema de llaves foráneas sin Cascade Delete configurado
+                return (false, $"Error al eliminar: {ex.InnerException?.Message ?? ex.Message}");
+            }
+        }
+
         // Arma el directorio con un número fijo de consultas (no una por usuario).
         // Deudor = alumno con membresía asignada y sin ningún pago registrado para el mes calendario actual.
         private async Task<List<UsuarioDirectorioDto>> ConstruirDirectorioAsync(Guid? soloUsuarioId)

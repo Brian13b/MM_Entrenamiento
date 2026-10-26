@@ -9,6 +9,14 @@ export const administracionService = {
     const response = await api.get('/administracion/usuarios');
     return response.data;
   },
+  cambiarRolUsuario: async (id, nuevoRol) => {
+    const response = await api.put(`/administracion/usuarios/${id}/rol`, { nuevoRol });
+    return response.data;
+  },
+  eliminarUsuario: async (id) => {
+    const response = await api.delete(`/administracion/usuarios/${id}`);
+    return response.data;
+  },
   getConfiguracion: async () => {
     const response = await api.get('/administracion/configuracion');
     return response.data;

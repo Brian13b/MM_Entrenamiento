@@ -6,6 +6,8 @@ namespace MMEntrenamiento.Application.Interfaces
     {
         Task<IEnumerable<UsuarioDirectorioDto>> ObtenerUsuariosDirectorioAsync();
         Task<UsuarioDirectorioDto?> ObtenerUsuarioDirectorioPorIdAsync(Guid id);
+        Task<(bool Exito, string Mensaje)> CambiarRolUsuarioAsync(Guid usuarioId, string nuevoRol);
+        Task<(bool Exito, string Mensaje)> EliminarUsuarioAsync(Guid usuarioId);
         Task<(bool Exito, string Mensaje)> CrearMembresiaAsync(CrearMembresiaDto request);
         Task<(bool Exito, string Mensaje)> ActualizarMembresiaAsync(int id, CrearMembresiaDto request);
         Task<(bool Exito, string Mensaje)> EliminarMembresiaAsync(int id);

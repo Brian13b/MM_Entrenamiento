@@ -14,6 +14,11 @@
         public bool Deudor { get; set; }
     }
 
+    public class CambiarRolDto
+    {
+        public string NuevoRol { get; set; } = string.Empty;
+    }
+
     public class CrearMembresiaDto
     {
         public string Nombre { get; set; } = string.Empty;

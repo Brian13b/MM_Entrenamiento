@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, CurrencyDollarIcon, ClipboardDocumentCheckIcon, LinkIcon, NoSymbolIcon, PlusCircleIcon, MinusCircleIcon, PhoneIcon, StarIcon, CalendarDaysIcon, TrashIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
+import { 
+  ArrowLeftIcon, CurrencyDollarIcon, ClipboardDocumentCheckIcon, 
+  LinkIcon, NoSymbolIcon, PlusCircleIcon, MinusCircleIcon, 
+  PhoneIcon, StarIcon, CalendarDaysIcon, TrashIcon, PencilSquareIcon 
+} from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
 import { seguimientoService } from '../../services/seguimientoService';
@@ -21,7 +25,11 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  const esStaff = useAuthStore(state => ['Admin', 'Profe'].includes(state.usuario?.rol));
+  const usuarioLogueado = useAuthStore(state => state.usuario);
+  const esStaff = ['Admin', 'Profe'].includes(usuarioLogueado?.rol);
+  
+  // PUNTO 9: Verificamos si es un Admin puro para los permisos destructivos
+  const esAdmin = usuarioLogueado?.rol === 'Admin';
 
   const [isLoading, setIsLoading] = useState(true);
   const [confirmar, confirmDialog] = useConfirm();
@@ -29,7 +37,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
 
   // Estados de Edición de Perfil
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
-  const [datosEdicion, setDatosEdicion] = useState({ nombreCompleto: '', telefono: '' });
+  const [datosEdicion, setDatosEdicion] = useState({ nombreCompleto: '', telefono: '', rol: 'Alumno' });
   const [guardandoPerfil, setGuardandoPerfil] = useState(false);
 
   // Estados de Ficha y Plan
@@ -91,7 +99,12 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
         const [datosUsuario, datosFicha, datosTurnos, listaMembresias, datosPagos] = await Promise.all(promesas);
 
         setUsuario(datosUsuario);
-        setDatosEdicion({ nombreCompleto: datosUsuario.nombreCompleto || '', telefono: datosUsuario.telefono || '' });
+        // PUNTO 9: Cargamos el rol actual en el estado de edición
+        setDatosEdicion({ 
+          nombreCompleto: datosUsuario.nombreCompleto || '', 
+          telefono: datosUsuario.telefono || '',
+          rol: datosUsuario.rol || 'Alumno' 
+        });
         setTurnosData(datosTurnos || TURNOS_VACIOS);
         
         if (esStaff) {
@@ -123,17 +136,49 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
     e.preventDefault();
     try {
       setGuardandoPerfil(true);
+      
       await administracionService.actualizarPerfilUsuario(id, {
         nombreCompleto: datosEdicion.nombreCompleto.trim(),
         telefono: datosEdicion.telefono.trim() || null
       });
-      setUsuario(prev => ({ ...prev, nombreCompleto: datosEdicion.nombreCompleto.trim(), telefono: datosEdicion.telefono.trim() || null }));
+
+      if (datosEdicion.rol !== usuario.rol) {
+        await administracionService.cambiarRolUsuario(id, datosEdicion.rol);
+      }
+
+      setUsuario(prev => ({ 
+        ...prev, 
+        nombreCompleto: datosEdicion.nombreCompleto.trim(), 
+        telefono: datosEdicion.telefono.trim() || null,
+        rol: datosEdicion.rol
+      }));
+      
       toast.success("Perfil actualizado correctamente.");
       setModalEditarAbierto(false);
     } catch (error) {
       toast.error(error.response?.data?.message || "Error al actualizar el perfil.");
     } finally {
       setGuardandoPerfil(false);
+    }
+  };
+
+  const handleEliminarUsuario = async () => {
+    const ok = await confirmar({
+      title: '¿Eliminar usuario definitivamente?',
+      message: `Esta acción es irreversible. Se borrarán los datos, turnos y ficha de ${usuario.nombreCompleto}.`,
+      confirmText: 'Sí, eliminar',
+      variant: 'danger'
+    });
+    if (!ok) return;
+
+    try {
+      setIsLoading(true);
+      await administracionService.eliminarUsuario(id);
+      toast.success('Usuario eliminado del sistema.');
+      navigate(basePath); 
+    } catch (error) {
+      toast.error(error.response?.data?.message || "No se pudo eliminar el usuario.");
+      setIsLoading(false);
     }
   };
 
@@ -279,7 +324,6 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
     window.open(`https://wa.me/${numeroLimpio}`, '_blank');
   };
 
-  // PUNTO 4: Clase estándar para los inputs del modal, para que se vean como el resto de la app
   const inputClase = 'w-full bg-mm-light focus:border-mm-purple focus:bg-white rounded-2xl px-4 py-3.5 text-sm outline-none transition-all border border-transparent';
 
   if (isLoading || !usuario) {
@@ -312,6 +356,12 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
             <div>
               <h1 className="text-2xl font-display font-bold text-mm-dark flex items-center gap-3 mb-1 tracking-tight">
                 {usuario.nombreCompleto}
+                {/* Etiqueta de ROL (si es Staff) */}
+                {esStaff && usuario.rol !== 'Alumno' && (
+                  <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md uppercase tracking-wider border border-blue-100">
+                    {usuario.rol}
+                  </span>
+                )}
                 {!usuario.activo && (
                   <span className="text-[10px] font-bold bg-red-50 text-red-600 px-2.5 py-1 rounded-md uppercase tracking-wider border border-red-100">
                     Bloqueado
@@ -334,7 +384,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2">
             <button
               onClick={() => setModalEditarAbierto(true)}
               className="flex justify-center items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
@@ -352,21 +402,28 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
               <button
                 onClick={handleBloquear}
                 className={`flex justify-center items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors border ${
-                  usuario.activo ? 'bg-white border-red-100 text-red-500 hover:bg-red-50' : 'bg-white border-green-100 text-green-600 hover:bg-green-50'
+                  usuario.activo ? 'bg-white border-orange-100 text-orange-500 hover:bg-orange-50' : 'bg-white border-green-100 text-green-600 hover:bg-green-50'
                 }`}
               >
                 <NoSymbolIcon className="w-4 h-4" />
                 {usuario.activo ? 'Bloquear' : 'Desbloquear'}
               </button>
             )}
+            {esAdmin && (
+              <button
+                onClick={handleEliminarUsuario}
+                className="flex justify-center items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-white text-red-500 border border-red-100 hover:bg-red-50 transition-colors"
+              >
+                <TrashIcon className="w-4 h-4" /> Eliminar
+              </button>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Grid: 2 columnas si esStaff, de lo contrario 1 */}
       <div className={`grid grid-cols-1 ${esStaff ? 'lg:grid-cols-2' : 'max-w-3xl mx-auto'} gap-6`}>
         
-        {/* COLUMNA IZQUIERDA: Entrenamiento y Turnos (Para Todos) */}
+        {/* COLUMNA IZQUIERDA: Entrenamiento y Turnos */}
         <div className="flex flex-col gap-6">
           <section className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
@@ -481,7 +538,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
           </section>
         </div>
 
-        {/* COLUMNA DERECHA: Pagos y Membresías (AHORA PARA ADMIN Y PROFE) */}
+        {/* COLUMNA DERECHA: Pagos y Membresías */}
         {esStaff && (
           <div className="flex flex-col gap-6">
             <section className="bg-mm-dark p-6 rounded-4xl shadow-sm text-white relative overflow-hidden border border-gray-800">
@@ -599,19 +656,43 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
         )}
       </div>
 
-      {/* Modal de edicion */}
+      {/* MODAL DE EDICIÓN CON SELECTOR DE ROL */}
       <Modal isOpen={modalEditarAbierto} onClose={() => !guardandoPerfil && setModalEditarAbierto(false)} title="Editar Perfil">
         <form onSubmit={handleGuardarPerfil} className="flex flex-col gap-4 mt-2">
-          <input
-            type="text" required value={datosEdicion.nombreCompleto} placeholder="Nombre y Apellido"
-            onChange={(e) => setDatosEdicion({ ...datosEdicion, nombreCompleto: e.target.value })}
-            className={inputClase}
-          />
-          <input
-            type="tel" value={datosEdicion.telefono} placeholder="Teléfono"
-            onChange={(e) => setDatosEdicion({ ...datosEdicion, telefono: e.target.value })}
-            className={inputClase}
-          />
+          
+          {esAdmin && (
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Rol en el sistema</label>
+              <select
+                className={inputClase}
+                value={datosEdicion.rol}
+                onChange={(e) => setDatosEdicion({ ...datosEdicion, rol: e.target.value })}
+              >
+                <option value="Alumno">Alumno</option>
+                <option value="Profe">Profesor</option>
+                <option value="Admin">Administrador</option>
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Nombre Completo</label>
+            <input
+              type="text" required value={datosEdicion.nombreCompleto} placeholder="Nombre y Apellido"
+              onChange={(e) => setDatosEdicion({ ...datosEdicion, nombreCompleto: e.target.value })}
+              className={inputClase}
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Teléfono (WhatsApp)</label>
+            <input
+              type="tel" value={datosEdicion.telefono} placeholder="Teléfono"
+              onChange={(e) => setDatosEdicion({ ...datosEdicion, telefono: e.target.value })}
+              className={inputClase}
+            />
+          </div>
+
           <button type="submit" disabled={guardandoPerfil} className="w-full bg-mm-purple text-white font-bold rounded-xl py-3.5 text-sm hover:opacity-90 disabled:opacity-70 mt-2">
             {guardandoPerfil ? 'Guardando...' : 'Guardar cambios'}
           </button>

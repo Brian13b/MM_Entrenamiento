@@ -46,6 +46,24 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(usuario);
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpPut("usuarios/{usuarioId}/rol")]
+        public async Task<IActionResult> CambiarRolUsuario(Guid usuarioId, [FromBody] CambiarRolDto request)
+        {
+            var (exito, mensaje) = await _adminService.CambiarRolUsuarioAsync(usuarioId, request.NuevoRol);
+            if (!exito) return BadRequest(new { message = mensaje });
+            return Ok(new { message = mensaje });
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("usuarios/{usuarioId}")]
+        public async Task<IActionResult> EliminarUsuario(Guid usuarioId)
+        {
+            var (exito, mensaje) = await _adminService.EliminarUsuarioAsync(usuarioId);
+            if (!exito) return BadRequest(new { message = mensaje });
+            return Ok(new { message = mensaje });
+        }
+
         [Authorize(Roles = "Admin,Profe")]
         [HttpPost("membresias")]
         public async Task<IActionResult> CrearMembresia([FromBody] CrearMembresiaDto request)
