@@ -52,7 +52,6 @@ export const InicioAlumno = () => {
       setDatosDashboard({
         creditos: billeteraMesActual?.totalDisponibles ?? 0,
         turnosFijosSemana: misTurnos.turnosFijosActivos ?? 0,
-        // GET anuncio devuelve 204 (sin cuerpo) cuando no hay anuncio.
         mensajeImportante: anuncio?.mensaje || MENSAJE_SIN_AVISOS,
         plan: resumen.plan,
         diasVencimientoMembresia: resumen.plan ? diasHasta(resumen.plan.vencimiento) : null,
@@ -213,7 +212,8 @@ export const InicioAlumno = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {datosDashboard.proximasClases.map((cls) => (
+              {/* PUNTO 13: slice(0, 4) limita la lista a las primeras 4 clases */}
+              {datosDashboard.proximasClases.slice(0, 4).map((cls) => (
                 <div
                   key={cls.turnoId}
                   className="bg-mm-surface rounded-3xl p-4 flex items-center gap-4 shadow-sm border border-gray-100 transition-all hover:shadow-md"
@@ -229,9 +229,10 @@ export const InicioAlumno = () => {
                       {etiquetaTurno(cls.fecha, cls.horaInicio)}
                     </p>
                   </div>
+                  
                   <button
                     onClick={() => abrirModalCancelacion(cls)}
-                    className="text-[11px] font-bold shrink-0 text-red-500 hover:bg-red-50 px-3 py-2 rounded-xl transition-colors text-center"
+                    className="text-[11px] font-bold shrink-0 text-red-500 hover:bg-red-50 px-3 py-2 rounded-xl transition-colors text-center leading-tight"
                   >
                     Cancelar<br />Clase
                   </button>
