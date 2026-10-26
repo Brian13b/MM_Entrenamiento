@@ -23,9 +23,34 @@ namespace MMEntrenamiento.Application.Services
 
             usuario.MembresiaActual = membresia;
             _unitOfWork.Usuarios.Update(usuario);
+
+            var fechaActual = DateTime.UtcNow;
+            var creditoMes = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
+                c => c.UsuarioId == request.UsuarioId && c.Anio == fechaActual.Year && c.Mes == fechaActual.Month
+            );
+
+            if (creditoMes != null)
+            {
+                creditoMes.CreditosBase = membresia.CreditosOtorgados;
+                _unitOfWork.CreditosMes.Update(creditoMes);
+            }
+            else
+            {
+                var nuevoMes = new CreditoMes
+                {
+                    UsuarioId = request.UsuarioId,
+                    Anio = fechaActual.Year,
+                    Mes = fechaActual.Month,
+                    CreditosBase = membresia.CreditosOtorgados,
+                    CreditosArrastrados = 0,
+                    CreditosUsados = 0
+                };
+                await _unitOfWork.CreditosMes.AddAsync(nuevoMes);
+            }
+
             await _unitOfWork.CompleteAsync();
 
-            return (true, "Membresía asignada correctamente");
+            return (true, "Membresía asignada y créditos sincronizados correctamente");
         }
 
         public async Task<CreditosResponseDto?> ObtenerCreditosActualesAsync(Guid usuarioId)
