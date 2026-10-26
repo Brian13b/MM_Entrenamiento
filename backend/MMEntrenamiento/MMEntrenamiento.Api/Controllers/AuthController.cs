@@ -35,7 +35,7 @@ namespace MMEntrenamiento.Api.Controllers
             var (exito, mensaje, usuarioId) = await _authService.RegisterAsync(request, request.Rol ?? "Alumno");
             if (!exito) return BadRequest(new { message = mensaje });
 
-            return Ok(new { message = mensaje });
+            return Ok(new { message = mensaje, usuarioId = usuarioId });
         }
 
         [HttpPost("cambiar-password")]

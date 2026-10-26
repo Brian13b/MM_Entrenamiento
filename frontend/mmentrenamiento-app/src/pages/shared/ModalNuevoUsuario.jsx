@@ -60,8 +60,10 @@ export const ModalNuevoUsuario = ({ isOpen, onClose, onUsuarioCreado }) => {
       
       if (onUsuarioCreado) onUsuarioCreado();
 
-      if (formData.rol === 'Alumno' && respuesta?.usuarioId) {
-        setNuevoUsuarioId(respuesta.usuarioId);
+      const idGenerado = respuesta?.usuarioId || respuesta?.id || respuesta?.data?.usuarioId || respuesta?.data?.id;
+
+      if (formData.rol === 'Alumno' && idGenerado) {
+        setNuevoUsuarioId(idGenerado);
         setPaso(2);
       } else {
         handleClose();

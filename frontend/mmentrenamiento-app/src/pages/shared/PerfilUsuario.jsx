@@ -1,11 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  ArrowLeftIcon, CurrencyDollarIcon, ClipboardDocumentCheckIcon,
-  LinkIcon, NoSymbolIcon, PlusCircleIcon, MinusCircleIcon,
-  PhoneIcon, StarIcon, CalendarDaysIcon, TrashIcon,
-  PencilSquareIcon, XMarkIcon
-} from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, CurrencyDollarIcon, ClipboardDocumentCheckIcon, LinkIcon, NoSymbolIcon, PlusCircleIcon, MinusCircleIcon, PhoneIcon, StarIcon, CalendarDaysIcon, TrashIcon, PencilSquareIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
 import { seguimientoService } from '../../services/seguimientoService';
@@ -25,7 +20,6 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  // AHORA VALIDA TANTO ADMIN COMO PROFE
   const esStaff = useAuthStore(state => ['Admin', 'Profe'].includes(state.usuario?.rol));
 
   const [isLoading, setIsLoading] = useState(true);
@@ -41,7 +35,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
   const [planLink, setPlanLink] = useState('');
 
   // Estados de Membresía y Créditos
-  const [creditosAOtorgar, setCreditosAOtorgar] = useState(0);
+  const [creditosAOtorgar, setCreditosAOtorgar] = useState(1);
   const [membresiasDisponibles, setMembresiasDisponibles] = useState([]);
   const [membresiaSeleccionada, setMembresiaSeleccionada] = useState('');
 
