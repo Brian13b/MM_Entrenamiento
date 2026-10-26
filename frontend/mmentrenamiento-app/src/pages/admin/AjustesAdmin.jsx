@@ -1,9 +1,5 @@
 import { useState, useEffect } from 'react';
-import { 
-  MegaphoneIcon, ArrowPathIcon, BuildingStorefrontIcon, 
-  PhoneIcon, MapPinIcon, StarIcon, PlusCircleIcon,
-  PencilIcon, TrashIcon, XMarkIcon
-} from '@heroicons/react/24/outline';
+import { MegaphoneIcon, ArrowPathIcon, BuildingStorefrontIcon, PhoneIcon, MapPinIcon, StarIcon, PlusCircleIcon, PencilIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { administracionService } from '../../services/administracionService';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';

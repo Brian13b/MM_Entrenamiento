@@ -4,12 +4,16 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { usuarioService } from '../../services/usuarioService';
 import { authService } from '../../services/auth';
 import { seguimientoService } from '../../services/seguimientoService';
+import { pushService } from '../../services/pushService';
 import { Modal } from '../../components/ui/Modal';
 import { useConfirm } from '../../hooks/useConfirm';
 import { useWhatsAppGimnasio } from '../../hooks/useWhatsAppGimnasio';
 import { PlanFrame } from '../../components/perfil/PlanFrame';
 import { obtenerUrlEditable } from '../../utils/onedrive';
-import { PencilIcon, LockClosedIcon, ArrowRightOnRectangleIcon, ChevronRightIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
+import { 
+  PencilIcon, LockClosedIcon, ArrowRightOnRectangleIcon, 
+  ChevronRightIcon, ArrowTopRightOnSquareIcon, BellIcon, BellAlertIcon 
+} from '@heroicons/react/24/outline';
 
 const formatearVencimiento = (fechaIso) => {
   if (!fechaIso) return '';
@@ -46,7 +50,17 @@ export const PerfilAlumno = () => {
   
   const [guardando, setGuardando] = useState(false);
 
-const cargarResumen = useCallback(async () => {
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPushEnabled(true);
+    }
+  }, []);
+
+  const cargarResumen = useCallback(async () => {
     try {
       setCargando(true);
       setError(false);
@@ -169,6 +183,24 @@ const cargarResumen = useCallback(async () => {
       toast.error(err.response?.data?.message || 'No se pudo actualizar la ficha técnica.');
     } finally {
       setGuardando(false);
+    }
+  };
+
+  const handleActivarNotificaciones = async () => {
+    setIsSubscribing(true);
+    try {
+      const exito = await pushService.suscribirDispositivo();
+      if (exito) {
+        toast.success('¡Notificaciones activadas correctamente!');
+        setPushEnabled(true);
+      } else {
+        toast.error('Verificá los permisos del navegador.');
+      }
+    } catch (error) {
+      toast.error('Ocurrió un error al suscribir el dispositivo.');
+      console.log(error);
+    } finally {
+      setIsSubscribing(false);
     }
   };
 
@@ -329,6 +361,38 @@ const cargarResumen = useCallback(async () => {
                 <ChevronRightIcon className="w-5 h-5 text-gray-300 group-hover:text-mm-purple transition-colors" />
               </li>
             </ul>
+          </section>
+
+          {/* NUEVA SECCIÓN: NOTIFICACIONES PUSH */}
+          <section className="bg-mm-surface rounded-3xl p-5 shadow-[0_2px_12px_rgba(31,30,46,0.06)] border border-gray-100 flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center shrink-0">
+                <BellIcon className="w-6 h-6 text-mm-purple" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-mm-dark">Notificaciones</h3>
+                <p className="text-[11px] text-gray-500">Avisos y alertas al celular.</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleActivarNotificaciones}
+              disabled={isSubscribing || pushEnabled}
+              className={`w-full px-4 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+                pushEnabled
+                  ? 'bg-green-50 text-green-600 border border-green-200 cursor-not-allowed'
+                  : 'bg-mm-purple text-white hover:bg-mm-purple/90 active:scale-95'
+              }`}
+            >
+              {isSubscribing ? (
+                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Procesando...</>
+              ) : pushEnabled ? (
+                <><BellAlertIcon className="w-4 h-4" /> Activadas</>
+              ) : (
+                <><BellIcon className="w-4 h-4" /> Activar Notificaciones</>
+              )}
+            </button>
           </section>
         </div>
 
