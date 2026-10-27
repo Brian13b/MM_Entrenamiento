@@ -181,7 +181,7 @@ export const AsistenciaClase = () => {
   const anotarAlumnoRapido = async (usuarioId, nombre) => {
     try {
       setIsBuscando(true);
-      await reservasService.reservarTurnoEventual({
+      await reservasService.reservarTurno({
         horarioId: horarioIdUrl,
         fecha: detalle.fecha,
         usuarioId: usuarioId
