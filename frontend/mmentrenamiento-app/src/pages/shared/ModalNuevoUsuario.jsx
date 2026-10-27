@@ -6,8 +6,10 @@ import { administracionService } from '../../services/administracionService';
 import { membresiasService } from '../../services/membresiasService';
 import { Modal } from '../../components/ui/Modal';
 import { useConfirm } from '../../hooks/useConfirm';
+import { useAuthStore } from '../../store/useAuthStore';
 
 export const ModalNuevoUsuario = ({ isOpen, onClose, onUsuarioCreado }) => {
+  const { usuario } = useAuthStore();
   const [paso, setPaso] = useState(1); 
   const [nuevoUsuarioId, setNuevoUsuarioId] = useState(null);
 
@@ -92,7 +94,7 @@ export const ModalNuevoUsuario = ({ isOpen, onClose, onUsuarioCreado }) => {
     }
   };
 
-  const rolesOpciones = ['Alumno', 'Profe', 'Admin'];
+  const rolesOpciones = usuario?.rol === 'Admin' ? ['Alumno', 'Profe', 'Admin'] : ['Alumno', 'Profe'];
 
   return (
     <>
