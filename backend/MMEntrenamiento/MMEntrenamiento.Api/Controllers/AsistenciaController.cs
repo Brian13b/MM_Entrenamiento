@@ -17,10 +17,11 @@ namespace MMEntrenamiento.Api.Controllers
             _asistenciaService = asistenciaService;
         }
 
-        [HttpGet("clase/{turnoId}")]
-        public async Task<IActionResult> ObtenerDetalleClase(int turnoId)
+        [HttpGet("clase/{horarioId}")]
+        public async Task<IActionResult> ObtenerDetalleClase(int horarioId, [FromQuery] DateTime fecha)
         {
-            var detalle = await _asistenciaService.ObtenerDetalleClaseAsync(turnoId);
+            // Le pasamos ambas cosas al servicio
+            var detalle = await _asistenciaService.ObtenerDetalleClaseAsync(horarioId, fecha);
             if (detalle == null) return NotFound(new { message = "Turno no encontrado." });
 
             return Ok(detalle);

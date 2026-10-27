@@ -15,19 +15,20 @@ namespace MMEntrenamiento.Application.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<DetalleClaseDto?> ObtenerDetalleClaseAsync(int turnoId)
+        public async Task<DetalleClaseDto?> ObtenerDetalleClaseAsync(int horarioId, DateTime fecha)
         {
+            var fechaConvertida = DateOnly.FromDateTime(fecha);
+
             var turno = await _unitOfWork.Turnos.FirstOrDefaultAsync(
-                t => t.Id == turnoId,
+                t => t.HorarioId == horarioId && t.Fecha == fechaConvertida,
                 t => t.Horario!,
                 t => t.Reservas
             );
 
             if (turno == null) return null;
 
-            // Se incluyen las reservas ya resueltas para poder revisar/corregir la asistencia guardada.
             var reservas = (await _unitOfWork.Reservas.FindAsync(
-                r => r.TurnoId == turnoId
+                r => r.TurnoId == turno.Id
                   && (r.Estado == EstadoReserva.Activa || r.Estado == EstadoReserva.Asistio || r.Estado == EstadoReserva.Ausente),
                 r => r.Usuario!
             )).ToList();
@@ -40,9 +41,8 @@ namespace MMEntrenamiento.Application.Services
             var alumnos = new List<AlumnoEnClaseDto>();
             foreach (var r in reservas)
             {
-                // Primera clase: el alumno todavía no asistió a ninguna otra clase.
                 var asistioAntes = await _unitOfWork.Reservas.AnyAsync(
-                    x => x.UsuarioId == r.UsuarioId && x.TurnoId != turnoId && x.Estado == EstadoReserva.Asistio);
+                    x => x.UsuarioId == r.UsuarioId && x.TurnoId != turno.Id && x.Estado == EstadoReserva.Asistio);
 
                 alumnos.Add(new AlumnoEnClaseDto
                 {
