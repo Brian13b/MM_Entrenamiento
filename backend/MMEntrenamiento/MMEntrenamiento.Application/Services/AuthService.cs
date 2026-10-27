@@ -145,7 +145,8 @@ namespace MMEntrenamiento.Application.Services
                 return (true, "Usuario registrado con éxito.", user.Id);
             }
 
-            return (false, "Error al registrar el usuario.", null);
+            var errores = string.Join(" ", result.Errors.Select(e => e.Description));
+            return (false, errores, null);
         }
 
         public async Task<(bool Exito, string Mensaje)> CambiarPasswordAsync(Guid usuarioId, CambiarPasswordDto request)

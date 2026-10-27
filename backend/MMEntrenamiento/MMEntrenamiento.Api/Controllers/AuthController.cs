@@ -88,6 +88,10 @@ namespace MMEntrenamiento.Api.Controllers
         [Authorize(Roles = "Admin, Profe")]
         public async Task<IActionResult> RegistrarAlumno([FromBody] RegisterRequestDto request)
         {
+            if (User.IsInRole("Profe") && request.Rol == "Admin")
+            {
+                return Forbid("No tienes permisos para crear cuentas de Administrador.");
+            }
 
             var (exito, mensaje, usuarioId) = await _authService.RegisterAsync(request, request.Rol ?? "Alumno");
             if (!exito) return BadRequest(new { message = mensaje });

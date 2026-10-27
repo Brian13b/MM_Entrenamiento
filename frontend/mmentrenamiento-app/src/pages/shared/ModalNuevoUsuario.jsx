@@ -73,7 +73,14 @@ export const ModalNuevoUsuario = ({ isOpen, onClose, onUsuarioCreado }) => {
       }
 
     } catch (err) {
-      toast.error(err.response?.data?.message || "Error al registrar el usuario.");
+      const data = err.response?.data;
+      let errorMsg = data?.message;
+
+      if (!errorMsg && data?.errors) {
+        errorMsg = Object.values(data.errors).flat().join(" ");
+      }
+
+      toast.error(errorMsg || "Error al registrar el usuario.");
     } finally {
       setIsLoading(false);
     }
