@@ -13,47 +13,59 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
+const soportaPush = () => 'serviceWorker' in navigator && 'PushManager' in window;
+
 export const pushService = {
+  soportaPush,
+
+  // IMPORTANTE (iOS/Safari): debe llamarse SOLO desde el handler de un click del usuario y sin
+  // ningún `await` previo en ese handler, o Safari descarta el gesto y no muestra el permiso.
+  // Nunca llamar automáticamente (login, montaje de componentes, etc.).
   suscribirDispositivo: async () => {
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        
-        let subscription = await registration.pushManager.getSubscription();
-        
-        if (!subscription) {
-          subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
-          });
-        }
+    if (!soportaPush()) return false;
 
-        const subJSON = subscription.toJSON();
-        const request = {
-          endpoint: subJSON.endpoint,
-          p256dh: subJSON.keys.p256dh,
-          auth: subJSON.keys.auth
-        };
+    try {
+      const registration = await navigator.serviceWorker.ready;
 
-        await api.post('/notificaciones/suscribir', request);
-        return true;
+      let subscription = await registration.pushManager.getSubscription();
 
-      } catch (error) {
-        console.error('Error en suscripción Push:', error);
-        return false;
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
+        });
       }
+
+      const subJSON = subscription.toJSON();
+      await api.post('/notificaciones/suscribir', {
+        endpoint: subJSON.endpoint,
+        p256dh: subJSON.keys.p256dh,
+        auth: subJSON.keys.auth
+      });
+      return true;
+
+    } catch (error) {
+      console.error('Error en suscripción Push:', error);
+      return false;
     }
-    return false;
   },
 
+  // Da de baja la suscripción en el servidor y en el navegador. Si el servidor falla igual se
+  // desuscribe localmente (la fila huérfana se limpia sola cuando el servicio push responda 404/410).
   desuscribirDispositivo: async () => {
+    if (!soportaPush()) return true;
+
     try {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
-      
+
       if (subscription) {
-        await subscription.unsubscribe(); // Destruye el permiso en el navegador
-        // Opcional: Acá podrías hacer un api.delete('/notificaciones/desuscribir') si tu backend tiene el endpoint
+        try {
+          await api.post('/notificaciones/desuscribir', { endpoint: subscription.endpoint });
+        } catch (error) {
+          console.error('No se pudo avisar la baja al servidor:', error);
+        }
+        await subscription.unsubscribe();
       }
       return true;
     } catch (error) {

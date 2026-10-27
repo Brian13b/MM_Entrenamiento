@@ -29,5 +29,17 @@ namespace MMEntrenamiento.API.Controllers
 
             return Ok(new { mensaje = resultado.Mensaje });
         }
+
+        [HttpPost("desuscribir")]
+        public async Task<IActionResult> Desuscribir([FromBody] DesuscribirPushDto request)
+        {
+            var usuarioIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(usuarioIdStr, out var usuarioId)) return Unauthorized();
+
+            var resultado = await _pushService.EliminarSuscripcionAsync(usuarioId, request.Endpoint);
+            if (!resultado.Exito) return BadRequest(resultado.Mensaje);
+
+            return Ok(new { mensaje = resultado.Mensaje });
+        }
     }
 }

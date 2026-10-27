@@ -54,10 +54,13 @@ export const PerfilAlumno = () => {
   const [pushEnabled, setPushEnabled] = useState(false);
 
   useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPushEnabled(true);
-    }
+    // El estado real es la suscripción activa, no el permiso general: el permiso puede estar
+    // concedido y la suscripción haberse dado de baja (toggle apagado o logout).
+    if (!pushService.soportaPush()) return;
+    navigator.serviceWorker.ready
+      .then((registration) => registration.pushManager.getSubscription())
+      .then((subscription) => setPushEnabled(!!subscription))
+      .catch(() => setPushEnabled(false));
   }, []);
 
   const cargarResumen = useCallback(async () => {
@@ -242,6 +245,7 @@ export const PerfilAlumno = () => {
       confirmText: 'Cerrar sesión'
     });
     if (!ok) return;
+    await pushService.desuscribirDispositivo();
     await authService.logout();
     logout();
   };
