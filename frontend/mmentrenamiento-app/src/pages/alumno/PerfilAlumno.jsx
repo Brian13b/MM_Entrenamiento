@@ -10,10 +10,7 @@ import { useConfirm } from '../../hooks/useConfirm';
 import { useWhatsAppGimnasio } from '../../hooks/useWhatsAppGimnasio';
 import { PlanFrame } from '../../components/perfil/PlanFrame';
 import { obtenerUrlEditable } from '../../utils/onedrive';
-import { 
-  PencilIcon, LockClosedIcon, ArrowRightOnRectangleIcon, 
-  ChevronRightIcon, ArrowTopRightOnSquareIcon, BellIcon, ArrowPathIcon, BellSlashIcon 
-} from '@heroicons/react/24/outline';
+import { PencilIcon, LockClosedIcon, ArrowRightOnRectangleIcon, ChevronRightIcon, ArrowTopRightOnSquareIcon, BellIcon, ArrowPathIcon, BellSlashIcon } from '@heroicons/react/24/outline';
 
 const formatearVencimiento = (fechaIso) => {
   if (!fechaIso) return '';
@@ -40,7 +37,7 @@ export const PerfilAlumno = () => {
   const [subiendoFoto, setSubiendoFoto] = useState(false);
 
   const [modalPerfil, setModalPerfil] = useState(false);
-  const [formPerfil, setFormPerfil] = useState({ nombreCompleto: '', telefono: '' });
+  const [formPerfil, setFormPerfil] = useState({ nombreCompleto: '', email: '', telefono: '' });
   
   const [modalPassword, setModalPassword] = useState(false);
   const [formPassword, setFormPassword] = useState({ actual: '', nueva: '', confirmar: '' });
@@ -54,8 +51,6 @@ export const PerfilAlumno = () => {
   const [pushEnabled, setPushEnabled] = useState(false);
 
   useEffect(() => {
-    // El estado real es la suscripción activa, no el permiso general: el permiso puede estar
-    // concedido y la suscripción haberse dado de baja (toggle apagado o logout).
     if (!pushService.soportaPush()) return;
     navigator.serviceWorker.ready
       .then((registration) => registration.pushManager.getSubscription())
@@ -86,7 +81,8 @@ export const PerfilAlumno = () => {
       const { usuario: actual, setUsuario } = useAuthStore.getState();
       setUsuario({ 
         ...actual, 
-        nombreCompleto: dataResumen.value.nombreCompleto, 
+        nombreCompleto: dataResumen.value.nombreCompleto,
+        email: dataResumen.value.email,
         foto: dataResumen.value.fotoPerfilUrl 
       });
 
@@ -140,7 +136,7 @@ export const PerfilAlumno = () => {
   };
 
   const abrirEditarPerfil = () => {
-    setFormPerfil({ nombreCompleto: resumen.nombreCompleto, telefono: resumen.telefono || '' });
+    setFormPerfil({ nombreCompleto: resumen.nombreCompleto, email: resumen.email || '', telefono: resumen.telefono || '' });
     setModalPerfil(true);
   };
 
@@ -150,6 +146,7 @@ export const PerfilAlumno = () => {
       setGuardando(true);
       await usuarioService.actualizarMiPerfil({
         nombreCompleto: formPerfil.nombreCompleto.trim(),
+        email: formPerfil.email.trim(),
         telefono: formPerfil.telefono.trim() || null
       });
       toast.success('Perfil actualizado.');
@@ -280,6 +277,11 @@ export const PerfilAlumno = () => {
           <input
             type="text" required value={formPerfil.nombreCompleto} placeholder="Nombre y Apellido"
             onChange={(e) => setFormPerfil({ ...formPerfil, nombreCompleto: e.target.value })}
+            className={inputClase}
+          />
+          <input
+            type="email" required autoComplete="email" value={formPerfil.email} placeholder="Email"
+            onChange={(e) => setFormPerfil({ ...formPerfil, email: e.target.value })}
             className={inputClase}
           />
           <input

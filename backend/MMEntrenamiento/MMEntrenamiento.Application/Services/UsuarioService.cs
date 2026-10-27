@@ -121,15 +121,18 @@ namespace MMEntrenamiento.Application.Services
             if (string.IsNullOrWhiteSpace(request.NombreCompleto))
                 return (false, "El nombre no puede estar vacío.");
 
-            usuario.NombreCompleto = request.NombreCompleto.Trim();
-            usuario.PhoneNumber = string.IsNullOrWhiteSpace(request.Telefono) ? null : request.Telefono.Trim();
-
             // El email es también el nombre de usuario (el login busca por email).
             var nuevoEmail = request.Email?.Trim();
-            if (!string.IsNullOrEmpty(nuevoEmail) && !string.Equals(nuevoEmail, usuario.Email, StringComparison.OrdinalIgnoreCase))
+            var cambiaEmail = !string.IsNullOrEmpty(nuevoEmail)
+                              && !string.Equals(nuevoEmail, usuario.Email, StringComparison.OrdinalIgnoreCase);
+
+            if (cambiaEmail)
             {
-                usuario.Email = nuevoEmail;
-                usuario.UserName = nuevoEmail;
+                // Se valida antes de tocar nada. FindByEmailAsync usa el email normalizado,
+                // así que "Ana@x.com" y "ana@x.com" cuentan como el mismo.
+                var existente = await _userManager.FindByEmailAsync(nuevoEmail!);
+                if (existente != null && existente.Id != usuario.Id)
+                    return (false, "Ese email ya está en uso por otra cuenta.");
             }
 
             if (foto != null)
@@ -139,14 +142,34 @@ namespace MMEntrenamiento.Application.Services
                 usuario.FotoPerfilUrl = url;
             }
 
-            var result = await _userManager.UpdateAsync(usuario);
-            if (!result.Succeeded)
+            usuario.NombreCompleto = request.NombreCompleto.Trim();
+            usuario.PhoneNumber = string.IsNullOrWhiteSpace(request.Telefono) ? null : request.Telefono.Trim();
+
+            if (cambiaEmail)
             {
-                var duplicado = result.Errors.Any(e => e.Code is "DuplicateEmail" or "DuplicateUserName");
-                return (false, duplicado ? "Ese email ya está en uso por otra cuenta." : "Error al actualizar el perfil.");
+                // SetEmail/SetUserName validan, normalizan y persisten (junto con los cambios pendientes de arriba).
+                var resultEmail = await _userManager.SetEmailAsync(usuario, nuevoEmail!);
+                if (!resultEmail.Succeeded) return (false, MensajeDeError(resultEmail));
+
+                var resultUserName = await _userManager.SetUserNameAsync(usuario, nuevoEmail!);
+                if (!resultUserName.Succeeded) return (false, MensajeDeError(resultUserName));
+
+                return (true, "Perfil actualizado correctamente.");
             }
 
+            var result = await _userManager.UpdateAsync(usuario);
+            if (!result.Succeeded) return (false, MensajeDeError(result));
+
             return (true, "Perfil actualizado correctamente.");
+        }
+
+        private static string MensajeDeError(IdentityResult result)
+        {
+            if (result.Errors.Any(e => e.Code is "DuplicateEmail" or "DuplicateUserName"))
+                return "Ese email ya está en uso por otra cuenta.";
+            if (result.Errors.Any(e => e.Code is "InvalidEmail" or "InvalidUserName"))
+                return "El email no tiene un formato válido.";
+            return "Error al actualizar el perfil.";
         }
 
         public async Task<(bool Exito, string Mensaje, string? Url)> SubirFotoPerfilAsync(Guid usuarioId, IFormFile foto)
