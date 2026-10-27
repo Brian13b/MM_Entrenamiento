@@ -241,7 +241,9 @@ export const PerfilAlumno = () => {
       message: 'Vas a salir de tu cuenta en este dispositivo.',
       confirmText: 'Cerrar sesión'
     });
-    if (ok) logout();
+    if (!ok) return;
+    await authService.logout();
+    logout();
   };
 
   if (cargando) return (

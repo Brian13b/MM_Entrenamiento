@@ -1,6 +1,7 @@
 import { Outlet, NavLink, Link, useNavigate } from 'react-router-dom';
 import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../store/useAuthStore';
+import { authService } from '../services/auth';
 import { useConfirm } from '../hooks/useConfirm';
 import { useHidratarPerfil } from '../hooks/useHidratarPerfil';
 import { urlAvatar } from '../utils/avatar';
@@ -20,6 +21,7 @@ export const PanelLayout = ({ items, perfilPath, rolPorDefecto, mensajeCierre })
       confirmText: 'Cerrar sesión'
     });
     if (!ok) return;
+    await authService.logout();
     logout();
     navigate('/login');
   };

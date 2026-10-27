@@ -6,6 +6,15 @@ export const authService = {
     return response.data; 
   },
 
+  // Revoca el refresh token en el servidor y borra la cookie. Nunca debe bloquear el cierre local.
+  logout: async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch {
+      // Sin conexión o servidor caído: igual se cierra la sesión local.
+    }
+  },
+
   registrarAlumno: async (datos) => {
     const response = await api.post('/auth/register', datos);
     return response.data;

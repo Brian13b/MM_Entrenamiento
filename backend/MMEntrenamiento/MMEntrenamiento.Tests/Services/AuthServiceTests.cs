@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Moq;
 using Xunit;
 using MMEntrenamiento.Application.DTOs.Auth;
+using MMEntrenamiento.Application.Interfaces.Repositories;
 using MMEntrenamiento.Application.Services;
 using MMEntrenamiento.Domain.Entities;
 using MMEntrenamiento.Domain.Enums;
@@ -30,7 +31,7 @@ namespace MMEntrenamiento.Tests.Services
 
             _configMock = new Mock<IConfiguration>();
 
-            _authService = new AuthService(_userManagerMock.Object, _roleManagerMock.Object, _configMock.Object);
+            _authService = new AuthService(_userManagerMock.Object, _roleManagerMock.Object, _configMock.Object, new Mock<IUnitOfWork>().Object);
         }
 
         [Fact]

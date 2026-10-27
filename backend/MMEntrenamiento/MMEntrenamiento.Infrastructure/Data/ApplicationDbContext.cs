@@ -24,10 +24,21 @@ namespace MMEntrenamiento.Infrastructure.Data
         public DbSet<AnuncioGlobal> AnunciosGlobales => Set<AnuncioGlobal>();
         public DbSet<ConfiguracionGimnasio> ConfiguracionesGimnasio => Set<ConfiguracionGimnasio>();
         public DbSet<SuscripcionPush> SuscripcionesPush => Set<SuscripcionPush>();
+        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
+            builder.Entity<RefreshToken>(e =>
+            {
+                e.HasIndex(r => r.TokenHash).IsUnique();
+                e.HasIndex(r => r.FamiliaId);
+                e.HasOne(r => r.Usuario)
+                    .WithMany()
+                    .HasForeignKey(r => r.UsuarioId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
 
             builder.Entity<Usuario>()
                 .HasOne(u => u.FichaTecnica)

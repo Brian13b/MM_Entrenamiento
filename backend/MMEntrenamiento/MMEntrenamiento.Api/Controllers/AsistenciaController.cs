@@ -20,7 +20,9 @@ namespace MMEntrenamiento.Api.Controllers
         [HttpGet("clase/{horarioId}")]
         public async Task<IActionResult> ObtenerDetalleClase(int horarioId, [FromQuery] DateTime fecha)
         {
-            // Le pasamos ambas cosas al servicio
+            if (fecha == default)
+                return BadRequest(new { message = "La fecha es obligatoria." });
+
             var detalle = await _asistenciaService.ObtenerDetalleClaseAsync(horarioId, fecha);
             if (detalle == null) return NotFound(new { message = "Turno no encontrado." });
 

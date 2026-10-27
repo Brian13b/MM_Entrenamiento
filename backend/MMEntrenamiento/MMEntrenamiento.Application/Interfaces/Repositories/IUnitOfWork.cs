@@ -20,6 +20,7 @@ namespace MMEntrenamiento.Application.Interfaces.Repositories
         IGenericRepository<AnuncioGlobal> AnunciosGlobales { get; }
         IGenericRepository<ConfiguracionGimnasio> ConfiguracionesGimnasio { get; }
         IGenericRepository<SuscripcionPush> SuscripcionesPush { get; }
+        IGenericRepository<RefreshToken> RefreshTokens { get; }
 
         Task<int> CompleteAsync();
     }

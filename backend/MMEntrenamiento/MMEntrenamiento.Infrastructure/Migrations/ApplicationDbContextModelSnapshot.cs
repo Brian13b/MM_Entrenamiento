@@ -327,6 +327,46 @@ namespace MMEntrenamiento.Infrastructure.Migrations
                     b.ToTable("Pagos");
                 });
 
+            modelBuilder.Entity("MMEntrenamiento.Domain.Entities.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreadoEn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiraEn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FamiliaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReemplazadoPorHash")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("RevocadoEn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FamiliaId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("RefreshTokens");
+                });
+
             modelBuilder.Entity("MMEntrenamiento.Domain.Entities.Reserva", b =>
                 {
                     b.Property<int>("Id")
@@ -703,6 +743,17 @@ namespace MMEntrenamiento.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("MMEntrenamiento.Domain.Entities.Pago", b =>
+                {
+                    b.HasOne("MMEntrenamiento.Domain.Entities.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("MMEntrenamiento.Domain.Entities.RefreshToken", b =>
                 {
                     b.HasOne("MMEntrenamiento.Domain.Entities.Usuario", "Usuario")
                         .WithMany()
