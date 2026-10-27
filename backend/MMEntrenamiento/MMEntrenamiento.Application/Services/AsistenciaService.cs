@@ -25,7 +25,20 @@ namespace MMEntrenamiento.Application.Services
                 t => t.Reservas
             );
 
-            if (turno == null) return null;
+            if (turno == null)
+            {
+                var horario = await _unitOfWork.Horarios.FirstOrDefaultAsync(h => h.Id == horarioId);
+
+                return new DetalleClaseDto
+                {
+                    TurnoId = 0,
+                    Fecha = fechaConvertida,
+                    HoraInicio = horario != null ? horario.HoraInicio : new TimeSpan(0, 0, 0),
+                    OcupacionActual = 0,
+                    AlumnosPresentes = new List<AlumnoEnClaseDto>(),
+                    AlumnosQueAvisaron = new List<ExcepcionDiaDto>()
+                };
+            }
 
             var reservas = (await _unitOfWork.Reservas.FindAsync(
                 r => r.TurnoId == turno.Id
@@ -56,7 +69,7 @@ namespace MMEntrenamiento.Application.Services
                 });
             }
 
-            var detalle = new DetalleClaseDto
+            return new DetalleClaseDto
             {
                 TurnoId = turno.Id,
                 Fecha = turno.Fecha,
@@ -70,8 +83,6 @@ namespace MMEntrenamiento.Application.Services
                     Motivo = e.Motivo ?? string.Empty
                 }).ToList()
             };
-
-            return detalle;
         }
 
         public async Task<(bool Exito, string Mensaje)> GuardarAsistenciaAsync(GuardarAsistenciaDto request)

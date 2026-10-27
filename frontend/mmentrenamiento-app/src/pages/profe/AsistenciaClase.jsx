@@ -76,7 +76,6 @@ const PanelDetalles = ({ alumno, ficha }) => {
 };
 
 export const AsistenciaClase = () => {
-  // Ahora tratamos el ID de la URL directamente como HorarioId
   const { turnoId: horarioIdUrl } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -107,7 +106,6 @@ export const AsistenciaClase = () => {
 
       const fecha = searchParams.get('fecha');
       
-      // Le mandamos el HorarioId al backend, que es lo que realmente espera
       const data = await asistenciaService.getDetalleClase(horarioIdUrl, fecha);
       
       if (fecha) data.fecha = fecha;
