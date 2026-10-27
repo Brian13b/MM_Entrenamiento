@@ -19,11 +19,13 @@ namespace MMEntrenamiento.Application.Services
         {
             var fechaConvertida = DateOnly.FromDateTime(fecha);
 
-            var turno = await _unitOfWork.Turnos.FirstOrDefaultAsync(
+            var turnos = await _unitOfWork.Turnos.FindAsync(
                 t => t.HorarioId == horarioId && t.Fecha == fechaConvertida,
                 t => t.Horario!,
                 t => t.Reservas
             );
+
+            var turno = turnos.OrderByDescending(t => t.Reservas.Count).FirstOrDefault();
 
             if (turno == null)
             {
@@ -97,7 +99,6 @@ namespace MMEntrenamiento.Application.Services
                 {
                     reserva.Estado = asistencia.Asistio ? EstadoReserva.Asistio : EstadoReserva.Ausente;
                     _unitOfWork.Reservas.Update(reserva);
-
                 }
             }
 

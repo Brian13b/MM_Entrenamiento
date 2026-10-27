@@ -182,7 +182,7 @@ export const AsistenciaClase = () => {
     try {
       setIsBuscando(true);
       await reservasService.reservarTurnoEventual({
-        horarioId: detalle.horarioId, 
+        horarioId: horarioIdUrl,
         fecha: detalle.fecha,
         usuarioId: usuarioId
       });
@@ -386,7 +386,6 @@ export const AsistenciaClase = () => {
             <PanelDetalles alumno={alumnoActivo} ficha={fichaActiva} />
           ) : (
              <div className="bg-white rounded-3xl p-12 border border-gray-100 shadow-sm text-center h-full flex flex-col items-center justify-center">
-                <span className="text-5xl mb-4 opacity-50">👈</span>
                 <p className="text-lg font-bold text-gray-400">Seleccioná un alumno de la lista para ver su ficha y plan.</p>
              </div>
           )}

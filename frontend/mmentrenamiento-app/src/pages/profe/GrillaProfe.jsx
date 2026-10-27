@@ -1,10 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { 
-  ChevronLeftIcon, ChevronRightIcon, UsersIcon, 
-  CalendarDaysIcon, ViewColumnsIcon 
-} from '@heroicons/react/24/outline';
+import { ChevronLeftIcon, ChevronRightIcon, UsersIcon, CalendarDaysIcon, ViewColumnsIcon } from '@heroicons/react/24/outline';
 
 import { horariosService } from '../../services/horariosService';
 import { formatearHora, parsearFechaIso, esNotFound } from '../../utils/fechas';
