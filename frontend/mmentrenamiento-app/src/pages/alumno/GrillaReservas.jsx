@@ -39,7 +39,6 @@ export const GrillaReservas = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  // El state no alcanza para frenar un doble clic dentro del mismo tick: la ref bloquea al instante.
   const reservandoRef = useRef(false);
 
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -180,7 +179,6 @@ export const GrillaReservas = () => {
           </div>
         ) : dayClasses.length === 0 ? (
           <div className="rounded-3xl p-12 text-center bg-mm-surface shadow-[0_2px_12px_rgba(31,30,46,0.06)] border border-gray-100">
-            <div className="text-4xl mb-3">🏋️</div>
             <p className="text-base font-medium text-mm-dark opacity-40">No hay turnos este día</p>
           </div>
         ) : (
@@ -201,7 +199,7 @@ export const GrillaReservas = () => {
                 ? "var(--color-mm-purple)"
                 : isMyBooking 
                   ? "var(--color-mm-purple)" 
-                  : (fillPct >= 85 ? "#e2574c" : "var(--color-mm-dark)");
+                  : (fillPct >= 85 ? "#e2574c" : "var(--color-mm-purple)");
 
               return (
                 <div

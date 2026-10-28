@@ -39,7 +39,7 @@ export const PanelLayout = ({ items, perfilPath, rolPorDefecto, mensajeCierre })
       <aside className="hidden md:flex flex-col w-64 bg-mm-dark text-white max-h-screen sticky top-0 shrink-0">
         <div className="p-6 flex items-center gap-3 border-b border-gray-700">
           <img src={logo} alt="Logo MM Entrenamiento" className="w-8 h-8 object-contain" />
-          <span className="text-base text-mm-light font-display tracking-tight">
+          <span className="text-xs text-mm-light font-display tracking-tight">
             MM Entrenamiento
           </span>
         </div>
@@ -79,7 +79,7 @@ export const PanelLayout = ({ items, perfilPath, rolPorDefecto, mensajeCierre })
         <header className="md:hidden sticky top-0 z-40 bg-mm-light/80 backdrop-blur-md px-4 pt-6 pb-4 w-full flex items-center justify-between border-b border-gray-100">
           <div className="flex items-center gap-3">
             <img src={logo} alt="Logo MM Entrenamiento" className="w-8 h-8 object-contain" />
-            <span className="text-lg font-bold text-mm-dark font-display tracking-tight">
+            <span className="text-xs font-bold text-mm-dark font-display tracking-tight">
               MM Entrenamiento
             </span>
           </div>
