@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import toast from "react-hot-toast";
 import { reservasService } from "../../services/reservasService";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
-import { formatearHora, esNotFound } from "../../utils/fechas";
+import { formatearHora, esNotFound, claseYaInicio } from "../../utils/fechas";
 
 const DAYS = ["D", "L", "M", "M", "J", "V", "S"];
 const MONTH_NAMES = [
@@ -31,14 +31,6 @@ function toFormatYYYYMMDD(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function yaPaso(fechaString, horaString) {
-  if (!fechaString || !horaString) return false;
-  const [year, month, day] = fechaString.split('-').map(Number);
-  const [hours, minutes] = horaString.split(':').map(Number);
-  const fechaClase = new Date(year, month - 1, day, hours, minutes);
-  return fechaClase < new Date();
-}
-
 export const GrillaReservas = () => {
   const [selected, setSelected] = useState(new Date());
 
@@ -47,6 +39,8 @@ export const GrillaReservas = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  // El state no alcanza para frenar un doble clic dentro del mismo tick: la ref bloquea al instante.
+  const reservandoRef = useRef(false);
 
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [classToCancel, setClassToCancel] = useState(null);
@@ -85,6 +79,9 @@ export const GrillaReservas = () => {
   const hasBookingToday = !!reservaDelDiaSeleccionado;
 
   const handleReservar = async (horarioId) => {
+    if (reservandoRef.current) return;
+    reservandoRef.current = true;
+
     try {
       setIsProcessing(true);
       const respuesta = await reservasService.reservarTurno({ horarioId: horarioId, fecha: fechaFormat });
@@ -93,6 +90,7 @@ export const GrillaReservas = () => {
     } catch (error) {
       toast.error(error.response?.data?.message || "No se pudo reservar el turno.");
     } finally {
+      reservandoRef.current = false;
       setIsProcessing(false);
     }
   };
@@ -194,7 +192,7 @@ export const GrillaReservas = () => {
               );
               
               const isMyBooking = !!miReservaEnEsteHorario;
-              const clasePasada = yaPaso(fechaFormat, cls.horaInicio);
+              const clasePasada = claseYaInicio(fechaFormat, cls.horaInicio);
               const spotsLeft = Math.max(cls.cupoMaximo - cls.ocupacionActual, 0);
               const fillPct = Math.min((cls.ocupacionActual / cls.cupoMaximo) * 100, 100);
               const isFull = cls.estaLleno || spotsLeft === 0;
@@ -246,7 +244,7 @@ export const GrillaReservas = () => {
                       disabled
                       className="shrink-0 text-sm font-bold px-4 py-2.5 rounded-xl bg-gray-100 text-gray-400 cursor-not-allowed"
                     >
-                      {isMyBooking ? "Asistido" : "Finalizada"}
+                      {isMyBooking ? "Clase iniciada" : "Finalizada"}
                     </button>
                   ) : isMyBooking ? (
                     <button

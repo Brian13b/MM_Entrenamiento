@@ -10,6 +10,7 @@ namespace MMEntrenamiento.Domain.Entities
         public int Id { get; set; }
         public int TurnoId { get; set; }
         public Turno Turno { get; set; } = null!;
+        public DateOnly Fecha { get; set; }
         public Guid UsuarioId { get; set; }
         public Usuario Usuario { get; set; } = null!;
 

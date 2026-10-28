@@ -379,6 +379,9 @@ namespace MMEntrenamiento.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("varchar");
 
+                    b.Property<DateOnly>("Fecha")
+                        .HasColumnType("date");
+
                     b.Property<DateTime>("FechaOperacion")
                         .HasColumnType("timestamp with time zone");
 
@@ -396,7 +399,10 @@ namespace MMEntrenamiento.Infrastructure.Migrations
 
                     b.HasIndex("TurnoId");
 
-                    b.HasIndex("UsuarioId");
+                    b.HasIndex("UsuarioId", "Fecha")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Reservas_UsuarioId_Fecha")
+                        .HasFilter("\"Estado\" IN ('Activa', 'Asistio')");
 
                     b.ToTable("Reservas");
                 });
@@ -453,7 +459,8 @@ namespace MMEntrenamiento.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("HorarioId");
+                    b.HasIndex("HorarioId", "Fecha")
+                        .IsUnique();
 
                     b.ToTable("Turnos");
                 });

@@ -1,6 +1,9 @@
-﻿using MMEntrenamiento.Application.Interfaces.Repositories;
+﻿using Microsoft.EntityFrameworkCore;
+using MMEntrenamiento.Application.Exceptions;
+using MMEntrenamiento.Application.Interfaces.Repositories;
 using MMEntrenamiento.Domain.Entities;
 using MMEntrenamiento.Infrastructure.Data;
+using Npgsql;
 
 namespace MMEntrenamiento.Infrastructure.Repositories
 {
@@ -42,7 +45,19 @@ namespace MMEntrenamiento.Infrastructure.Repositories
             RefreshTokens = new GenericRepository<RefreshToken>(_context);
         }
 
-        public async Task<int> CompleteAsync() => await _context.SaveChangesAsync();
+        public async Task<int> CompleteAsync()
+        {
+            try
+            {
+                return await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (
+                ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } pg
+                && pg.ConstraintName == ApplicationDbContext.IndiceReservaUnicaPorDia)
+            {
+                throw new ConflictoReservaException(ex);
+            }
+        }
 
         public void Dispose() => _context.Dispose();
     }

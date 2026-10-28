@@ -9,7 +9,7 @@ import { membresiasService } from '../../services/membresiasService';
 import { administracionService } from '../../services/administracionService';
 import { usuarioService } from '../../services/usuarioService';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
-import { etiquetaTurno, etiquetaTipoReserva, diasHasta, esNotFound } from '../../utils/fechas';
+import { etiquetaTurno, etiquetaTipoReserva, diasHasta, esNotFound, claseYaInicio } from '../../utils/fechas';
 
 const MENSAJE_SIN_AVISOS = "No hay avisos nuevos por el momento.";
 
@@ -230,12 +230,18 @@ export const InicioAlumno = () => {
                     </p>
                   </div>
                   
-                  <button
-                    onClick={() => abrirModalCancelacion(cls)}
-                    className="text-[11px] font-bold shrink-0 text-red-500 hover:bg-red-50 px-3 py-2 rounded-xl transition-colors text-center leading-tight"
-                  >
-                    Cancelar<br />Clase
-                  </button>
+                  {claseYaInicio(cls.fecha, cls.horaInicio) ? (
+                    <span className="text-[11px] font-bold shrink-0 text-gray-400 bg-gray-100 px-3 py-2 rounded-xl text-center leading-tight cursor-not-allowed">
+                      Clase<br />iniciada
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => abrirModalCancelacion(cls)}
+                      className="text-[11px] font-bold shrink-0 text-red-500 hover:bg-red-50 px-3 py-2 rounded-xl transition-colors text-center leading-tight"
+                    >
+                      Cancelar<br />Clase
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

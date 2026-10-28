@@ -116,7 +116,6 @@ const VistaDiaria = ({ navigate }) => {
             return (
               <button
                 key={turno.horarioId}
-                // ¡LA CLAVE ESTÁ ACÁ! Siempre usamos horarioId en la URL
                 onClick={() => navigate(`/profe/clase/${turno.horarioId}?fecha=${fecha}&hora=${turno.horaInicio}`)}
                 className={`w-full text-left rounded-2xl p-4 flex items-center gap-4 border transition-all active:scale-[0.99] ${
                   paso 

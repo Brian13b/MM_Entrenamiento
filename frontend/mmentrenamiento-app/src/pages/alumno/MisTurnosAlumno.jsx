@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { ArrowLeftIcon, CalendarDaysIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { reservasService } from '../../services/reservasService';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
-import { etiquetaTurno, formatearHora, nombreDiaSemana, etiquetaTipoReserva, esNotFound } from '../../utils/fechas';
+import { etiquetaTurno, formatearHora, nombreDiaSemana, etiquetaTipoReserva, esNotFound, claseYaInicio } from '../../utils/fechas';
 import { useWhatsAppGimnasio } from '../../hooks/useWhatsAppGimnasio';
 
 export const MisTurnosAlumno = () => {
@@ -132,12 +132,18 @@ export const MisTurnosAlumno = () => {
                     <p className="text-sm md:text-base font-bold text-mm-dark">{etiquetaTurno(cls.fecha, cls.horaInicio)}</p>
                   </div>
                 </div>
-                <button 
-                  onClick={() => setModalCancelar({ isOpen: true, clase: cls, isProcessing: false })} 
-                  className="text-xs font-bold bg-mm-dark text-white hover:bg-gray-800 px-4 py-2.5 rounded-xl transition-colors text-center shrink-0"
-                >
-                  Cancelar
-                </button>
+                {claseYaInicio(cls.fecha, cls.horaInicio) ? (
+                  <span className="text-xs font-bold bg-gray-100 text-gray-400 px-4 py-2.5 rounded-xl text-center shrink-0 cursor-not-allowed">
+                    Clase iniciada
+                  </span>
+                ) : (
+                  <button 
+                    onClick={() => setModalCancelar({ isOpen: true, clase: cls, isProcessing: false })} 
+                    className="text-xs font-bold bg-mm-dark text-white hover:bg-gray-800 px-4 py-2.5 rounded-xl transition-colors text-center shrink-0"
+                  >
+                    Cancelar
+                  </button>
+                )}
               </div>
             ))}
           </div>

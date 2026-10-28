@@ -1,4 +1,5 @@
 ﻿using MMEntrenamiento.Application.DTOs.Reservas;
+using MMEntrenamiento.Application.Exceptions;
 using MMEntrenamiento.Application.Interfaces;
 using MMEntrenamiento.Application.Interfaces.Repositories;
 using MMEntrenamiento.Domain.Entities;
@@ -16,6 +17,16 @@ namespace MMEntrenamiento.Application.Services
             _unitOfWork = unitOfWork;
             _membresiaService = membresiaService;
         }
+
+        private const string MensajeYaTieneTurnoEnElDia = "Ya tenés un turno activo para este día. Solo podés tener una reserva activa por día.";
+
+        // Regla de negocio: una sola reserva vigente (Activa o Asistio) por alumno y fecha.
+        // Cancelada y Ausente liberan el día para volver a anotarse.
+        private Task<bool> TieneReservaVigenteEnFechaAsync(Guid usuarioId, DateOnly fecha) =>
+            _unitOfWork.Reservas.AnyAsync(r =>
+                r.UsuarioId == usuarioId
+                && r.Turno.Fecha == fecha
+                && (r.Estado == EstadoReserva.Activa || r.Estado == EstadoReserva.Asistio));
 
         public async Task<(bool Exito, string Mensaje)> ReservarTurnoEventualAsync(CrearReservaDto request)
         {
@@ -36,14 +47,8 @@ namespace MMEntrenamiento.Application.Services
             if (!DisponibilidadHorarios.EstaDisponible(horario, reducidoDelDia))
                 return (false, $"Ese horario no está disponible el {request.Fecha:dd/MM/yyyy} por horario reducido o feriado.");
 
-            var reservaExistenteHoy = await _unitOfWork.Reservas.FirstOrDefaultAsync(
-                r => r.UsuarioId == request.UsuarioId
-                  && r.Turno.Fecha == request.Fecha
-                  && (r.Estado == EstadoReserva.Activa || r.Estado == EstadoReserva.Asistio),
-                r => r.Turno!);
-
-            if (reservaExistenteHoy != null)
-                return (false, "Ya tenés un turno activo para este día. Solo podés tener una reserva activa por día.");
+            if (await TieneReservaVigenteEnFechaAsync(request.UsuarioId, request.Fecha))
+                return (false, MensajeYaTieneTurnoEnElDia);
 
             var mesTurno = request.Fecha.Month;
             var anioTurno = request.Fecha.Year;
@@ -70,6 +75,7 @@ namespace MMEntrenamiento.Application.Services
             var reserva = new Reserva
             {
                 Turno = turno,
+                Fecha = request.Fecha,
                 UsuarioId = request.UsuarioId,
                 Tipo = TipoReserva.Normal,
                 Estado = EstadoReserva.Activa,
@@ -81,7 +87,15 @@ namespace MMEntrenamiento.Application.Services
             credito.CreditosUsados++;
 
             _unitOfWork.CreditosMes.Update(credito);
-            await _unitOfWork.CompleteAsync();
+
+            try
+            {
+                await _unitOfWork.CompleteAsync();
+            }
+            catch (ConflictoReservaException)
+            {
+                return (false, MensajeYaTieneTurnoEnElDia);
+            }
 
             return (true, "Reserva confirmada con éxito.");
         }
@@ -135,6 +149,9 @@ namespace MMEntrenamiento.Application.Services
             var turnosInstanciados = new List<Turno>();
             foreach (var fecha in fechasAProyectar)
             {
+                if (await TieneReservaVigenteEnFechaAsync(request.UsuarioId, fecha))
+                    return (false, $"El alumno ya tiene un turno activo el {fecha:dd/MM/yyyy}. Solo puede tener una reserva activa por día.");
+
                 var turno = await _unitOfWork.Turnos.FirstOrDefaultAsync(t => t.HorarioId == request.HorarioId && t.Fecha == fecha);
                 if (turno == null)
                 {
@@ -156,6 +173,7 @@ namespace MMEntrenamiento.Application.Services
                 var reserva = new Reserva
                 {
                     Turno = turno,
+                    Fecha = turno.Fecha,
                     UsuarioId = request.UsuarioId,
                     Tipo = TipoReserva.Fija,
                     Estado = EstadoReserva.Activa,
@@ -171,7 +189,15 @@ namespace MMEntrenamiento.Application.Services
                 _unitOfWork.CreditosMes.Update(credito);
             }
 
-            await _unitOfWork.CompleteAsync();
+            try
+            {
+                await _unitOfWork.CompleteAsync();
+            }
+            catch (ConflictoReservaException)
+            {
+                return (false, "El alumno ya tiene un turno activo en alguna de las fechas a reservar. Solo puede tener una reserva activa por día.");
+            }
+
             return (true, "Turno fijo establecido y 4 semanas reservadas con éxito.");
         }
 
@@ -192,8 +218,15 @@ namespace MMEntrenamiento.Application.Services
             // En fechas con horario reducido/feriado no se generan reservas fijas automáticas.
             if (await DisponibilidadHorarios.ObtenerReducidoAsync(_unitOfWork, fechaObjetivo) != null) return;
 
+            var alumnosAsignados = new HashSet<Guid>();
+
             foreach (var turnoFijo in turnosFijos)
             {
+                // Una reserva vigente por día: si ya tiene otra ese día (o se le asignó una en esta misma corrida), se omite.
+                if (alumnosAsignados.Contains(turnoFijo.UsuarioId)
+                    || await TieneReservaVigenteEnFechaAsync(turnoFijo.UsuarioId, fechaObjetivo))
+                    continue;
+
                 var mes = fechaObjetivo.Month;
                 var anio = fechaObjetivo.Year;
 
@@ -226,6 +259,7 @@ namespace MMEntrenamiento.Application.Services
                     var nuevaReserva = new Reserva
                     {
                         Turno = turno,
+                        Fecha = fechaObjetivo,
                         UsuarioId = turnoFijo.UsuarioId,
                         Tipo = TipoReserva.Fija,
                         Estado = EstadoReserva.Activa,
@@ -236,6 +270,7 @@ namespace MMEntrenamiento.Application.Services
                     turno.OcupacionActual++;
                     creditoMes.CreditosUsados++;
                     _unitOfWork.CreditosMes.Update(creditoMes);
+                    alumnosAsignados.Add(turnoFijo.UsuarioId);
                 }
             }
 
@@ -247,17 +282,21 @@ namespace MMEntrenamiento.Application.Services
             // 1. Buscar la reserva activa para este usuario y turno
             var reserva = await _unitOfWork.Reservas.FirstOrDefaultAsync(
                 r => r.UsuarioId == request.UsuarioId && r.TurnoId == request.TurnoId && r.Estado == EstadoReserva.Activa,
-                r => r.Turno!
+                r => r.Turno!,
+                r => r.Turno.Horario!
             );
 
             if (reserva == null) return (false, "No se encontró una reserva activa para este turno.");
 
-            if (reserva.Turno.Fecha < DateOnly.FromDateTime(DateTime.UtcNow))
-                return (false, "No podés cancelar turnos que ya pasaron.");
+            // Argentina no tiene horario de verano: el huso del sistema es UTC-3 fijo.
+            var ahoraArgentina = DateTime.UtcNow.AddHours(-3);
+            var inicioClase = reserva.Turno.Fecha.ToDateTime(reserva.Turno.Horario.HoraInicio);
+            if (inicioClase <= ahoraArgentina)
+                return (false, "No podés cancelar una clase que ya empezó o ya pasó.");
 
             // 2. Liberar el cupo y marcar como cancelada
             reserva.Estado = EstadoReserva.Cancelada;
-            reserva.Turno.OcupacionActual--;
+            reserva.Turno.OcupacionActual = Math.Max(0, reserva.Turno.OcupacionActual - 1);
 
             // 3. Devolver el crédito a su billetera de ese mes
             var creditoMes = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
@@ -318,7 +357,7 @@ namespace MMEntrenamiento.Application.Services
             foreach (var reserva in reservasFuturas)
             {
                 reserva.Estado = EstadoReserva.Cancelada;
-                reserva.Turno.OcupacionActual--;
+                reserva.Turno.OcupacionActual = Math.Max(0, reserva.Turno.OcupacionActual - 1);
 
                 var creditoMes = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
                     c => c.UsuarioId == request.UsuarioId && c.Anio == reserva.Turno.Fecha.Year && c.Mes == reserva.Turno.Fecha.Month

@@ -64,6 +64,20 @@ export const diasHasta = (fechaIso) => {
   return Math.round((destino - hoy) / 86400000);
 };
 
+// Argentina no usa horario de verano: UTC-3 fijo, igual que la validación del backend.
+const OFFSET_ARGENTINA_MS = -3 * 60 * 60 * 1000;
+
+// true si la clase (fecha ISO + hora "HH:mm[:ss]") ya empezó según la hora de Argentina,
+// sin depender del huso horario del dispositivo.
+export const claseYaInicio = (fechaIso, horaInicio) => {
+  if (!fechaIso || !horaInicio) return false;
+  const [anio, mes, dia] = fechaIso.split('-').map(Number);
+  const [horas, minutos] = horaInicio.split(':').map(Number);
+  const inicioNominal = Date.UTC(anio, mes - 1, dia, horas, minutos);
+  const ahoraArgentinaNominal = Date.now() + OFFSET_ARGENTINA_MS;
+  return inicioNominal <= ahoraArgentinaNominal;
+};
+
 const ETIQUETAS_TIPO_RESERVA = {
   Fija: 'Turno fijo',
   Normal: 'Clase eventual',
