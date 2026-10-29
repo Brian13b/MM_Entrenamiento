@@ -123,6 +123,8 @@ namespace MMEntrenamiento.Api.Controllers
         {
             var (exito, mensaje) = await _authService.SolicitarRecuperacionAsync(request);
 
+            if (!exito) return BadRequest(new { message = mensaje });
+
             return Ok(new { message = mensaje });
         }
 

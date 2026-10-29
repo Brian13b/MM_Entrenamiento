@@ -1,6 +1,7 @@
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using MimeKit;
 using MMEntrenamiento.Application.Interfaces;
 
@@ -9,10 +10,12 @@ namespace MMEntrenamiento.Application.Services
     public class MailKitEmailService : IEmailService
     {
         private readonly IConfiguration _configuration;
+        private readonly ILogger<MailKitEmailService> _logger;
 
-        public MailKitEmailService(IConfiguration configuration)
+        public MailKitEmailService(IConfiguration configuration, ILogger<MailKitEmailService> logger)
         {
             _configuration = configuration;
+            _logger = logger;
         }
 
         public async Task EnviarAsync(string destinatario, string asunto, string cuerpoHtml)
@@ -34,11 +37,34 @@ namespace MMEntrenamiento.Application.Services
             mensaje.Subject = asunto;
             mensaje.Body = new BodyBuilder { HtmlBody = cuerpoHtml }.ToMessageBody();
 
-            using var cliente = new SmtpClient();
-            await cliente.ConnectAsync(host, puerto, SecureSocketOptions.StartTls);
-            await cliente.AuthenticateAsync(usuario, password);
-            await cliente.SendAsync(mensaje);
-            await cliente.DisconnectAsync(true);
+            var seguridad = puerto switch
+            {
+                465 => SecureSocketOptions.SslOnConnect,
+                587 => SecureSocketOptions.StartTls,
+                _ => SecureSocketOptions.Auto
+            };
+
+            try
+            {
+                using var cliente = new SmtpClient { Timeout = 10000 };
+
+                _logger.LogInformation("Conectando a SMTP {Host}:{Puerto} ({Seguridad})", host, puerto, seguridad);
+                await cliente.ConnectAsync(host, puerto, seguridad);
+
+                _logger.LogInformation("Autenticando en SMTP con el usuario {Usuario}", usuario);
+                await cliente.AuthenticateAsync(usuario, password);
+
+                _logger.LogInformation("Enviando correo a {Destinatario}", destinatario);
+                await cliente.SendAsync(mensaje);
+                await cliente.DisconnectAsync(true);
+
+                _logger.LogInformation("Correo enviado a {Destinatario}", destinatario);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fallo el envio de correo a {Destinatario} via {Host}:{Puerto}", destinatario, host, puerto);
+                throw new InvalidOperationException("No se pudo enviar el correo electrónico. Intentá nuevamente más tarde.", ex);
+            }
         }
     }
 }

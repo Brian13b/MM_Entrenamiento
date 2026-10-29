@@ -187,8 +187,8 @@ namespace MMEntrenamiento.Application.Services
             }
             catch (Exception ex)
             {
-                // No se revela al cliente: la respuesta no debe permitir saber si el email existe.
                 _logger.LogError(ex, "No se pudo enviar el email de recuperación a {UsuarioId}.", usuario.Id);
+                return (false, "El servidor de correos no responde. Por favor, intentá de nuevo en unos minutos.");
             }
 
             return (true, respuestaGenerica);
