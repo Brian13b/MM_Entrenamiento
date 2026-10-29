@@ -44,8 +44,6 @@ export default defineConfig({
     })
   ],
   server: {
-    // Mismo origen que en producción (Vercel proxea /api a Railway): la cookie del refresh token
-    // funciona igual en desarrollo. Ajustá el target si tu API local corre en otro puerto.
     proxy: {
       '/api': {
         target: 'https://localhost:7198',

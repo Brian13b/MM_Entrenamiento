@@ -117,6 +117,7 @@ namespace MMEntrenamiento.Application.Services
                     NombreCompleto = u.NombreCompleto ?? "Sin Nombre",
                     Email = u.Email ?? "",
                     Telefono = u.PhoneNumber,
+                    FotoPerfilUrl = u.FotoPerfilUrl,
                     Activo = u.EstadoCuenta == EstadoCuenta.Activo,
                     CreditosDisponibles = creditosDisponibles,
                     DriveItemId = u.OneDrivePlan?.DriveItemId,

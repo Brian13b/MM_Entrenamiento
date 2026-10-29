@@ -6,6 +6,7 @@
         public string NombreCompleto { get; set; } = null!;
         public string Email { get; set; } = null!;
         public string? Telefono { get; set; }
+        public string? FotoPerfilUrl { get; set; }
         public bool Activo { get; set; }
         public int CreditosDisponibles { get; set; }
         public string? DriveItemId { get; set; }
