@@ -1,8 +1,5 @@
-﻿using CloudinaryDotNet;
-using CloudinaryDotNet.Actions;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Configuration;
 using MMEntrenamiento.Application.DTOs.Usuarios;
 using MMEntrenamiento.Application.Interfaces;
 using MMEntrenamiento.Application.Interfaces.Repositories;
@@ -15,20 +12,14 @@ namespace MMEntrenamiento.Application.Services
     public class UsuarioService : IUsuarioService
     {
         private readonly UserManager<Usuario> _userManager;
-        private readonly Cloudinary _cloudinary;
+        private readonly IImageService _imageService;
         private readonly IUnitOfWork _unitOfWork;
 
-        public UsuarioService(UserManager<Usuario> userManager, IConfiguration configuration, IUnitOfWork unitOfWork)
+        public UsuarioService(UserManager<Usuario> userManager, IImageService imageService, IUnitOfWork unitOfWork)
         {
             _userManager = userManager;
+            _imageService = imageService;
             _unitOfWork = unitOfWork;
-
-            var account = new Account(
-                configuration["Cloudinary:CloudName"],
-                configuration["Cloudinary:ApiKey"],
-                configuration["Cloudinary:ApiSecret"]
-            );
-            _cloudinary = new Cloudinary(account);
         }
 
         public async Task<PerfilUsuarioDto?> ObtenerPerfilAsync(Guid usuarioId)
@@ -135,30 +126,40 @@ namespace MMEntrenamiento.Application.Services
                     return (false, "Ese email ya está en uso por otra cuenta.");
             }
 
+            var fotoVieja = usuario.FotoPerfilUrl;
+            string? fotoNueva = null;
+
             if (foto != null)
             {
-                var (subio, mensajeFoto, url) = await SubirImagenAsync(foto);
+                var (subio, mensajeFoto, url) = await _imageService.SubirAsync(foto);
                 if (!subio) return (false, mensajeFoto);
+                fotoNueva = url;
                 usuario.FotoPerfilUrl = url;
             }
 
             usuario.NombreCompleto = request.NombreCompleto.Trim();
             usuario.PhoneNumber = string.IsNullOrWhiteSpace(request.Telefono) ? null : request.Telefono.Trim();
 
+            IdentityResult result;
             if (cambiaEmail)
             {
                 // SetEmail/SetUserName validan, normalizan y persisten (junto con los cambios pendientes de arriba).
-                var resultEmail = await _userManager.SetEmailAsync(usuario, nuevoEmail!);
-                if (!resultEmail.Succeeded) return (false, MensajeDeError(resultEmail));
-
-                var resultUserName = await _userManager.SetUserNameAsync(usuario, nuevoEmail!);
-                if (!resultUserName.Succeeded) return (false, MensajeDeError(resultUserName));
-
-                return (true, "Perfil actualizado correctamente.");
+                result = await _userManager.SetEmailAsync(usuario, nuevoEmail!);
+                if (result.Succeeded) result = await _userManager.SetUserNameAsync(usuario, nuevoEmail!);
+            }
+            else
+            {
+                result = await _userManager.UpdateAsync(usuario);
             }
 
-            var result = await _userManager.UpdateAsync(usuario);
-            if (!result.Succeeded) return (false, MensajeDeError(result));
+            if (!result.Succeeded)
+            {
+                // La base no quedó con la foto nueva: se borra para no dejarla huérfana en Cloudinary.
+                if (fotoNueva != null) await _imageService.EliminarPorUrlAsync(fotoNueva);
+                return (false, MensajeDeError(result));
+            }
+
+            if (fotoNueva != null) await _imageService.EliminarPorUrlAsync(fotoVieja);
 
             return (true, "Perfil actualizado correctamente.");
         }
@@ -177,34 +178,22 @@ namespace MMEntrenamiento.Application.Services
             var usuario = await _userManager.FindByIdAsync(usuarioId.ToString());
             if (usuario == null) return (false, "Usuario no encontrado.", null);
 
-            var (exito, mensaje, url) = await SubirImagenAsync(foto);
+            var (exito, mensaje, url) = await _imageService.SubirAsync(foto);
             if (!exito) return (false, mensaje, null);
 
+            var fotoVieja = usuario.FotoPerfilUrl;
             usuario.FotoPerfilUrl = url;
-            await _userManager.UpdateAsync(usuario);
+
+            var result = await _userManager.UpdateAsync(usuario);
+            if (!result.Succeeded)
+            {
+                await _imageService.EliminarPorUrlAsync(url);
+                return (false, "Error al actualizar el perfil.", null);
+            }
+
+            await _imageService.EliminarPorUrlAsync(fotoVieja);
 
             return (true, "Foto de perfil actualizada con éxito.", url);
-        }
-
-        private async Task<(bool Exito, string Mensaje, string? Url)> SubirImagenAsync(IFormFile foto)
-        {
-            if (foto.Length == 0) return (false, "El archivo está vacío.", null);
-            if (foto.ContentType == null || !foto.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-                return (false, "El archivo debe ser una imagen.", null);
-
-            using var stream = foto.OpenReadStream();
-            var uploadParams = new ImageUploadParams()
-            {
-                File = new FileDescription(foto.FileName, stream),
-                Folder = "mmentrenamiento_perfiles",
-                Transformation = new Transformation().Width(400).Height(400).Crop("fill").Gravity("face")
-            };
-
-            var uploadResult = await _cloudinary.UploadAsync(uploadParams);
-            if (uploadResult.Error != null)
-                return (false, "Error al subir la imagen a la nube.", null);
-
-            return (true, "Imagen subida.", uploadResult.SecureUrl.ToString());
         }
     }
 }

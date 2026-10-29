@@ -3,6 +3,8 @@ import { useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { usePwaStore } from './store/usePwaStore';
+import { useAuthStore } from './store/useAuthStore';
+import { pushService } from './services/pushService';
 
 function App() {
   const setDeferredPrompt = usePwaStore((state) => state.setDeferredPrompt);
@@ -16,6 +18,19 @@ function App() {
     };
     window.addEventListener('unhandledrejection', alRechazar);
     return () => window.removeEventListener('unhandledrejection', alRechazar);
+  }, []);
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+
+    // El service worker avisa cuando el navegador rota la suscripción push; la app (con sesión) la registra.
+    const alMensaje = (evento) => {
+      if (evento.data?.type !== 'PUSH_SUBSCRIPTION_CHANGED') return;
+      if (!useAuthStore.getState().isAuthenticated) return;
+      pushService.resincronizarSuscripcion(evento.data.anteriorEndpoint);
+    };
+    navigator.serviceWorker.addEventListener('message', alMensaje);
+    return () => navigator.serviceWorker.removeEventListener('message', alMensaje);
   }, []);
 
   useEffect(() => {

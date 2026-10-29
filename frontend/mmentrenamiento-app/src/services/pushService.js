@@ -50,6 +50,33 @@ export const pushService = {
     }
   },
 
+  // Lo usa la app cuando el service worker avisa que el navegador rotó la suscripción: registra la
+  // vigente y da de baja la anterior. No pide permisos ni crea suscripciones por su cuenta.
+  resincronizarSuscripcion: async (anteriorEndpoint) => {
+    if (!soportaPush()) return false;
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      if (!subscription) return false;
+
+      const subJSON = subscription.toJSON();
+      await api.post('/notificaciones/suscribir', {
+        endpoint: subJSON.endpoint,
+        p256dh: subJSON.keys.p256dh,
+        auth: subJSON.keys.auth
+      });
+
+      if (anteriorEndpoint && anteriorEndpoint !== subJSON.endpoint) {
+        await api.post('/notificaciones/desuscribir', { endpoint: anteriorEndpoint });
+      }
+      return true;
+    } catch (error) {
+      console.error('No se pudo resincronizar la suscripción push:', error);
+      return false;
+    }
+  },
+
   // Da de baja la suscripción en el servidor y en el navegador. Si el servidor falla igual se
   // desuscribe localmente (la fila huérfana se limpia sola cuando el servicio push responda 404/410).
   desuscribirDispositivo: async () => {

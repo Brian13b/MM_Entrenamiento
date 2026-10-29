@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using MMEntrenamiento.Application.DTOs.Auth;
 using MMEntrenamiento.Application.Interfaces;
 using System.Security.Claims;
@@ -116,6 +117,7 @@ namespace MMEntrenamiento.Api.Controllers
         }
 
         [AllowAnonymous]
+        [EnableRateLimiting("recuperacion")]
         [HttpPost("recuperar/solicitar")]
         public async Task<IActionResult> SolicitarRecuperacion([FromBody] SolicitarRecuperacionDto request)
         {

@@ -7,8 +7,10 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
+using MMEntrenamiento.Application.Interfaces;
 using MMEntrenamiento.Application.Interfaces.Repositories;
 using MMEntrenamiento.Application.Services;
 using MMEntrenamiento.Domain.Entities;
@@ -52,7 +54,7 @@ namespace MMEntrenamiento.Tests.Services
             _userManagerMock.Setup(m => m.FindByIdAsync(_usuario.Id.ToString())).ReturnsAsync(_usuario);
             _userManagerMock.Setup(m => m.GetRolesAsync(_usuario)).ReturnsAsync(new List<string> { "Alumno" });
 
-            _authService = new AuthService(_userManagerMock.Object, roleManagerMock.Object, config, _unitOfWorkMock.Object);
+            _authService = new AuthService(_userManagerMock.Object, roleManagerMock.Object, config, _unitOfWorkMock.Object, new Mock<IEmailService>().Object, NullLogger<AuthService>.Instance);
         }
 
         private static string Hash(string valor) =>

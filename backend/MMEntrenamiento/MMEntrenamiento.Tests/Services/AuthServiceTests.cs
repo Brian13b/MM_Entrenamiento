@@ -4,9 +4,11 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 using MMEntrenamiento.Application.DTOs.Auth;
+using MMEntrenamiento.Application.Interfaces;
 using MMEntrenamiento.Application.Interfaces.Repositories;
 using MMEntrenamiento.Application.Services;
 using MMEntrenamiento.Domain.Entities;
@@ -31,7 +33,7 @@ namespace MMEntrenamiento.Tests.Services
 
             _configMock = new Mock<IConfiguration>();
 
-            _authService = new AuthService(_userManagerMock.Object, _roleManagerMock.Object, _configMock.Object, new Mock<IUnitOfWork>().Object);
+            _authService = new AuthService(_userManagerMock.Object, _roleManagerMock.Object, _configMock.Object, new Mock<IUnitOfWork>().Object, new Mock<IEmailService>().Object, NullLogger<AuthService>.Instance);
         }
 
         [Fact]

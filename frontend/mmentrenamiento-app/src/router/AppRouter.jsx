@@ -6,6 +6,7 @@ import { AdminLayout } from '../layouts/AdminLayout';
 import { ProfeLayout } from '../layouts/ProfeLayout';
 
 import { Login } from '../pages/auth/Login';
+import { RestablecerPassword } from '../pages/auth/RestablecerPassword';
 
 import { InicioAlumno } from '../pages/alumno/InicioAlumno';
 import { GrillaReservas } from '../pages/alumno/GrillaReservas';
@@ -33,6 +34,7 @@ export const AppRouter = () => {
       <Routes>
         {/* Rutas Públicas */}
         <Route path="/login" element={<Login />} />
+        <Route path="/restablecer-password" element={<RestablecerPassword />} />
         <Route path="/terminos-y-condiciones" element={<TerminosCondiciones />} />
         <Route path="/privacidad" element={<PoliticaPrivacidad />} />
 

@@ -3,8 +3,6 @@ import { precacheAndRoute } from 'workbox-precaching';
 
 precacheAndRoute(self.__WB_MANIFEST || []);
 
-// Front y API comparten origen (Vercel proxea /api a Railway).
-const API_BASE = '/api';
 const ICONO = '/pwa-192x192.png';
 
 // Solo se navega a URLs del mismo origen: un payload nunca puede mandar al usuario a otro sitio.
@@ -65,9 +63,10 @@ self.addEventListener('notificationclick', function (event) {
   })());
 });
 
-// Si el navegador rota la suscripción, se vuelve a registrar sin intervención del usuario.
-// El service worker no tiene acceso al JWT (vive en localStorage), así que obtiene uno nuevo
-// con la cookie HttpOnly del refresh token.
+// Si el navegador rota la suscripción, el worker crea la nueva y le avisa a la app abierta para que
+// la registre en el servidor. El worker NO llama a /auth/refresh: rotar el refresh token por fuera de
+// la app puede dejar la cookie desfasada (iOS congela la PWA) y terminar cerrando la sesión.
+// Si no hay ninguna ventana abierta, el usuario la resincroniza al reactivar el botón de avisos.
 self.addEventListener('pushsubscriptionchange', function (event) {
   event.waitUntil((async () => {
     try {
@@ -83,28 +82,11 @@ self.addEventListener('pushsubscriptionchange', function (event) {
         });
       }
 
-      const refresh = await fetch(`${API_BASE}/auth/refresh`, { method: 'POST', credentials: 'include' });
-      if (!refresh.ok) return; // Sin sesión vigente: se resincroniza cuando el usuario reactive el botón.
-      const { token } = await refresh.json();
-
-      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
-      const sub = nueva.toJSON();
-
-      await fetch(`${API_BASE}/notificaciones/suscribir`, {
-        method: 'POST',
-        headers,
-        credentials: 'include',
-        body: JSON.stringify({ endpoint: sub.endpoint, p256dh: sub.keys.p256dh, auth: sub.keys.auth })
-      });
-
-      if (anterior && anterior.endpoint !== sub.endpoint) {
-        await fetch(`${API_BASE}/notificaciones/desuscribir`, {
-          method: 'POST',
-          headers,
-          credentials: 'include',
-          body: JSON.stringify({ endpoint: anterior.endpoint })
-        });
-      }
+      const ventanas = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+      ventanas.forEach((ventana) => ventana.postMessage({
+        type: 'PUSH_SUBSCRIPTION_CHANGED',
+        anteriorEndpoint: anterior?.endpoint ?? null
+      }));
     } catch (error) {
       console.error('No se pudo resincronizar la suscripción push:', error);
     }

@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using MMEntrenamiento.Application.DTOs.Auth;
 using MMEntrenamiento.Application.Interfaces;
@@ -19,20 +20,27 @@ namespace MMEntrenamiento.Application.Services
         private readonly IConfiguration _configuration;
         private readonly IUnitOfWork _unitOfWork;
 
-        // Dos pestañas pueden refrescar a la vez con la misma cookie: la segunda llega con un
-        // token recién rotado. Dentro de esta ventana no se lo trata como robo.
-        private static readonly TimeSpan VentanaGraciaRotacion = TimeSpan.FromSeconds(30);
+        private readonly IEmailService _emailService;
+        private readonly ILogger<AuthService> _logger;
 
-        public AuthService(UserManager<Usuario> userManager, RoleManager<IdentityRole<Guid>> roleManager, IConfiguration configuration, IUnitOfWork unitOfWork)
+        // Dos pestañas pueden refrescar a la vez con la misma cookie, y en iOS Safari puede congelar la PWA
+        // justo después de que el servidor rotó el token (la respuesta se pierde y el navegador conserva la
+        // cookie vieja). Dentro de esta ventana un token rotado no se trata como robo.
+        private static readonly TimeSpan VentanaGraciaRotacion = TimeSpan.FromMinutes(5);
+
+        public AuthService(UserManager<Usuario> userManager, RoleManager<IdentityRole<Guid>> roleManager, IConfiguration configuration,
+            IUnitOfWork unitOfWork, IEmailService emailService, ILogger<AuthService> logger)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _configuration = configuration;
             _unitOfWork = unitOfWork;
+            _emailService = emailService;
+            _logger = logger;
         }
 
         private int MinutosAccessToken =>
-            int.TryParse(_configuration["JwtSettings:AccessTokenMinutes"], out var m) && m > 0 ? m : 15;
+            int.TryParse(_configuration["JwtSettings:AccessTokenMinutes"], out var m) && m > 0 ? m : 60;
 
         private int DiasRefreshToken =>
             int.TryParse(_configuration["JwtSettings:RefreshTokenDays"], out var d) && d > 0 ? d : 60;
@@ -162,15 +170,28 @@ namespace MMEntrenamiento.Application.Services
 
         public async Task<(bool Exito, string Mensaje)> SolicitarRecuperacionAsync(SolicitarRecuperacionDto request)
         {
+            const string respuestaGenerica = "Si el email existe, se enviarán las instrucciones.";
+
             var usuario = await _userManager.FindByEmailAsync(request.Email);
-            if (usuario == null) return (true, "Si el email existe, se enviarán las instrucciones.");
+            if (usuario == null || string.IsNullOrWhiteSpace(usuario.Email)) return (true, respuestaGenerica);
 
             var token = await _userManager.GeneratePasswordResetTokenAsync(usuario);
 
-            // Decidiendo si va a ser enviado por email o por mensaje de texto, por ahora lo vamos a mostrar en consola para fines de desarrollo.
-            Console.WriteLine($"\n=== TOKEN DE RECUPERACIÓN PARA {usuario.Email} ===\n{token}\n==============================================\n");
+            // El token de Identity trae caracteres que rompen una URL (+, /, =): se codifica en base64url.
+            var tokenUrl = Base64UrlEncoder.Encode(Encoding.UTF8.GetBytes(token));
+            var enlace = $"{UrlFrontend}/restablecer-password?email={Uri.EscapeDataString(usuario.Email)}&token={tokenUrl}";
 
-            return (true, "Si el email existe, se enviarán las instrucciones.");
+            try
+            {
+                await _emailService.EnviarAsync(usuario.Email, "Recuperá tu contraseña - MM Entrenamiento", ConstruirCuerpoRecuperacion(usuario.NombreCompleto, enlace));
+            }
+            catch (Exception ex)
+            {
+                // No se revela al cliente: la respuesta no debe permitir saber si el email existe.
+                _logger.LogError(ex, "No se pudo enviar el email de recuperación a {UsuarioId}.", usuario.Id);
+            }
+
+            return (true, respuestaGenerica);
         }
 
         public async Task<(bool Exito, string Mensaje)> ResetearPasswordAsync(ResetearPasswordDto request)
@@ -178,10 +199,44 @@ namespace MMEntrenamiento.Application.Services
             var usuario = await _userManager.FindByEmailAsync(request.Email);
             if (usuario == null) return (false, "Solicitud inválida.");
 
-            var resultado = await _userManager.ResetPasswordAsync(usuario, request.Token, request.NuevaPassword);
-            if (!resultado.Succeeded) return (false, "El token expiró o es inválido.");
+            string token;
+            try
+            {
+                token = Encoding.UTF8.GetString(Base64UrlEncoder.DecodeBytes(request.Token));
+            }
+            catch (FormatException)
+            {
+                return (false, "El enlace es inválido o expiró.");
+            }
+
+            var resultado = await _userManager.ResetPasswordAsync(usuario, token, request.NuevaPassword);
+            if (!resultado.Succeeded) return (false, "El enlace es inválido o expiró.");
+
+            // Cualquier sesión abierta antes del reseteo deja de ser válida.
+            await RevocarTodasLasSesionesAsync(usuario.Id, DateTime.UtcNow);
+            await _unitOfWork.CompleteAsync();
 
             return (true, "Contraseña reseteada exitosamente. Ya podés iniciar sesión.");
+        }
+
+        private string UrlFrontend =>
+            (_configuration["App:FrontendUrl"] ?? "https://mm-entrenamiento.vercel.app").TrimEnd('/');
+
+        private static string ConstruirCuerpoRecuperacion(string nombre, string enlace)
+        {
+            var nombreSeguro = System.Net.WebUtility.HtmlEncode(nombre);
+            var enlaceSeguro = System.Net.WebUtility.HtmlEncode(enlace);
+            return $"""
+                <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;color:#1f1e2e">
+                  <h2>Hola {nombreSeguro}</h2>
+                  <p>Recibimos un pedido para restablecer tu contraseña. Tocá el botón para elegir una nueva:</p>
+                  <p style="text-align:center;margin:28px 0">
+                    <a href="{enlaceSeguro}" style="background:#8e57a4;color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:bold">Restablecer contraseña</a>
+                  </p>
+                  <p style="font-size:13px;color:#666">Si el botón no funciona, copiá este enlace en tu navegador:<br>{enlaceSeguro}</p>
+                  <p style="font-size:13px;color:#666">Si no fuiste vos, ignorá este correo: tu contraseña no cambia.</p>
+                </div>
+                """;
         }
 
         private AuthResponseDto ConstruirRespuesta(Usuario user, IList<string> roles)
@@ -220,6 +275,16 @@ namespace MMEntrenamiento.Application.Services
         private async Task RevocarFamiliaAsync(Guid familiaId, DateTime ahora)
         {
             var activos = await _unitOfWork.RefreshTokens.FindAsync(t => t.FamiliaId == familiaId && t.RevocadoEn == null);
+            foreach (var t in activos)
+            {
+                t.RevocadoEn = ahora;
+                _unitOfWork.RefreshTokens.Update(t);
+            }
+        }
+
+        private async Task RevocarTodasLasSesionesAsync(Guid usuarioId, DateTime ahora)
+        {
+            var activos = await _unitOfWork.RefreshTokens.FindAsync(t => t.UsuarioId == usuarioId && t.RevocadoEn == null);
             foreach (var t in activos)
             {
                 t.RevocadoEn = ahora;

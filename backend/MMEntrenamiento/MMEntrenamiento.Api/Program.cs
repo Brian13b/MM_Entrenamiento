@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 
@@ -16,6 +18,7 @@ using MMEntrenamiento.Infrastructure.Repositories;
 
 using Scalar.AspNetCore;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +35,8 @@ builder.Services.AddScoped<IHorarioService, HorarioService>();
 builder.Services.AddScoped<ISeguimientoService, SeguimientoService>();
 builder.Services.AddScoped<IAsistenciaService, AsistenciaService>();
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
+builder.Services.AddSingleton<IImageService, CloudinaryImageService>();
+builder.Services.AddScoped<IEmailService, MailKitEmailService>();
 builder.Services.AddScoped<INotificacionPushService, NotificacionPushService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -65,6 +70,37 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(secretKey)
         };
     });
+
+// Detrás de Vercel (rewrite) y Railway la IP real llega en X-Forwarded-For. Sin esto el rate limiter
+// vería siempre la IP del proxy y todos los usuarios compartirían el mismo cupo.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+    options.ForwardLimit = 2; // Vercel -> Railway
+});
+
+// Rate limiting: la solicitud de recuperación manda un email, así que se limita por IP.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsync(
+            "{\"message\":\"Demasiados intentos. Probá de nuevo en unos minutos.\"}", token);
+    };
+    options.AddPolicy("recuperacion", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "desconocida",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0
+            }));
+});
 
 // Configuración CORS
 builder.Services.AddCors(options =>
@@ -105,7 +141,10 @@ if (app.Environment.IsDevelopment())
     .AddPreferredSecuritySchemes("Bearer"));
 }
 
+app.UseForwardedHeaders();
+
 app.UseCors("AllowFrontend");
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();

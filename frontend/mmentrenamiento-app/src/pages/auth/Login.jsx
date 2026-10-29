@@ -82,11 +82,7 @@ export const Login = () => {
       
       <RecuperarPassword 
         isOpen={isRecoveryModalOpen} 
-        onClose={() => setIsRecoveryModalOpen(false)} 
-        onSuccess={(recoveredEmail) => {
-          setEmail(recoveredEmail);
-          setPassword('');
-        }}
+        onClose={() => setIsRecoveryModalOpen(false)}
       />
 
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
