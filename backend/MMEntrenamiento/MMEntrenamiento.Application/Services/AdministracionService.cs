@@ -63,8 +63,6 @@ namespace MMEntrenamiento.Application.Services
 
             try
             {
-                // UserManager.DeleteAsync borra al usuario y EF Core (por Cascade Delete) 
-                // se encarga de borrar sus reservas, ficha, etc.
                 var result = await _userManager.DeleteAsync(usuario);
 
                 if (!result.Succeeded)
@@ -74,7 +72,6 @@ namespace MMEntrenamiento.Application.Services
             }
             catch (Exception ex)
             {
-                // Por si hay algún problema de llaves foráneas sin Cascade Delete configurado
                 return (false, $"Error al eliminar: {ex.InnerException?.Message ?? ex.Message}");
             }
         }
@@ -214,14 +211,10 @@ namespace MMEntrenamiento.Application.Services
         {
             var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
 
-            // Alumnos activos y pagos pendientes salen del mismo directorio (misma regla de "Deudor").
             var directorio = await ConstruirDirectorioAsync(null);
             var alumnosActivos = directorio.Count(u => u.Rol == "Alumno" && u.Activo);
             var pagosPendientes = directorio.Count(u => u.Deudor);
 
-            // Semana en curso (lunes a domingo): cada franja de la plantilla cuenta una vez por día,
-            // con ocupación 0 si todavía no existe el turno de esa fecha. Los días con horario reducido
-            // solo cuentan las franjas que siguen disponibles.
             var lunes = hoy.AddDays(-(((int)hoy.DayOfWeek + 6) % 7));
             var domingo = lunes.AddDays(6);
 
@@ -246,7 +239,6 @@ namespace MMEntrenamiento.Application.Services
                 ? 0
                 : (int)Math.Round(franjas.Average(f => (double)f.Ocupacion / f.Cupo) * 100);
 
-            // Por día: porcentaje de los cupos totales de ese día que se ocuparon.
             var porDia = franjas
                 .GroupBy(f => f.Fecha)
                 .OrderBy(g => g.Key)
@@ -271,7 +263,6 @@ namespace MMEntrenamiento.Application.Services
         {
             var config = await _unitOfWork.ConfiguracionesGimnasio.FirstOrDefaultAsync(c => c.Id == 1);
 
-            // Mientras no se haya guardado nada, se devuelve la configuración por defecto.
             if (config == null)
                 return new ConfiguracionGimnasioDto { Nombre = "MM Entrenamiento" };
 

@@ -14,21 +14,18 @@ export const api = axios.create({
   },
 });
 
-let refrescando = null;
+let isRefreshing = false;
+let failedQueue = [];
 
-const refrescarToken = () => {
-  if (!refrescando) {
-    refrescando = axios
-      .post(`${API_URL}/auth/refresh`, null, { withCredentials: true })
-      .then(({ data }) => {
-        useAuthStore.getState().setToken(data.token);
-        return data.token;
-      })
-      .finally(() => {
-        refrescando = null;
-      });
-  }
-  return refrescando;
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
 };
 
 const expulsarUsuario = () => {
@@ -38,19 +35,10 @@ const expulsarUsuario = () => {
   }
 };
 
-// Interceptor de Peticiones (Request)
 api.interceptors.request.use(
-  async (config) => {
-    if (refrescando && !esRutaAuth(config.url)) {
-      try {
-        await refrescando;
-      } catch {
-        // Si el refresh falló, la petición sigue y el manejo de error de abajo decide qué hacer.
-      }
-    }
-
+  (config) => {
     const token = useAuthStore.getState().token;
-    if (token) {
+    if (token && !esRutaAuth(config.url)) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -58,14 +46,13 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Interceptor de Respuestas (Response)
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const original = error.config;
+    const originalRequest = error.config;
     const status = error.response?.status;
 
-    if (status !== 401 || !original || original._reintento || esRutaAuth(original.url)) {
+    if (status !== 401 || !originalRequest || originalRequest._reintento || esRutaAuth(originalRequest.url)) {
       return Promise.reject(error);
     }
 
@@ -73,17 +60,40 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    original._reintento = true;
+    if (isRefreshing) {
+      return new Promise(function(resolve, reject) {
+        failedQueue.push({ resolve, reject });
+      })
+      .then(token => {
+        originalRequest.headers.Authorization = 'Bearer ' + token;
+        return api(originalRequest);
+      })
+      .catch(err => {
+        return Promise.reject(err);
+      });
+    }
+
+    originalRequest._reintento = true;
+    isRefreshing = true;
 
     try {
-      const nuevoToken = await refrescarToken();
-      original.headers.Authorization = `Bearer ${nuevoToken}`;
-      return api(original);
-    } catch (errorRefresh) {
-      if (errorRefresh.response?.status === 401) {
+      const response = await axios.post(`${API_URL}/auth/refresh`, null, { withCredentials: true });
+      const nuevoToken = response.data.token;
+      
+      useAuthStore.getState().setToken(nuevoToken);
+      
+      processQueue(null, nuevoToken);
+      
+      originalRequest.headers.Authorization = 'Bearer ' + nuevoToken;
+      return api(originalRequest);
+    } catch (errRefresh) {
+      processQueue(errRefresh, null);
+      if (errRefresh.response?.status === 401) {
         expulsarUsuario();
       }
-      return Promise.reject(error);
+      return Promise.reject(errRefresh);
+    } finally {
+      isRefreshing = false;
     }
   }
 );

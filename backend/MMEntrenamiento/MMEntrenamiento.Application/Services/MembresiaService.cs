@@ -21,20 +21,63 @@ namespace MMEntrenamiento.Application.Services
 
             if (usuario == null || membresia == null) return (false, "Usuario o membresía no encontrados");
 
-            usuario.MembresiaActual = membresia;
-            _unitOfWork.Usuarios.Update(usuario);
+            var fechaActual = DateTime.UtcNow.AddHours(-3);
 
-            var fechaActual = DateTime.UtcNow;
-            var creditoMes = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
-                c => c.UsuarioId == request.UsuarioId && c.Anio == fechaActual.Year && c.Mes == fechaActual.Month
-            );
+            // 1. VALIDACIÓN ANTI-RUPTURA: Turnos Fijos
+            var turnosFijosActivos = await _unitOfWork.TurnosFijos
+                .CountAsync(t => t.UsuarioId == request.UsuarioId && t.Activo);
 
-            if (creditoMes != null)
+            if (membresia.LimiteTurnosFijos < turnosFijosActivos)
             {
-                creditoMes.CreditosBase = membresia.CreditosOtorgados;
-                _unitOfWork.CreditosMes.Update(creditoMes);
+                var sobran = turnosFijosActivos - membresia.LimiteTurnosFijos;
+                return (false, $"El alumno tiene {turnosFijosActivos} turnos fijos activos. Da de baja {sobran} turno(s) fijo(s) antes de cambiar a esta membresía.");
             }
-            else
+
+            // 2. Traer carteras del mes actual y futuras
+            var carteras = await _unitOfWork.CreditosMes.FindAsync(
+                c => c.UsuarioId == request.UsuarioId &&
+                     (c.Anio > fechaActual.Year || (c.Anio == fechaActual.Year && c.Mes >= fechaActual.Month))
+            );
+            var listaCarteras = carteras.ToList();
+
+            // 3. REGLA DEL DÍA 15
+            bool afectaMesActual = fechaActual.Day <= 15;
+
+            // 4. VALIDACIÓN ANTI-RUPTURA: Créditos Negativos
+            foreach (var cartera in listaCarteras)
+            {
+                if (cartera.Anio == fechaActual.Year && cartera.Mes == fechaActual.Month && !afectaMesActual)
+                    continue;
+
+                if (cartera.CreditosUsados > membresia.CreditosOtorgados)
+                {
+                    return (false, $"El alumno ya consumió {cartera.CreditosUsados} créditos en {cartera.Mes}/{cartera.Anio}. Bajar la membresía a {membresia.CreditosOtorgados} lo dejaría en negativo.");
+                }
+            }
+
+            // 5. PISAR DATOS EN LAS CARTERAS AFECTADAS
+            bool mesActualActualizado = false;
+
+            foreach (var cartera in listaCarteras)
+            {
+                if (cartera.Anio == fechaActual.Year && cartera.Mes == fechaActual.Month)
+                {
+                    if (afectaMesActual)
+                    {
+                        cartera.CreditosBase = membresia.CreditosOtorgados;
+                        _unitOfWork.CreditosMes.Update(cartera);
+                        mesActualActualizado = true;
+                    }
+                }
+                else 
+                {
+                    cartera.CreditosBase = membresia.CreditosOtorgados;
+                    _unitOfWork.CreditosMes.Update(cartera);
+                }
+            }
+
+            // 6. Si afecta el mes actual y no tenía cartera creada, la creamos
+            if (afectaMesActual && !mesActualActualizado)
             {
                 var nuevoMes = new CreditoMes
                 {
@@ -48,9 +91,14 @@ namespace MMEntrenamiento.Application.Services
                 await _unitOfWork.CreditosMes.AddAsync(nuevoMes);
             }
 
+            usuario.MembresiaActual = membresia;
+            _unitOfWork.Usuarios.Update(usuario);
+
             await _unitOfWork.CompleteAsync();
 
-            return (true, "Membresía asignada y créditos sincronizados correctamente");
+            return (true, afectaMesActual
+                ? "Membresía actualizada. Se ajustaron los créditos del mes en curso y meses futuros."
+                : "Membresía actualizada. Por la regla del día 15, los nuevos créditos aplicarán recién el mes que viene.");
         }
 
         public async Task<CreditosResponseDto?> ObtenerCreditosActualesAsync(Guid usuarioId)

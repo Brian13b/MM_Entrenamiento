@@ -64,7 +64,6 @@ namespace MMEntrenamiento.Application.Services
                 .TakeWhile(r => r.Estado == EstadoReserva.Asistio)
                 .Count();
 
-            // Semana calendario actual (lunes a domingo).
             var diasDesdeLunes = ((int)hoy.DayOfWeek + 6) % 7;
             var lunes = hoy.AddDays(-diasDesdeLunes);
             var asistidasSemana = reservasResueltas.Count(r =>
@@ -77,7 +76,6 @@ namespace MMEntrenamiento.Application.Services
                 {
                     Nombre = usuario.MembresiaActual.Nombre,
                     VecesPorSemana = usuario.MembresiaActual.LimiteTurnosFijos,
-                    // El bloqueo por falta de pago es manual (Admin): el estado depende solo de la cuenta.
                     Estado = usuario.EstadoCuenta == EstadoCuenta.Activo ? "Activo" : "Inactivo",
                     Vencimiento = new DateOnly(hoy.Year, hoy.Month, DateTime.DaysInMonth(hoy.Year, hoy.Month))
                 };
@@ -112,15 +110,12 @@ namespace MMEntrenamiento.Application.Services
             if (string.IsNullOrWhiteSpace(request.NombreCompleto))
                 return (false, "El nombre no puede estar vacío.");
 
-            // El email es también el nombre de usuario (el login busca por email).
             var nuevoEmail = request.Email?.Trim();
             var cambiaEmail = !string.IsNullOrEmpty(nuevoEmail)
                               && !string.Equals(nuevoEmail, usuario.Email, StringComparison.OrdinalIgnoreCase);
 
             if (cambiaEmail)
             {
-                // Se valida antes de tocar nada. FindByEmailAsync usa el email normalizado,
-                // así que "Ana@x.com" y "ana@x.com" cuentan como el mismo.
                 var existente = await _userManager.FindByEmailAsync(nuevoEmail!);
                 if (existente != null && existente.Id != usuario.Id)
                     return (false, "Ese email ya está en uso por otra cuenta.");
@@ -143,7 +138,6 @@ namespace MMEntrenamiento.Application.Services
             IdentityResult result;
             if (cambiaEmail)
             {
-                // SetEmail/SetUserName validan, normalizan y persisten (junto con los cambios pendientes de arriba).
                 result = await _userManager.SetEmailAsync(usuario, nuevoEmail!);
                 if (result.Succeeded) result = await _userManager.SetUserNameAsync(usuario, nuevoEmail!);
             }
@@ -154,7 +148,6 @@ namespace MMEntrenamiento.Application.Services
 
             if (!result.Succeeded)
             {
-                // La base no quedó con la foto nueva: se borra para no dejarla huérfana en Cloudinary.
                 if (fotoNueva != null) await _imageService.EliminarPorUrlAsync(fotoNueva);
                 return (false, MensajeDeError(result));
             }
