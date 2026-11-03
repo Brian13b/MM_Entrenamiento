@@ -71,7 +71,7 @@ export const PanelRetencion = () => {
         </div>
         <div>
           <h2 className="text-lg font-bold text-mm-dark leading-tight">Alerta de Retención</h2>
-          <p className="text-xs text-gray-500 font-medium">3 o más faltas consecutivas</p>
+          <p className="text-xs text-gray-500 font-medium">2 o más faltas consecutivas</p>
         </div>
         <span className="ml-auto bg-red-100 text-red-600 text-xs font-black px-2.5 py-1 rounded-lg">
           {alertas.length}
@@ -100,7 +100,6 @@ export const PanelRetencion = () => {
               title="Contactar por WhatsApp"
             >
               <ChatBubbleOvalLeftEllipsisIcon className="w-5 h-5" />
-              <span className="hidden sm:block text-xs font-bold">Contactar</span>
             </button>
             
           </div>

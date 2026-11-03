@@ -57,6 +57,8 @@ export const InicioAdmin = () => {
     navigate(`/admin/usuarios/${id}`);
   };
 
+  const deudores = usuarios.filter(u => u.deudor);
+
   return (
     <div className="animate-fade-in max-w-6xl mx-auto pb-10">
 
@@ -121,7 +123,7 @@ export const InicioAdmin = () => {
                     {t.porcentaje}%
                   </span>
                   
-                  <div className="w-full max-w-10 bg-mm-light rounded-t-xl overflow-hidden flex flex-col justify-end">
+                  <div className="flex-1 w-full max-w-10 bg-mm-light rounded-t-xl overflow-hidden flex flex-col justify-end">
                     <div
                       className={`w-full transition-all duration-700 ease-out rounded-t-xl ${t.porcentaje >= 85 ? 'bg-red-500' : 'bg-mm-purple'}`}
                       style={{ height: `${t.porcentaje}%`, minHeight: t.porcentaje > 0 ? '4px' : '0' }}
@@ -142,6 +144,42 @@ export const InicioAdmin = () => {
         </div>
 
       </div>
+
+      {/* SECCIÓN DEUDORES RÁPIDA */}
+      <section className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-mm-dark flex items-center gap-2">
+            <CurrencyDollarIcon className="w-5 h-5 text-red-500" />
+            Alumnos que deben el mes
+          </h2>
+          <span className="text-xs font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+            {deudores.length} pendientes
+          </span>
+        </div>
+
+        {deudores.length === 0 ? (
+          <div className="bg-mm-surface p-8 rounded-3xl border border-gray-100 text-center shadow-sm">
+            <p className="text-sm font-bold text-gray-400">¡Excelente! Todos los alumnos están al día.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {deudores.map(deudor => (
+              <div key={deudor.id} className="bg-white p-4 rounded-2xl border border-red-100 shadow-sm flex items-center justify-between gap-3 transition-colors hover:border-red-200">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-mm-dark truncate">{deudor.nombreCompleto}</p>
+                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-wider mt-0.5">Falta Pago</p>
+                </div>
+                <button 
+                  onClick={() => irAlPerfilDelAlumno(deudor.id)}
+                  className="shrink-0 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                >
+                  Cobrar
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Accesos Rápidos y Buscador de Pagos */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -53,7 +53,6 @@ const VistaFijos = ({ abrirModalConfiguracion }) => {
           {diasSemana.map(dia => (
             <div key={dia.id} className="p-4 flex flex-col items-center justify-center border-r border-gray-100 last:border-0">
               <span className="text-sm font-bold text-mm-dark">{dia.nombre}</span>
-              <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mt-0.5">Base Fija</span>
             </div>
           ))}
         </div>
@@ -76,17 +75,17 @@ const VistaFijos = ({ abrirModalConfiguracion }) => {
                   <div 
                     onClick={() => abrirModalConfiguracion(turno)}
                     className={`h-full p-2.5 rounded-xl cursor-pointer transition-all border flex flex-col justify-between shadow-sm hover:shadow-md ${
-                      estaLleno ? 'bg-amber-50 border-amber-200' : 'bg-blue-50/50 border-blue-200 hover:border-blue-400'
+                      estaLleno ? 'bg-red-50 border-red-100 hover:border-red-300' : 'bg-white border-gray-200 hover:border-mm-purple'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1.5">
-                      <LockClosedIcon className={`w-3.5 h-3.5 ${estaLleno ? 'text-amber-500' : 'text-blue-500'}`} />
-                      <span className={`text-xs font-bold ${estaLleno ? 'text-amber-700' : 'text-blue-700'}`}>
+                      <LockClosedIcon className={`w-3.5 h-3.5 ${estaLleno ? 'text-red-500' : 'text-mm-purple'}`} />
+                      <span className={`text-xs font-bold ${estaLleno ? 'text-red-700' : 'text-mm-dark'}`}>
                         {turno.ocupacionActual}/{turno.cupoMaximo}
                       </span>
                     </div>
                     <div className="w-full rounded-full h-1 overflow-hidden bg-blue-100/50">
-                      <div className={`h-1 rounded-full transition-all duration-500 ${estaLleno ? 'bg-amber-500' : 'bg-blue-500'}`} style={{ width: `${porcentaje}%` }}></div>
+                      <div className={`h-1 rounded-full transition-all duration-500 ${estaLleno ? 'bg-red-500' : 'bg-mm-purple'}`} style={{ width: `${porcentaje}%` }}></div>
                     </div>
                   </div>
                 </div>
@@ -301,9 +300,9 @@ export const GrillaDiaria = () => {
         </button>
         <button 
           onClick={() => setVistaInterna('fija')} 
-          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${vistaInterna === 'fija' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${vistaInterna === 'fija' ? 'bg-white shadow-sm text-mm-purple' : 'text-gray-500 hover:text-gray-700'}`}
         >
-          <LockClosedIcon className="w-4 h-4" /> Base Fijos
+          <LockClosedIcon className="w-4 h-4" /> Turnos Fijos
         </button>
       </div>
 

@@ -80,8 +80,11 @@ namespace MMEntrenamiento.Application.Services
         // Deudor = alumno con membresía asignada y sin ningún pago registrado para el mes calendario actual.
         private async Task<List<UsuarioDirectorioDto>> ConstruirDirectorioAsync(Guid? soloUsuarioId)
         {
-            var mesActual = DateTime.UtcNow.Month;
-            var anioActual = DateTime.UtcNow.Year;
+            var hoyArgentina = DateTime.UtcNow.AddHours(-3);
+            var mesActual = hoyArgentina.Month;
+            var anioActual = hoyArgentina.Year;
+
+            bool periodoDeGracia = hoyArgentina.Day <= 10;
 
             var usuarios = (await _unitOfWork.Usuarios.FindAsync(
                 u => soloUsuarioId == null || u.Id == soloUsuarioId,
@@ -120,7 +123,7 @@ namespace MMEntrenamiento.Application.Services
                     DriveItemId = u.OneDrivePlan?.DriveItemId,
                     Rol = rol,
                     MembresiaId = u.MembresiaActual?.Id,
-                    Deudor = rol == "Alumno" && u.MembresiaActual != null && !usuariosConPagoDelMes.Contains(u.Id)
+                    Deudor = !periodoDeGracia && rol == "Alumno" && u.MembresiaActual != null && !usuariosConPagoDelMes.Contains(u.Id)
                 };
             }).ToList();
         }

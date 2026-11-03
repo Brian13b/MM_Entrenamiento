@@ -197,7 +197,7 @@ namespace MMEntrenamiento.Application.Services
                     }
                 }
 
-                if (ausenciasConsecutivas >= 3)
+                if (ausenciasConsecutivas >= 2)
                 {
                     alertas.Add(new AlertaRetencionDto
                     {

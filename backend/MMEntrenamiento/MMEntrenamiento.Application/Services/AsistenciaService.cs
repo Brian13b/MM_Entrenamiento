@@ -56,8 +56,15 @@ namespace MMEntrenamiento.Application.Services
             var alumnos = new List<AlumnoEnClaseDto>();
             foreach (var r in reservas)
             {
-                var asistioAntes = await _unitOfWork.Reservas.AnyAsync(
-                    x => x.UsuarioId == r.UsuarioId && x.TurnoId != turno.Id && x.Estado == EstadoReserva.Asistio);
+                var limiteAdaptacion = turno.Fecha.AddDays(-9);
+
+                var tieneClasesViejas = await _unitOfWork.Reservas.AnyAsync(
+                    x => x.UsuarioId == r.UsuarioId
+                      && x.TurnoId != turno.Id
+                      && x.Turno.Fecha < limiteAdaptacion
+                      && x.Estado == EstadoReserva.Asistio);
+
+                bool esSemanaAdaptacion = !tieneClasesViejas;
 
                 alumnos.Add(new AlumnoEnClaseDto
                 {
@@ -67,7 +74,7 @@ namespace MMEntrenamiento.Application.Services
                     Email = r.Usuario?.Email ?? "",
                     TipoReserva = r.Tipo.ToString(),
                     Estado = r.Estado.ToString(),
-                    PrimeraClase = !asistioAntes
+                    PrimeraClase = esSemanaAdaptacion
                 });
             }
 

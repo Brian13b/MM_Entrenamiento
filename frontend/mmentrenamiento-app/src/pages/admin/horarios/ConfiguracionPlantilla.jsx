@@ -227,7 +227,7 @@ export const ConfiguracionPlantilla = () => {
 
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Cupo (Por turno)</label>
-                <input type="number" min="1" required className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark outline-none focus:ring-2 focus:ring-mm-purple" value={formMasivo?.cupoMaximo || ''} onChange={(e) => setFormMasivo({...formMasivo, cupoMaximo: e.target.value})} />
+                <input type="number" min="0" required className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark outline-none focus:ring-2 focus:ring-mm-purple" value={formMasivo?.cupoMaximo || ''} onChange={(e) => setFormMasivo({...formMasivo, cupoMaximo: e.target.value})} />
               </div>
 
               <button type="submit" disabled={isSaving || !formMasivo?.diasSemana?.length} className="w-full bg-mm-purple text-white py-3 rounded-xl font-bold text-sm hover:bg-mm-purple/60 transition-colors mt-2 disabled:opacity-70 active:scale-95">
@@ -264,7 +264,7 @@ export const ConfiguracionPlantilla = () => {
 
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Cupo Máximo</label>
-                <input type="number" min="1" required className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark outline-none focus:ring-2 focus:ring-mm-purple" value={formUnico?.cupoMaximo || ''} onChange={(e) => setFormUnico({...formUnico, cupoMaximo: e.target.value})} />
+                <input type="number" min="0" required className="w-full mt-1 bg-mm-light border border-gray-200 rounded-xl p-3 text-sm text-mm-dark outline-none focus:ring-2 focus:ring-mm-purple" value={formUnico?.cupoMaximo || ''} onChange={(e) => setFormUnico({...formUnico, cupoMaximo: e.target.value})} />
               </div>
 
               <button type="submit" disabled={isSaving} className="w-full bg-mm-purple text-white py-3 rounded-xl font-bold text-sm hover:bg-mm-purple/60 transition-colors mt-2 disabled:opacity-70 active:scale-95">
@@ -342,7 +342,7 @@ export const ConfiguracionPlantilla = () => {
                             <div className="flex items-center mt-0.5">
                               <input
                                 type="number"
-                                min="1"
+                                min="0"
                                 autoFocus
                                 value={nuevoCupo}
                                 onChange={(e) => setNuevoCupo(e.target.value)}
