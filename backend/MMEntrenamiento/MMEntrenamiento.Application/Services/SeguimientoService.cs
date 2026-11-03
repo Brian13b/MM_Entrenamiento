@@ -174,7 +174,7 @@ namespace MMEntrenamiento.Application.Services
                     r => r.UsuarioId == alumno.Id && r.Turno.Fecha >= fechaHoy && r.Estado == EstadoReserva.Activa
                 );
 
-                if (tieneTurnosFuturos) continue;
+                // if (tieneTurnosFuturos) continue;
 
                 var reservasPasadas = (await _unitOfWork.Reservas.FindAsync(
                     r => r.UsuarioId == alumno.Id && r.Turno.Fecha < fechaHoy,

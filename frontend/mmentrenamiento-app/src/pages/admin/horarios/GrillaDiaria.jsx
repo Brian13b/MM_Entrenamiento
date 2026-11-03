@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 
 import { horariosService } from '../../../services/horariosService';
 import { ModalGestionTurno } from './ModalGestionTurno';
+import { ModalGestionFijo } from './ModalGestionFijo';
 
 const getLocalDateString = (date) => {
   const year = date.getFullYear();
@@ -216,6 +217,8 @@ export const GrillaDiaria = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const [modalTurnoAbierto, setModalTurnoAbierto] = useState(false);
+  const [modalFijoAbierto, setModalFijoAbierto] = useState(false);
+  const [turnoFijoSeleccionado, setTurnoFijoSeleccionado] = useState(null);
   const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
   const [fechaTurnoSeleccionado, setFechaTurnoSeleccionado] = useState('');
 
@@ -279,6 +282,11 @@ export const GrillaDiaria = () => {
     setModalTurnoAbierto(true);
   };
 
+  const abrirModalFijo = (turno) => {
+    setTurnoFijoSeleccionado(turno);
+    setModalFijoAbierto(true);
+  };
+
   const horasAlineadas = useMemo(() => {
     const horas = new Set();
     Object.values(turnosSemana).forEach(turnosDia => {
@@ -317,7 +325,7 @@ export const GrillaDiaria = () => {
           abrirModalTurno={abrirModalTurno}
         />
       ) : (
-        <VistaFijos abrirModalConfiguracion={(turno) => console.log("Abrir config turno", turno)} />
+        <VistaFijos abrirModalConfiguracion={abrirModalFijo} /> 
       )}
 
       <ModalGestionTurno 
@@ -326,6 +334,13 @@ export const GrillaDiaria = () => {
         turno={turnoSeleccionado}
         fechaOperativa={fechaTurnoSeleccionado}
         onReservaExitosa={cargarOperativaSemanal} 
+      />
+
+      <ModalGestionFijo
+        isOpen={modalFijoAbierto}
+        onClose={() => setModalFijoAbierto(false)}
+        turno={turnoFijoSeleccionado}
+        onActualizacion={() => { /* Función para recargar la grilla de fijos (podés extraer la lógica del useEffect de VistaFijos a una función o forzar re-render) */ }}
       />
     </div>
   );

@@ -58,7 +58,7 @@ namespace MMEntrenamiento.Application.Services
 
         public async Task<IEnumerable<HorarioDto>> ObtenerTodosAsync()
         {
-            var horarios = (await _unitOfWork.Horarios.GetAllAsync()).Where(h => h.CupoMaximo > 0);
+            var horarios = await _unitOfWork.Horarios.GetAllAsync();
             var cultura = new CultureInfo("es-ES");
 
             return horarios.OrderBy(h => h.DiaSemana).ThenBy(h => h.HoraInicio).Select(h => new HorarioDto
