@@ -6,7 +6,7 @@ import { pushService } from '../services/pushService';
 import { useConfirm } from '../hooks/useConfirm';
 import { useHidratarPerfil } from '../hooks/useHidratarPerfil';
 import { urlAvatar } from '../utils/avatar';
-import logo from '../assets/Logo_MM.png';
+import logo from '../assets/Logo-MM.png';
 
 // Layout compartido por Admin y Profe: Sidebar en desktop y barra inferior en mobile.
 export const PanelLayout = ({ items, perfilPath, rolPorDefecto, mensajeCierre }) => {

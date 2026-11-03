@@ -12,8 +12,11 @@ export const UsuariosLista = ({ usuarios, isLoading, onBloquear, basePath = '/ad
   });
 
   useEffect(() => {
-    sessionStorage.setItem(`listaPagina_${basePath}`, paginaActual.toString());
-  }, [paginaActual, basePath]);
+    if (usuarios.length > 0 && totalPaginas > 0 && paginaActual > totalPaginas) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPaginaActual(totalPaginas);
+    }
+  }, [usuarios, totalPaginas, paginaActual]);
 
   const usuariosPorPagina = 10; 
 
