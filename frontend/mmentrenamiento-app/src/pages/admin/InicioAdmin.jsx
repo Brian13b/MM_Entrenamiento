@@ -123,9 +123,9 @@ export const InicioAdmin = () => {
                     {t.porcentaje}%
                   </span>
                   
-                  <div className="flex-1 w-full max-w-10 bg-mm-light rounded-t-xl overflow-hidden flex flex-col justify-end">
+                  <div className="flex-1 w-full max-w-20 bg-mm-light rounded-t-xl overflow-hidden flex flex-col justify-end">
                     <div
-                      className={`w-full transition-all duration-700 ease-out rounded-t-xl ${t.porcentaje >= 85 ? 'bg-red-500' : 'bg-mm-purple'}`}
+                      className={`w-full transition-all duration-700 ease-out rounded-t-xl ${t.porcentaje >= 95 ? 'bg-red-500' : 'bg-mm-purple'}`}
                       style={{ height: `${t.porcentaje}%`, minHeight: t.porcentaje > 0 ? '4px' : '0' }}
                     />
                   </div>

@@ -22,7 +22,6 @@ export const PanelLayout = ({ items, perfilPath, rolPorDefecto, mensajeCierre })
       confirmText: 'Cerrar sesión'
     });
     if (!ok) return;
-    // Se da de baja el push antes de cerrar sesión (el endpoint requiere el JWT todavía vigente).
     await pushService.desuscribirDispositivo();
     await authService.logout();
     logout();
@@ -37,13 +36,13 @@ export const PanelLayout = ({ items, perfilPath, rolPorDefecto, mensajeCierre })
 
       {/* SIDEBAR */}
       <aside className="hidden md:flex flex-col w-64 bg-mm-dark text-white max-h-screen sticky top-0 shrink-0">
-        <div className="w-full p-6 flex items-center gap-3 bg-mm-purple/80 shadow-md redounded-b-2xl">
+        <div className="w-full p-6 flex items-center gap-3 bg-mm-purple/80 shadow-md rounded-b-2xl mb-2">
           <img 
             src={logo} 
             alt="Logo MM Entrenamiento" 
             className="w-8 h-8 object-contain drop-shadow-md" 
           />
-          <span className="text-xs font-black text-black font-display tracking-tight">
+          <span className="text-xs font-black text-mm-light font-display tracking-tight">
             MM Entrenamiento
           </span>
         </div>

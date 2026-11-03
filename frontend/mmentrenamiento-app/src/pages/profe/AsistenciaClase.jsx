@@ -332,7 +332,7 @@ export const AsistenciaClase = () => {
                           {lesion && <ExclamationTriangleIcon className="w-3.5 h-3.5 text-amber-500" />}
                           {esPrimeraSemana && (
                             <span className="text-[10px] font-bold text-green-700 bg-green-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                              Semana de Adaptación
+                              Primera semana
                             </span>
                           )}
                         </div>
