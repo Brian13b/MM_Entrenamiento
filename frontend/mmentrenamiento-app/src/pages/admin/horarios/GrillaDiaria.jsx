@@ -38,7 +38,7 @@ const VistaFijos = ({ abrirModalConfiguracion }) => {
 
   if (isLoading) {
     return (
-      <div className="bg-mm-surface p-12 rounded-4xl border border-gray-100 flex justify-center text-blue-500 animate-pulse shadow-sm">
+      <div className="bg-mm-surface p-12 rounded-4xl border border-gray-100 flex justify-center text-mm-purple animate-pulse shadow-sm">
         <span className="font-bold">Cargando mapa de turnos fijos...</span>
       </div>
     );

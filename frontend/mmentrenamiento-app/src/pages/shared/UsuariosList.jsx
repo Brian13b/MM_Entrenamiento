@@ -6,10 +6,22 @@ import { urlAvatar } from '../../utils/avatar';
 
 export const UsuariosLista = ({ usuarios, isLoading, onBloquear, basePath = '/admin/usuarios' }) => {
   const navigate = useNavigate();
+
   const [paginaActual, setPaginaActual] = useState(() => {
     const p = sessionStorage.getItem(`listaPagina_${basePath}`);
     return p ? parseInt(p) : 1;
   });
+
+  const usuariosPorPagina = 10; 
+
+  useEffect(() => {
+    sessionStorage.setItem(`listaPagina_${basePath}`, paginaActual.toString());
+  }, [paginaActual, basePath]);
+
+  const indiceUltimoUsuario = paginaActual * usuariosPorPagina;
+  const indicePrimerUsuario = indiceUltimoUsuario - usuariosPorPagina;
+  const usuariosPaginados = usuarios.slice(indicePrimerUsuario, indiceUltimoUsuario);
+  const totalPaginas = Math.ceil(usuarios.length / usuariosPorPagina);
 
   useEffect(() => {
     if (usuarios.length > 0 && totalPaginas > 0 && paginaActual > totalPaginas) {
@@ -17,13 +29,6 @@ export const UsuariosLista = ({ usuarios, isLoading, onBloquear, basePath = '/ad
       setPaginaActual(totalPaginas);
     }
   }, [usuarios, totalPaginas, paginaActual]);
-
-  const usuariosPorPagina = 10; 
-
-  const indiceUltimoUsuario = paginaActual * usuariosPorPagina;
-  const indicePrimerUsuario = indiceUltimoUsuario - usuariosPorPagina;
-  const usuariosPaginados = usuarios.slice(indicePrimerUsuario, indiceUltimoUsuario);
-  const totalPaginas = Math.ceil(usuarios.length / usuariosPorPagina);
 
   const handleWhatsApp = (e, telefono) => {
     e.stopPropagation(); 
