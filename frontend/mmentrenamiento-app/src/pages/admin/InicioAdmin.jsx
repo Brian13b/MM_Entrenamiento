@@ -116,7 +116,7 @@ export const InicioAdmin = () => {
           ) : metricas.ocupacionPorDia.length === 0 ? (
             <p className="text-sm text-gray-400 font-medium pb-4 flex-1">No hay horarios configurados.</p>
           ) : (
-            <div className="flex items-end justify-between h-40 gap-2 pb-2 mt-auto">
+            <div className="flex items-end justify-between h-65 gap-2 pb-2 mt-auto">
               {metricas.ocupacionPorDia.map((t) => (
                 <div key={t.fecha} className="flex flex-col items-center justify-end h-full w-full group relative">
                   <span className="text-[10px] font-bold text-gray-500 mb-2 transition-opacity">
