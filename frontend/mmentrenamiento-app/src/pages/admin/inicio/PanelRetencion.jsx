@@ -78,7 +78,7 @@ export const PanelRetencion = () => {
         </span>
       </div>
 
-      <div className="flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar flex-1 max-h-62.5 lg:max-h-none">
+      <div className="flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar flex-1 max-h-87.5 lg:max-h-105">
         {alertas.map((alerta) => (
           <div key={alerta.usuarioId} className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center justify-between gap-4 transition-all hover:border-red-200 hover:shadow-sm">
             

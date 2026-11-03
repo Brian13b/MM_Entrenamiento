@@ -37,9 +37,13 @@ export const PanelLayout = ({ items, perfilPath, rolPorDefecto, mensajeCierre })
 
       {/* SIDEBAR */}
       <aside className="hidden md:flex flex-col w-64 bg-mm-dark text-white max-h-screen sticky top-0 shrink-0">
-        <div className="p-6 flex items-center gap-3 border-b border-gray-700">
-          <img src={logo} alt="Logo MM Entrenamiento" className="w-8 h-8 object-contain" />
-          <span className="text-xs text-mm-light font-display tracking-tight">
+        <div className="p-6 flex items-center gap-3 bg-linear-to-b from-white from-70% to-mm-dark">
+          <img 
+            src={logo} 
+            alt="Logo MM Entrenamiento" 
+            className="w-8 h-8 object-contain" 
+          />
+          <span className="text-sm font-bold text-mm-purple font-display tracking-tight">
             MM Entrenamiento
           </span>
         </div>

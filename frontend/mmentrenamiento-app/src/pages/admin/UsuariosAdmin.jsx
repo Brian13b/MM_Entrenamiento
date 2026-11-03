@@ -9,15 +9,22 @@ import { ModalNuevoUsuario } from '../shared/ModalNuevoUsuario';
 
 export const UsuariosAdmin = () => {
   const [usuarios, setUsuarios] = useState([]);
-  const [busqueda, setBusqueda] = useState('');
+  const [busqueda, setBusqueda] = useState(() => sessionStorage.getItem('adminDirectorioBusqueda') || '');
   const [isLoading, setIsLoading] = useState(true);
   const [modalRegistroAbierto, setModalRegistroAbierto] = useState(false);
   const [confirmar, confirmDialog] = useConfirm();
 
-  const [filtroRol, setFiltroRol] = useState('Todos');
-  const [filtroEstado, setFiltroEstado] = useState('Todos');
-  const [filtroDeuda, setFiltroDeuda] = useState('Todos');
+  const [filtroRol, setFiltroRol] = useState(() => sessionStorage.getItem('adminFiltroRol') || 'Todos');
+  const [filtroEstado, setFiltroEstado] = useState(() => sessionStorage.getItem('adminFiltroEstado') || 'Todos');
+  const [filtroDeuda, setFiltroDeuda] = useState(() => sessionStorage.getItem('adminFiltroDeuda') || 'Todos');
 
+  useEffect(() => {
+    sessionStorage.setItem('adminDirectorioBusqueda', busqueda);
+    sessionStorage.setItem('adminFiltroRol', filtroRol);
+    sessionStorage.setItem('adminFiltroEstado', filtroEstado);
+    sessionStorage.setItem('adminFiltroDeuda', filtroDeuda);
+  }, [busqueda, filtroRol, filtroEstado, filtroDeuda]);
+  
   const fetchUsuarios = useCallback(async () => {
     try {
       setIsLoading(true);

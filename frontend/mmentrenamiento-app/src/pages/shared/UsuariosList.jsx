@@ -6,13 +6,16 @@ import { urlAvatar } from '../../utils/avatar';
 
 export const UsuariosLista = ({ usuarios, isLoading, onBloquear, basePath = '/admin/usuarios' }) => {
   const navigate = useNavigate();
-  const [paginaActual, setPaginaActual] = useState(1);
-  const usuariosPorPagina = 10; 
+  const [paginaActual, setPaginaActual] = useState(() => {
+    const p = sessionStorage.getItem(`listaPagina_${basePath}`);
+    return p ? parseInt(p) : 1;
+  });
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPaginaActual(1);
-  }, [usuarios]);
+    sessionStorage.setItem(`listaPagina_${basePath}`, paginaActual.toString());
+  }, [paginaActual, basePath]);
+
+  const usuariosPorPagina = 10; 
 
   const indiceUltimoUsuario = paginaActual * usuariosPorPagina;
   const indicePrimerUsuario = indiceUltimoUsuario - usuariosPorPagina;
