@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ArrowLeftIcon, ExclamationTriangleIcon, CheckIcon, XMarkIcon, MagnifyingGlassIcon, PlusIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ExclamationTriangleIcon, CheckIcon, XMarkIcon, MagnifyingGlassIcon, PlusIcon, ArrowTopRightOnSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { asistenciaService } from '../../services/asistenciaService';
 import { seguimientoService } from '../../services/seguimientoService';
 import { administracionService } from '../../services/administracionService';
@@ -303,14 +303,21 @@ export const AsistenciaClase = () => {
                 const presente = !!asistencia[alumno.reservaId];
                 const iniciales = alumno.nombreCompleto.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
+                const fechaClase = new Date(`${detalle.fecha}T${detalle.horaInicio}`);
+                const claseYaArranco = new Date() > fechaClase;
+
+                const esPrimeraSemana = alumno.primeraClase;
+                const bgTurnoActivo = esPrimeraSemana ? 'bg-green-50' : 'bg-white';
+                const borderTurnoActivo = esPrimeraSemana ? 'border-green-300' : 'border-mm-purple';
+
                 return (
-                  <div key={alumno.reservaId} className="flex flex-col gap-2">
+                  <div key={alumno.reservaId} className="flex flex-col gap-2 relative">
                     <div 
                       onClick={() => setAlumnoSeleccionado(alumno.reservaId)}
                       className={`cursor-pointer rounded-2xl p-3 flex items-center gap-3 transition-all duration-200 border-2 ${
                         isSelected 
-                          ? 'bg-white border-mm-purple shadow-md scale-[1.02]' 
-                          : 'bg-white border-transparent shadow-sm hover:border-purple-100'
+                          ? `${bgTurnoActivo} ${borderTurnoActivo} shadow-md scale-[1.02]` 
+                          : `${esPrimeraSemana ? 'bg-green-50/50' : 'bg-white'} border-transparent shadow-sm hover:border-purple-100`
                       } ${!presente ? 'opacity-60 grayscale-30' : ''}`}
                     >
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-sm ${isSelected ? 'bg-purple-100 text-mm-purple' : 'bg-gray-100 text-gray-500'}`}>
@@ -323,23 +330,52 @@ export const AsistenciaClase = () => {
                         </p>
                         <div className="flex items-center gap-2 mt-0.5">
                           {lesion && <ExclamationTriangleIcon className="w-3.5 h-3.5 text-amber-500" />}
-                          {alumno.primeraClase && <span className="w-2 h-2 rounded-full bg-sky-400" title="Primera Clase"></span>}
+                          {esPrimeraSemana && (
+                            <span className="text-[10px] font-bold text-green-700 bg-green-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                              Semana de Adaptación
+                            </span>
+                          )}
                         </div>
                       </div>
 
-                      <div className="flex items-center bg-gray-50 rounded-xl p-1 shrink-0 border border-gray-100">
-                        <button
-                          onClick={(e) => marcar(e, alumno.reservaId, true)}
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${presente ? 'bg-mm-purple text-white shadow-sm' : 'text-gray-300 hover:text-mm-purple'}`}
-                        >
-                          <CheckIcon className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={(e) => marcar(e, alumno.reservaId, false)}
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${!presente ? 'bg-mm-dark text-white shadow-sm' : 'text-gray-300 hover:text-mm-dark'}`}
-                        >
-                          <XMarkIcon className="w-5 h-5" />
-                        </button>
+                      <div className="flex items-center gap-2">
+                        {/* BOTÓN PARA CANCELAR CLASE */}
+                        {!claseYaArranco && (
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (window.confirm(`¿Cancelar la clase de ${alumno.nombreCompleto}? Se liberará su crédito.`)) {
+                                try {
+                                  await reservasService.cancelarClase({ usuarioId: alumno.usuarioId, turnoId: alumno.reservaId });
+                                  toast.success("Clase cancelada");
+                                  await cargar(); // Recargar lista
+                                } catch (error) {
+                                  toast.error(error.response?.data?.message || "No se pudo cancelar");
+                                }
+                              }
+                            }}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:bg-red-50 hover:text-red-500 transition-colors border border-transparent hover:border-red-100"
+                            title="Cancelar asistencia y devolver crédito"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        )}
+
+                        {/* Botones de Asistencia */}
+                        <div className="flex items-center bg-gray-50 rounded-xl p-1 shrink-0 border border-gray-100">
+                          <button
+                            onClick={(e) => marcar(e, alumno.reservaId, true)}
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${presente ? 'bg-mm-purple text-white shadow-sm' : 'text-gray-300 hover:text-mm-purple'}`}
+                          >
+                            <CheckIcon className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={(e) => marcar(e, alumno.reservaId, false)}
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${!presente ? 'bg-mm-dark text-white shadow-sm' : 'text-gray-300 hover:text-mm-dark'}`}
+                          >
+                            <XMarkIcon className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
 

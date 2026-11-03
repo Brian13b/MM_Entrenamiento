@@ -3,8 +3,6 @@ using MMEntrenamiento.Domain.Entities;
 
 namespace MMEntrenamiento.Application.Services
 {
-    // Un día con horario reducido/feriado reemplaza la grilla normal: solo siguen disponibles
-    // las franjas de la plantilla que quedan completamente dentro de la nueva ventana horaria.
     public static class DisponibilidadHorarios
     {
         public static Task<HorarioReducido?> ObtenerReducidoAsync(IUnitOfWork unitOfWork, DateOnly fecha)

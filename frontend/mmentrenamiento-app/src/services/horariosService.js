@@ -25,6 +25,10 @@ export const horariosService = {
     const response = await api.get(`/horarios/fecha/${fecha}`);
     return response.data;
   },
+  getGrillaFijos: async () => {
+    const response = await api.get('/horarios/fijos');
+    return response.data;
+  },
   eliminarHorario: async (id) => {
     const response = await api.delete(`/horarios/${id}`);
     return response.data;

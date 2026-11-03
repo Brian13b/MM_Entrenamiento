@@ -382,18 +382,30 @@ namespace MMEntrenamiento.Application.Services
         {
             var diaSemana = fecha.DayOfWeek;
 
-            // 1. Buscamos la plantilla de horarios para ese día de la semana
             var reducido = await DisponibilidadHorarios.ObtenerReducidoAsync(_unitOfWork, fecha);
-            var horariosDelDia = (await _unitOfWork.Horarios.FindAsync(h => h.DiaSemana == diaSemana))
-                .Where(h => DisponibilidadHorarios.EstaDisponible(h, reducido));
+            var horariosBase = (await _unitOfWork.Horarios.FindAsync(h => h.DiaSemana == diaSemana)).ToList();
 
-            // 2. Buscamos las instancias reales de turnos para esa fecha exacta
+            IEnumerable<Horario> horariosDelDia;
+            int cupoEstandar = horariosBase.Any(h => h.CupoMaximo > 0) ? horariosBase.Max(h => h.CupoMaximo) : 15;
+
+            if (reducido != null)
+            {
+                horariosDelDia = horariosBase
+                    .Where(h => h.HoraInicio >= reducido.NuevaHoraInicio && h.HoraInicio < reducido.NuevaHoraFin)
+                    .OrderBy(h => h.HoraInicio);
+            }
+            else
+            {
+                horariosDelDia = horariosBase
+                    .Where(h => h.CupoMaximo > 0)
+                    .OrderBy(h => h.HoraInicio);
+            }
+
             var turnosInstanciados = await _unitOfWork.Turnos.FindWithIncludesAsync(t => t.Fecha == fecha, "Reservas.Usuario");
 
             var grilla = new List<TurnoDisponibleDto>();
 
-            // 3. Hacemos el "Merge"
-            foreach (var horario in horariosDelDia.OrderBy(h => h.HoraInicio))
+            foreach (var horario in horariosDelDia)
             {
                 var turno = turnosInstanciados.FirstOrDefault(t => t.HorarioId == horario.Id);
 
@@ -410,9 +422,10 @@ namespace MMEntrenamiento.Application.Services
                 {
                     TurnoId = turno?.Id,
                     HorarioId = horario.Id,
+                    DiaSemana = (int)horario.DiaSemana,
                     HoraInicio = horario.HoraInicio,
                     HoraFin = horario.HoraFin,
-                    CupoMaximo = horario.CupoMaximo,
+                    CupoMaximo = (reducido != null && horario.CupoMaximo == 0) ? cupoEstandar : horario.CupoMaximo,
                     OcupacionActual = turno?.OcupacionActual ?? 0,
                     Inscriptos = inscriptos
                 });

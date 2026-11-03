@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ChevronLeftIcon, ChevronRightIcon, UsersIcon } from '@heroicons/react/24/outline';
+import { ChevronLeftIcon, ChevronRightIcon, UsersIcon, LockClosedIcon, ViewColumnsIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
 import { horariosService } from '../../../services/horariosService';
@@ -12,87 +12,107 @@ const getLocalDateString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-export const GrillaDiaria = () => {
-  const [lunesSemana, setLunesSemana] = useState(() => {
-    const d = new Date();
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); 
-    const monday = new Date(d.setDate(diff));
-    return getLocalDateString(monday);
-  });
-
-  const [turnosSemana, setTurnosSemana] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
-
-  const [modalTurnoAbierto, setModalTurnoAbierto] = useState(false);
-  const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
-  const [fechaTurnoSeleccionado, setFechaTurnoSeleccionado] = useState('');
-
-  const diasSemana = useMemo(() => {
-    const [year, month, day] = lunesSemana.split('-').map(Number);
-
-    return [0, 1, 2, 3, 4].map(i => {
-      const d = new Date(year, month - 1, day);
-      d.setDate(d.getDate() + i);
-      
-      return {
-        nombre: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'][i],
-        fechaIso: getLocalDateString(d),
-        diaMes: d.getDate(),
-        mesNombre: d.toLocaleString('es', { month: 'long' })
-      };
-    });
-  }, [lunesSemana]);
-
-  const cargarOperativaSemanal = async () => {
-    try {
-      setIsLoading(true);
-      const promesas = diasSemana.map(dia => 
-        horariosService.getTurnosDelDia(dia.fechaIso).then(data => ({ fecha: dia.fechaIso, turnos: data || [] }))
-      );
-      
-      const resultados = await Promise.all(promesas);
-      const mapaTurnos = {};
-      resultados.forEach(res => { mapaTurnos[res.fecha] = res.turnos; });
-      setTurnosSemana(mapaTurnos);
-    } catch (error) {
-      toast.error("Error al cargar la semana.");
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+// ==========================================
+// VISTA: TURNOS FIJOS (Plantilla Base)
+// ==========================================
+const VistaFijos = ({ abrirModalConfiguracion }) => {
+  const [turnosFijos, setTurnosFijos] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    cargarOperativaSemanal();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lunesSemana]);
+    horariosService.getGrillaFijos().then(data => {
+      setTurnosFijos(data || []);
+    }).finally(() => setIsLoading(false));
+  }, []);
 
-  const cambiarSemana = (semanas) => {
-    const [year, month, day] = lunesSemana.split('-').map(Number);
-    const d = new Date(year, month - 1, day);
-    d.setDate(d.getDate() + (semanas * 7));
-    setLunesSemana(getLocalDateString(d));
-  };
-
-  const abrirModalTurno = (turno, fecha) => {
-    setTurnoSeleccionado(turno);
-    setFechaTurnoSeleccionado(fecha);
-    setModalTurnoAbierto(true);
-  };
+  const diasSemana = [
+    { id: 1, nombre: 'Lunes' }, { id: 2, nombre: 'Martes' }, { id: 3, nombre: 'Miércoles' },
+    { id: 4, nombre: 'Jueves' }, { id: 5, nombre: 'Viernes' }
+  ];
 
   const horasAlineadas = useMemo(() => {
-    const horas = new Set();
-    Object.values(turnosSemana).forEach(turnosDia => {
-      turnosDia.forEach(t => horas.add(t.horaInicio.slice(0, 5)));
-    });
+    const horas = new Set(turnosFijos.map(t => t.horaInicio.slice(0, 5)));
     return Array.from(horas).sort();
-  }, [turnosSemana]);
+  }, [turnosFijos]);
+
+  if (isLoading) {
+    return (
+      <div className="bg-mm-surface p-12 rounded-4xl border border-gray-100 flex justify-center text-blue-500 animate-pulse shadow-sm">
+        <span className="font-bold">Cargando mapa de turnos fijos...</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="animate-fade-in">
-      <div className="flex items-center justify-between bg-mm-surface p-4 rounded-2xl border border-gray-100 shadow-sm mb-6">
+    <div className="animate-fade-in bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden overflow-x-auto">
+      <div className="min-w-200">
+        <div className="grid grid-cols-6 bg-blue-50/30 border-b border-gray-200">
+          <div className="p-4 flex items-center justify-center border-r border-gray-100">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Horario</span>
+          </div>
+          {diasSemana.map(dia => (
+            <div key={dia.id} className="p-4 flex flex-col items-center justify-center border-r border-gray-100 last:border-0">
+              <span className="text-sm font-bold text-mm-dark">{dia.nombre}</span>
+              <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mt-0.5">Base Fija</span>
+            </div>
+          ))}
+        </div>
+
+        {horasAlineadas.map(hora => (
+          <div key={hora} className="grid grid-cols-6 border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors">
+            <div className="p-3 flex items-center justify-center border-r border-gray-100 bg-[#F8F9FA]/50">
+              <span className="font-bold text-mm-dark text-sm">{hora}</span>
+            </div>
+            
+            {diasSemana.map(dia => {
+              const turno = turnosFijos.find(t => t.diaSemana === dia.id && t.horaInicio.slice(0, 5) === hora);
+              if (!turno) return <div key={dia.id} className="p-3 border-r border-gray-100 last:border-0"></div>;
+
+              const estaLleno = turno.ocupacionActual >= turno.cupoMaximo;
+              const porcentaje = turno.cupoMaximo > 0 ? Math.round((turno.ocupacionActual / turno.cupoMaximo) * 100) : 0;
+
+              return (
+                <div key={dia.id} className="p-2 border-r border-gray-100 last:border-0">
+                  <div 
+                    onClick={() => abrirModalConfiguracion(turno)}
+                    className={`h-full p-2.5 rounded-xl cursor-pointer transition-all border flex flex-col justify-between shadow-sm hover:shadow-md ${
+                      estaLleno ? 'bg-amber-50 border-amber-200' : 'bg-blue-50/50 border-blue-200 hover:border-blue-400'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <LockClosedIcon className={`w-3.5 h-3.5 ${estaLleno ? 'text-amber-500' : 'text-blue-500'}`} />
+                      <span className={`text-xs font-bold ${estaLleno ? 'text-amber-700' : 'text-blue-700'}`}>
+                        {turno.ocupacionActual}/{turno.cupoMaximo}
+                      </span>
+                    </div>
+                    <div className="w-full rounded-full h-1 overflow-hidden bg-blue-100/50">
+                      <div className={`h-1 rounded-full transition-all duration-500 ${estaLleno ? 'bg-amber-500' : 'bg-blue-500'}`} style={{ width: `${porcentaje}%` }}></div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ==========================================
+// VISTA: SEMANAL (Operativa)
+// ==========================================
+const VistaSemanalOperativa = ({
+  diasSemana, 
+  turnosSemana, 
+  horasAlineadas, 
+  isLoading, 
+  cambiarSemana, 
+  abrirModalTurno 
+}) => {
+  return (
+    <>
+      <div className="flex items-center justify-between bg-mm-surface p-4 rounded-2xl border border-gray-100 shadow-sm mb-6 animate-fade-in">
         <button onClick={() => cambiarSemana(-1)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors">
           <ChevronLeftIcon className="w-6 h-6" />
         </button>
@@ -112,9 +132,8 @@ export const GrillaDiaria = () => {
           <span className="font-bold">Cargando grilla semanal...</span>
         </div>
       ) : (
-        <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden overflow-x-auto">
+        <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden overflow-x-auto animate-fade-in">
           <div className="min-w-200">
-            
             <div className="grid grid-cols-6 bg-[#F8F9FA] border-b border-gray-200">
               <div className="p-4 flex items-center justify-center border-r border-gray-100">
                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Horario</span>
@@ -175,6 +194,131 @@ export const GrillaDiaria = () => {
             )}
           </div>
         </div>
+      )}
+    </>
+  );
+};
+
+// ==========================================
+// COMPONENTE PRINCIPAL
+// ==========================================
+export const GrillaDiaria = () => {
+  const [vistaInterna, setVistaInterna] = useState(() => sessionStorage.getItem('adminVistaInterna') || 'operativa');
+
+  const [lunesSemana, setLunesSemana] = useState(() => {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); 
+    const monday = new Date(d.setDate(diff));
+    return getLocalDateString(monday);
+  });
+
+  const [turnosSemana, setTurnosSemana] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+
+  const [modalTurnoAbierto, setModalTurnoAbierto] = useState(false);
+  const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
+  const [fechaTurnoSeleccionado, setFechaTurnoSeleccionado] = useState('');
+
+  const diasSemana = useMemo(() => {
+    const [year, month, day] = lunesSemana.split('-').map(Number);
+
+    return [0, 1, 2, 3, 4].map(i => {
+      const d = new Date(year, month - 1, day);
+      d.setDate(d.getDate() + i);
+      
+      return {
+        nombre: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'][i],
+        fechaIso: getLocalDateString(d),
+        diaMes: d.getDate(),
+        mesNombre: d.toLocaleString('es', { month: 'long' })
+      };
+    });
+  }, [lunesSemana]);
+
+  const cargarOperativaSemanal = async () => {
+    try {
+      setIsLoading(true);
+      const promesas = diasSemana.map(dia => 
+        horariosService.getTurnosDelDia(dia.fechaIso).then(data => ({ fecha: dia.fechaIso, turnos: data || [] }))
+      );
+      
+      const resultados = await Promise.all(promesas);
+      const mapaTurnos = {};
+      resultados.forEach(res => { mapaTurnos[res.fecha] = res.turnos; });
+      setTurnosSemana(mapaTurnos);
+    } catch (error) {
+      toast.error("Error al cargar la semana.");
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    sessionStorage.setItem('adminVistaInterna', vistaInterna);
+  }, [vistaInterna]);
+
+  useEffect(() => {
+    if (vistaInterna === 'operativa') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      cargarOperativaSemanal();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lunesSemana, vistaInterna]);
+
+  const cambiarSemana = (semanas) => {
+    const [year, month, day] = lunesSemana.split('-').map(Number);
+    const d = new Date(year, month - 1, day);
+    d.setDate(d.getDate() + (semanas * 7));
+    setLunesSemana(getLocalDateString(d));
+  };
+
+  const abrirModalTurno = (turno, fecha) => {
+    setTurnoSeleccionado(turno);
+    setFechaTurnoSeleccionado(fecha);
+    setModalTurnoAbierto(true);
+  };
+
+  const horasAlineadas = useMemo(() => {
+    const horas = new Set();
+    Object.values(turnosSemana).forEach(turnosDia => {
+      turnosDia.forEach(t => horas.add(t.horaInicio.slice(0, 5)));
+    });
+    return Array.from(horas).sort();
+  }, [turnosSemana]);
+
+  return (
+    <div className="animate-fade-in">
+
+      {/* Sub-selector de vista */}
+      <div className="flex bg-gray-100 p-1 rounded-xl shadow-inner mb-6 max-w-xs ml-auto">
+        <button 
+          onClick={() => setVistaInterna('operativa')} 
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${vistaInterna === 'operativa' ? 'bg-white shadow-sm text-mm-purple' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          <ViewColumnsIcon className="w-4 h-4" /> Asistencia
+        </button>
+        <button 
+          onClick={() => setVistaInterna('fija')} 
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${vistaInterna === 'fija' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          <LockClosedIcon className="w-4 h-4" /> Base Fijos
+        </button>
+      </div>
+
+      {vistaInterna === 'operativa' ? (
+        <VistaSemanalOperativa 
+          lunesSemana={lunesSemana}
+          diasSemana={diasSemana}
+          turnosSemana={turnosSemana}
+          horasAlineadas={horasAlineadas}
+          isLoading={isLoading}
+          cambiarSemana={cambiarSemana}
+          abrirModalTurno={abrirModalTurno}
+        />
+      ) : (
+        <VistaFijos abrirModalConfiguracion={(turno) => console.log("Abrir config turno", turno)} />
       )}
 
       <ModalGestionTurno 

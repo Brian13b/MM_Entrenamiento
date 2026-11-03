@@ -44,6 +44,14 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(horarios);
         }
 
+        [HttpGet("fijos")]
+        [Authorize(Roles = "Admin,Profe")]
+        public async Task<IActionResult> ObtenerGrillaFijos()
+        {
+            var grilla = await _horarioService.ObtenerGrillaFijosAsync();
+            return Ok(grilla);
+        }
+
         [HttpPost("masivo")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CrearHorariosMasivos([FromBody] CrearHorarioMasivoDto request)

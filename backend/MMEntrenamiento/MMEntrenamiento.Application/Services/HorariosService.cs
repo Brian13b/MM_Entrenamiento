@@ -58,7 +58,7 @@ namespace MMEntrenamiento.Application.Services
 
         public async Task<IEnumerable<HorarioDto>> ObtenerTodosAsync()
         {
-            var horarios = await _unitOfWork.Horarios.GetAllAsync();
+            var horarios = (await _unitOfWork.Horarios.GetAllAsync()).Where(h => h.CupoMaximo > 0);
             var cultura = new CultureInfo("es-ES");
 
             return horarios.OrderBy(h => h.DiaSemana).ThenBy(h => h.HoraInicio).Select(h => new HorarioDto
@@ -70,6 +70,40 @@ namespace MMEntrenamiento.Application.Services
                 HoraFin = h.HoraFin,
                 CupoMaximo = h.CupoMaximo
             });
+        }
+
+        public async Task<IEnumerable<TurnoDisponibleDto>> ObtenerGrillaFijosAsync()
+        {
+            var horarios = await _unitOfWork.Horarios.GetAllAsync();
+
+            var fijosActivos = await _unitOfWork.TurnosFijos.FindWithIncludesAsync(
+                tf => tf.Activo,
+                "Usuario"
+            );
+
+            var resultado = new List<TurnoDisponibleDto>();
+
+            foreach (var horario in horarios.OrderBy(h => h.DiaSemana).ThenBy(h => h.HoraInicio))
+            {
+                var anotados = fijosActivos.Where(f => f.HorarioId == horario.Id).ToList();
+
+                resultado.Add(new TurnoDisponibleDto
+                {
+                    HorarioId = horario.Id,
+                    DiaSemana = (int)horario.DiaSemana,
+                    HoraInicio = horario.HoraInicio,
+                    HoraFin = horario.HoraFin,
+                    CupoMaximo = horario.CupoMaximo,
+                    OcupacionActual = anotados.Count,
+                    Inscriptos = anotados.Select(a => new AlumnoInscriptoDto
+                    {
+                        UsuarioId = a.UsuarioId,
+                        NombreCompleto = a.Usuario?.NombreCompleto ?? "Alumno",
+                        TipoReserva = "Fija"
+                    }).ToList()
+                });
+            }
+            return resultado;
         }
 
         public async Task<(bool Exito, string Mensaje)> CrearHorariosMasivosAsync(CrearHorarioMasivoDto request)
@@ -115,11 +149,24 @@ namespace MMEntrenamiento.Application.Services
         {
             var diaSemana = fecha.DayOfWeek;
 
-            var horariosBase = await _unitOfWork.Horarios.GetAllAsync();
             var reducido = await DisponibilidadHorarios.ObtenerReducidoAsync(_unitOfWork, fecha);
-            var horariosDelDia = horariosBase
-                .Where(h => h.DiaSemana == diaSemana && DisponibilidadHorarios.EstaDisponible(h, reducido))
-                .OrderBy(h => h.HoraInicio);
+            var horariosBase = (await _unitOfWork.Horarios.FindAsync(h => h.DiaSemana == diaSemana)).ToList();
+
+            IEnumerable<Horario> horariosDelDia;
+            int cupoEstandar = horariosBase.Any(h => h.CupoMaximo > 0) ? horariosBase.Max(h => h.CupoMaximo) : 15;
+
+            if (reducido != null)
+            {
+                horariosDelDia = horariosBase
+                    .Where(h => h.HoraInicio >= reducido.NuevaHoraInicio && h.HoraInicio < reducido.NuevaHoraFin)
+                    .OrderBy(h => h.HoraInicio);
+            }
+            else
+            {
+                horariosDelDia = horariosBase
+                    .Where(h => h.CupoMaximo > 0)
+                    .OrderBy(h => h.HoraInicio);
+            }
 
             var turnosDelDia = (await _unitOfWork.Turnos.FindWithIncludesAsync(
                 t => t.Fecha == fecha, "Reservas.Usuario")).ToList();
@@ -142,7 +189,7 @@ namespace MMEntrenamiento.Application.Services
                     HorarioId = horario.Id,
                     HoraInicio = horario.HoraInicio,
                     HoraFin = horario.HoraFin,
-                    CupoMaximo = horario.CupoMaximo,
+                    CupoMaximo = (reducido != null && horario.CupoMaximo == 0) ? cupoEstandar : horario.CupoMaximo,
                     OcupacionActual = reservasValidas.Count,
                     Inscriptos = reservasValidas.Select(r => new AlumnoInscriptoDto
                     {
@@ -165,14 +212,11 @@ namespace MMEntrenamiento.Application.Services
                 return (false, "No se puede configurar un horario reducido en una fecha pasada.");
 
             var turnosExistentes = (await _unitOfWork.Turnos.FindAsync(
-                t => t.Fecha == request.FechaFeriado,
-                t => t.Reservas
-            )).ToList();
+                t => t.Fecha == request.FechaFeriado, t => t.Reservas)).ToList();
 
             if (turnosExistentes.Any(t => t.Reservas.Any(r => r.Estado == EstadoReserva.Asistio || r.Estado == EstadoReserva.Ausente)))
                 return (false, "Ese día ya tiene asistencia registrada, no se puede reemplazar su grilla.");
 
-            // Una sola configuración por fecha: si ya existía, se pisa.
             var horarioReducido = await _unitOfWork.HorariosReducidos.FirstOrDefaultAsync(r => r.FechaFeriado == request.FechaFeriado);
             if (horarioReducido == null)
             {
@@ -183,15 +227,12 @@ namespace MMEntrenamiento.Application.Services
             horarioReducido.NuevaHoraFin = request.NuevaHoraFin;
             horarioReducido.Aplica = true;
 
-            // 1. Se cancelan las reservas vigentes devolviendo el crédito y se eliminan los turnos
-            //    existentes de esa fecha: la gente deberá volver a anotarse en la nueva grilla.
             int reservasCanceladas = 0;
             foreach (var turno in turnosExistentes)
             {
                 foreach (var reserva in turno.Reservas.Where(r => r.Estado == EstadoReserva.Activa))
                 {
                     reservasCanceladas++;
-
                     var creditoMes = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
                         c => c.UsuarioId == reserva.UsuarioId && c.Anio == turno.Fecha.Year && c.Mes == turno.Fecha.Month);
 
@@ -201,32 +242,49 @@ namespace MMEntrenamiento.Application.Services
                         _unitOfWork.CreditosMes.Update(creditoMes);
                     }
                 }
-
                 _unitOfWork.Turnos.Delete(turno);
             }
-
             await _unitOfWork.CompleteAsync();
 
-            // 2. Se crean los nuevos turnos del día con las franjas que entran en el horario reducido.
-            var franjasNuevas = (await _unitOfWork.Horarios.FindAsync(h => h.DiaSemana == request.FechaFeriado.DayOfWeek))
-                .Where(h => DisponibilidadHorarios.EstaDisponible(h, horarioReducido))
-                .OrderBy(h => h.HoraInicio)
-                .ToList();
+            var horariosDelDia = await _unitOfWork.Horarios.FindAsync(h => h.DiaSemana == request.FechaFeriado.DayOfWeek);
+            var horaActual = request.NuevaHoraInicio;
+            int creados = 0;
 
-            foreach (var horario in franjasNuevas)
+            while (horaActual < request.NuevaHoraFin)
             {
+                var horaFinTurno = horaActual.AddHours(1);
+                if (horaFinTurno > request.NuevaHoraFin) break;
+
+                var molde = horariosDelDia.FirstOrDefault(h => h.HoraInicio == horaActual);
+
+                if (molde == null)
+                {
+                    molde = new Horario
+                    {
+                        DiaSemana = request.FechaFeriado.DayOfWeek,
+                        HoraInicio = horaActual,
+                        HoraFin = horaFinTurno,
+                        CupoMaximo = 0
+                    };
+                    await _unitOfWork.Horarios.AddAsync(molde);
+                    await _unitOfWork.CompleteAsync();
+                    horariosDelDia = await _unitOfWork.Horarios.FindAsync(h => h.DiaSemana == request.FechaFeriado.DayOfWeek);
+                }
+
                 await _unitOfWork.Turnos.AddAsync(new Turno
                 {
-                    HorarioId = horario.Id,
+                    HorarioId = molde.Id,
                     Fecha = request.FechaFeriado,
                     OcupacionActual = 0,
                     EsFeriado = true
                 });
+
+                creados++;
+                horaActual = horaFinTurno;
             }
 
             await _unitOfWork.CompleteAsync();
-
-            return (true, $"Horario reducido configurado para el {request.FechaFeriado:dd/MM/yyyy} ({request.NuevaHoraInicio:HH\\:mm} a {request.NuevaHoraFin:HH\\:mm}). Se reemplazó la grilla de ese día por {franjasNuevas.Count} turnos nuevos y se cancelaron {reservasCanceladas} reservas (créditos devueltos): los alumnos deben anotarse de nuevo.");
+            return (true, $"Feriado configurado. Se generaron {creados} turnos. Se cancelaron {reservasCanceladas} reservas antiguas.");
         }
 
         public async Task<(bool Exito, string Mensaje)> EliminarHorarioAsync(int id)
