@@ -38,21 +38,6 @@ const updateSW = registerSW({
       ),
       { duration: Infinity, id: 'pwa-update' }
     );
-  },
-  onOfflineReady() {
-    toast.success('Aplicación actualizada.', {
-      style: {
-        background: '#1A1A1A',
-        color: '#fff',
-        borderRadius: '1rem',
-        fontSize: '14px',
-        fontWeight: 'bold'
-      },
-      iconTheme: {
-        primary: '#6D28D9',
-        secondary: '#fff',
-      },
-    });
   }
 });
 

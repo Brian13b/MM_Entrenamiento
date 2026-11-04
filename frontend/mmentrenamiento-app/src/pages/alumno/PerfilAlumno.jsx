@@ -361,7 +361,7 @@ export const PerfilAlumno = () => {
               <input type="file" ref={fileInputRef} onChange={handleCambiarFoto} className="hidden" accept="image/*" />
             </div>
 
-            <h2 className="text-2xl md:text-3xl font-display font-black text-mm-dark leading-tight">
+            <h2 className="text-2xl md:text-3xl font-display font-black text-mm-dark leading-tight tracking-tight">
               {resumen.nombreCompleto}
             </h2>
             <p className="text-gray-500 text-sm font-medium mt-1 mb-6">{resumen.email}</p>
