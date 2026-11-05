@@ -210,6 +210,9 @@ export const AjustesAdmin = () => {
                 placeholder="Ej: El lunes abrimos de 9 a 15hs por el feriado..."
                 value={mensaje} onChange={(e) => setMensaje(e.target.value)}
               ></textarea>
+              <p className="text-[10px] text-gray-400 mt-1 ml-1">
+                Para agregar un link usá este formato: <span className="font-mono bg-gray-100 px-1 rounded">[Texto](https://link.com)</span>
+              </p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-1">
