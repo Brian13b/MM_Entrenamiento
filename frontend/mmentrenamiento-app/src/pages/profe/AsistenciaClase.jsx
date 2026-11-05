@@ -9,6 +9,7 @@ import { reservasService } from '../../services/reservasService';
 import { etiquetaTurno, formatearHora, esNotFound } from '../../utils/fechas';
 import { PlanFrame } from '../../components/perfil/PlanFrame';
 import { obtenerUrlEditable } from '../../utils/onedrive';
+import { useConfirm } from '../../hooks/useConfirm'; // IMPORTANTE: Agregado el hook de confirmación
 
 // ==========================================
 // DETALLE Y ASISTENCIA DE LA CLASE
@@ -54,7 +55,7 @@ const PanelDetalles = ({ alumno, ficha }) => {
               <span>Plan de Entrenamiento</span>
               {ficha.driveItemId && (
                  <a href={obtenerUrlEditable(ficha.driveItemId)} target="_blank" rel="noopener noreferrer" className="text-mm-purple hover:underline flex items-center gap-1">
-                    Abrir normal <ArrowTopRightOnSquareIcon className="w-3 h-3" />
+                   Abrir normal <ArrowTopRightOnSquareIcon className="w-3 h-3" />
                  </a>
               )}
             </h3>
@@ -79,6 +80,7 @@ export const AsistenciaClase = () => {
   const { turnoId: horarioIdUrl } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [confirmar, confirmDialog] = useConfirm();
 
   const [detalle, setDetalle] = useState(null);
   const [noEncontrado, setNoEncontrado] = useState(false);
@@ -232,6 +234,7 @@ export const AsistenciaClase = () => {
 
   return (
     <div className="animate-fade-in max-w-7xl mx-auto pb-10">
+      {confirmDialog}
       
       <div className="flex items-center gap-4 mb-6 md:mb-8">
         <button onClick={volver} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-mm-dark shadow-sm hover:bg-gray-50 transition-colors active:scale-95">
@@ -339,16 +342,26 @@ export const AsistenciaClase = () => {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {/* BOTÓN PARA CANCELAR CLASE */}
                         {!claseYaArranco && (
                           <button
                             onClick={async (e) => {
                               e.stopPropagation();
-                              if (window.confirm(`¿Cancelar la clase de ${alumno.nombreCompleto}? Se liberará su crédito.`)) {
+                              const ok = await confirmar({
+                                title: '¿Cancelar la clase?',
+                                message: `¿Quitar a ${alumno.nombreCompleto} de la clase? Se liberará su crédito.`,
+                                confirmText: 'Sí, quitar',
+                                confirmButtonColor: 'bg-red-500 hover:bg-red-600'
+                              });
+                              
+                              if (ok) {
                                 try {
-                                  await reservasService.cancelarClase({ usuarioId: alumno.usuarioId, turnoId: alumno.reservaId });
+                                  await reservasService.cancelarClase({ 
+                                    usuarioId: alumno.usuarioId, 
+                                    turnoId: detalle.turnoId || horarioIdUrl,
+                                    motivo: "Cancelado por el profe al tomar asistencia" 
+                                  });
                                   toast.success("Clase cancelada");
-                                  await cargar(); // Recargar lista
+                                  await cargar();
                                 } catch (error) {
                                   toast.error(error.response?.data?.message || "No se pudo cancelar");
                                 }
