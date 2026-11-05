@@ -70,7 +70,9 @@ namespace MMEntrenamiento.Application.Services
                 await _unitOfWork.Turnos.AddAsync(turno);
             }
 
-            if (turno.OcupacionActual >= horario.CupoMaximo) return (false, "El turno ya está lleno.");
+            int cupoReal = horario.CupoMaximo > 0 ? horario.CupoMaximo : 8;
+
+            if (turno.OcupacionActual >= cupoReal) return (false, "El turno ya está lleno.");
 
             var reserva = new Reserva
             {
