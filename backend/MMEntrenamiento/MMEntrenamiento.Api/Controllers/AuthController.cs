@@ -138,5 +138,19 @@ namespace MMEntrenamiento.Api.Controllers
 
             return Ok(new { message = mensaje });
         }
+
+        [HttpPost("admin/reset-password/{usuarioId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ResetPasswordByAdmin(Guid usuarioId, [FromBody] ResetPasswordAdminRequestDto request)
+        {
+            if (string.IsNullOrWhiteSpace(request.NuevaContrasena))
+                return BadRequest(new { message = "La contraseña no puede estar vacía." });
+
+            var (exito, mensaje) = await _authService.CambiarPasswordAdminAsync(usuarioId, request.NuevaContrasena);
+
+            if (!exito) return BadRequest(new { message = mensaje });
+
+            return Ok(new { message = mensaje });
+        }
     }
 }

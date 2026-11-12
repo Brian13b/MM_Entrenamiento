@@ -222,25 +222,29 @@ namespace MMEntrenamiento.Application.Services
             var domingo = lunes.AddDays(6);
 
             var horarios = (await _unitOfWork.Horarios.GetAllAsync()).Where(h => h.CupoMaximo > 0).ToList();
-            var turnosSemana = (await _unitOfWork.Turnos.FindAsync(t => t.Fecha >= lunes && t.Fecha <= domingo)).ToList();
+
+            var fijosActivos = (await _unitOfWork.TurnosFijos.FindAsync(tf => tf.Activo)).ToList();
+
             var reducidosSemana = (await _unitOfWork.HorariosReducidos.FindAsync(
                 r => r.Aplica && r.FechaFeriado >= lunes && r.FechaFeriado <= domingo)).ToList();
 
-            var franjas = new List<(DateOnly Fecha, int Ocupacion, int Cupo)>();
+            var franjas = new List<(DateOnly Fecha, int OcupacionFija, int Cupo)>();
+
             for (var fecha = lunes; fecha <= domingo; fecha = fecha.AddDays(1))
             {
                 var reducido = reducidosSemana.FirstOrDefault(r => r.FechaFeriado == fecha);
 
                 foreach (var horario in horarios.Where(h => h.DiaSemana == fecha.DayOfWeek && DisponibilidadHorarios.EstaDisponible(h, reducido)))
                 {
-                    var turno = turnosSemana.FirstOrDefault(t => t.HorarioId == horario.Id && t.Fecha == fecha);
-                    franjas.Add((fecha, Math.Min(turno?.OcupacionActual ?? 0, horario.CupoMaximo), horario.CupoMaximo));
+                    int ocupacionFija = fijosActivos.Count(f => f.HorarioId == horario.Id);
+
+                    franjas.Add((fecha, Math.Min(ocupacionFija, horario.CupoMaximo), horario.CupoMaximo));
                 }
             }
 
             var ocupacionSemanal = franjas.Count == 0
                 ? 0
-                : (int)Math.Round(franjas.Average(f => (double)f.Ocupacion / f.Cupo) * 100);
+                : (int)Math.Round(franjas.Average(f => (double)f.OcupacionFija / f.Cupo) * 100);
 
             var porDia = franjas
                 .GroupBy(f => f.Fecha)
@@ -249,7 +253,7 @@ namespace MMEntrenamiento.Application.Services
                 {
                     Fecha = g.Key,
                     DiaSemana = g.Key.DayOfWeek,
-                    Porcentaje = (int)Math.Round(g.Sum(f => f.Ocupacion) * 100.0 / g.Sum(f => f.Cupo))
+                    Porcentaje = (int)Math.Round(g.Sum(f => f.OcupacionFija) * 100.0 / g.Sum(f => f.Cupo))
                 })
                 .ToList();
 

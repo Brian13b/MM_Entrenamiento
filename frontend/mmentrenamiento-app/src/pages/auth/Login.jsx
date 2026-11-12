@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { EnvelopeIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 import { authService } from '../../services/auth';
+import { administracionService } from '../../services/administracionService';
 import { useAuthStore } from '../../store/useAuthStore';
-import { RecuperarPassword } from './RecuperarPassword';
 import { BotonInstalarApp } from '../../components/ui/BotonInstalarApp';
 import logoMM from '../../assets/Logo-MM.png';
 
@@ -15,10 +15,16 @@ export const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [isRecoveryModalOpen, setIsRecoveryModalOpen] = useState(false);
+  const [config, setConfig] = useState(null);
 
   const navigate = useNavigate();
   const loginUser = useAuthStore((state) => state.login);
+
+  useEffect(() => {
+    administracionService.getConfiguracion()
+      .then(data => setConfig(data))
+      .catch(err => console.error("Error al cargar la configuración del gimnasio", err));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -77,14 +83,20 @@ export const Login = () => {
     }
   };
 
+  const handleRecuperarPasswordWsp = () => {
+    if (!config?.telefono) {
+      toast.error("El número de WhatsApp no está disponible en este momento.");
+      return;
+    }
+    
+    const numeroGimnasio = config.telefono.replace(/\D/g, ''); 
+    const mensaje = encodeURIComponent("¡Hola! Me olvidé mi contraseña para ingresar a la app de MM Entrenamiento. ¿Me podrían generar una nueva?");
+    window.open(`https://wa.me/${numeroGimnasio}?text=${mensaje}`, '_blank');
+  };
+
   return (
     <div className="relative min-h-screen bg-mm-light flex flex-col justify-center items-center p-4 overflow-hidden">
       
-      <RecuperarPassword 
-        isOpen={isRecoveryModalOpen} 
-        onClose={() => setIsRecoveryModalOpen(false)}
-      />
-
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
         <BotonInstalarApp />
       </div>
@@ -95,7 +107,7 @@ export const Login = () => {
         <div className="flex flex-col items-center mb-8 gap-3">
           <img src={logoMM} alt="Logo MM Entrenamiento" className="w-20 h-20" />
           <h1 className="font-display font-bold text-mm-dark text-xl text-center tracking-wide">
-            MM Entrenamiento
+            {config?.nombre || 'MM Entrenamiento'}
           </h1>
           <p className="text-gray-400 text-sm font-medium">Ingresá a tu cuenta</p>
         </div>
@@ -137,11 +149,7 @@ export const Login = () => {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 p-1 text-gray-400 hover:text-mm-purple transition-colors rounded-full focus:outline-none focus:bg-purple-50"
               >
-                {showPassword ? (
-                  <EyeSlashIcon className="w-5 h-5" />
-                ) : (
-                  <EyeIcon className="w-5 h-5" />
-                )}
+                {showPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
               </button>
             </div>
           </div>
@@ -165,11 +173,10 @@ export const Login = () => {
             )}
           </button>
 
-          {/* Recuperar contraseña */}
           <div className="flex justify-end -mt-2 mb-2">
             <button 
               type="button" 
-              onClick={() => setIsRecoveryModalOpen(true)}
+              onClick={handleRecuperarPasswordWsp}
               className="text-mm-purple text-xs font-bold hover:underline"
             >
               ¿Olvidaste tu contraseña?
@@ -198,7 +205,7 @@ export const Login = () => {
         }`}
       >
         <div className={`font-display text-white text-3xl sm:text-4xl md:text-5xl text-center px-4 transition-opacity duration-500 delay-300 tracking-wide ${isTransitioning ? 'opacity-100' : 'opacity-0'}`}>
-          MM Entrenamiento
+          {config?.nombre || 'MM Entrenamiento'}
         </div>
       </div>
 
