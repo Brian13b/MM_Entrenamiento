@@ -1,4 +1,4 @@
-import { MagnifyingGlassIcon, UserPlusIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, UserPlusIcon, FunnelIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 export const UsuariosHeader = ({ busqueda, setBusqueda, onNuevoUsuario, filtros }) => {
   return (
@@ -26,6 +26,14 @@ export const UsuariosHeader = ({ busqueda, setBusqueda, onNuevoUsuario, filtros 
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
             />
+            {busqueda && (
+              <button
+                onClick={() => setBusqueda('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-mm-purple transition-colors"
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            )}
           </div>
 
           <button 

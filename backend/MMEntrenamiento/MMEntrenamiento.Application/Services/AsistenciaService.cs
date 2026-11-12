@@ -74,7 +74,8 @@ namespace MMEntrenamiento.Application.Services
                     Email = r.Usuario?.Email ?? "",
                     TipoReserva = r.Tipo.ToString(),
                     Estado = r.Estado.ToString(),
-                    PrimeraClase = esSemanaAdaptacion
+                    PrimeraClase = esSemanaAdaptacion,
+                    FotoPerfilUrl = r.Usuario?.FotoPerfilUrl
                 });
             }
 

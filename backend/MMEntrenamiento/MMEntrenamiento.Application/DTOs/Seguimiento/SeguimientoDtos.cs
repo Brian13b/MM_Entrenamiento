@@ -41,6 +41,7 @@
         public string NombreCompleto { get; set; } = string.Empty;
         public string? Telefono { get; set; }
         public int AusenciasConsecutivas { get; set; }
+        public int CancelacionesConsecutivas { get; set; }
         public DateOnly? UltimaFechaFalta { get; set; }
     }
 

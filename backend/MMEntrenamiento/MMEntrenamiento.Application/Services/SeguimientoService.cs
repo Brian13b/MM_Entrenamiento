@@ -158,46 +158,60 @@ namespace MMEntrenamiento.Application.Services
         {
             var fechaHoy = DateOnly.FromDateTime(DateTime.UtcNow);
 
+            var fechaLimite = fechaHoy.AddDays(-60);
+
             var alumnoIds = (await _userManager.GetUsersInRoleAsync("Alumno")).Select(u => u.Id).ToHashSet();
             alumnoIds.ExceptWith((await _userManager.GetUsersInRoleAsync("Admin")).Select(u => u.Id));
             alumnoIds.ExceptWith((await _userManager.GetUsersInRoleAsync("Profe")).Select(u => u.Id));
 
-            var alumnos = await _unitOfWork.Usuarios.FindAsync(
-                u => alumnoIds.Contains(u.Id) && u.EstadoCuenta == EstadoCuenta.Activo
+            var alumnos = await _unitOfWork.Usuarios.FindAsync(u => alumnoIds.Contains(u.Id) && u.EstadoCuenta == EstadoCuenta.Activo);
+            
+            var idsAlumnosActivos = alumnos.Select(a => a.Id).ToList();
+
+            var todasLasReservas = await _unitOfWork.Reservas.FindAsync(
+                r => idsAlumnosActivos.Contains(r.UsuarioId) &&
+                     r.Turno.Fecha < fechaHoy &&
+                     r.Turno.Fecha >= fechaLimite,
+                r => r.Turno!
             );
+
+            var reservasPorAlumno = todasLasReservas
+                .GroupBy(r => r.UsuarioId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderByDescending(r => r.Turno.Fecha).ToList()
+                );
 
             var alertas = new List<AlertaRetencionDto>();
 
             foreach (var alumno in alumnos)
             {
-                bool tieneTurnosFuturos = await _unitOfWork.Reservas.AnyAsync(
-                    r => r.UsuarioId == alumno.Id && r.Turno.Fecha >= fechaHoy && r.Estado == EstadoReserva.Activa
-                );
-
-                // if (tieneTurnosFuturos) continue;
-
-                var reservasPasadas = (await _unitOfWork.Reservas.FindAsync(
-                    r => r.UsuarioId == alumno.Id && r.Turno.Fecha < fechaHoy,
-                    r => r.Turno!
-                )).OrderByDescending(r => r.Turno.Fecha).ToList();
+                if (!reservasPorAlumno.TryGetValue(alumno.Id, out var reservasPasadas))
+                    continue;
 
                 int ausenciasConsecutivas = 0;
-                DateOnly? ultimaFalta = null;
+                int cancelacionesConsecutivas = 0;
+                DateOnly? fechaUltimoInconveniente = null;
 
                 foreach (var reserva in reservasPasadas)
                 {
-                    if (reserva.Estado == EstadoReserva.Ausente || reserva.Estado == EstadoReserva.Cancelada)
-                    {
-                        ausenciasConsecutivas++;
-                        if (ultimaFalta == null) ultimaFalta = reserva.Turno.Fecha;
-                    }
-                    else if (reserva.Estado == EstadoReserva.Asistio)
+                    if (reserva.Estado == EstadoReserva.Asistio)
                     {
                         break;
                     }
+                    else if (reserva.Estado == EstadoReserva.Ausente)
+                    {
+                        ausenciasConsecutivas++;
+                        if (fechaUltimoInconveniente == null) fechaUltimoInconveniente = reserva.Turno.Fecha;
+                    }
+                    else if (reserva.Estado == EstadoReserva.Cancelada)
+                    {
+                        cancelacionesConsecutivas++;
+                        if (fechaUltimoInconveniente == null) fechaUltimoInconveniente = reserva.Turno.Fecha;
+                    }
                 }
 
-                if (ausenciasConsecutivas >= 2)
+                if (ausenciasConsecutivas >= 2 || cancelacionesConsecutivas >= 3)
                 {
                     alertas.Add(new AlertaRetencionDto
                     {
@@ -205,12 +219,15 @@ namespace MMEntrenamiento.Application.Services
                         NombreCompleto = alumno.NombreCompleto ?? "Sin Nombre",
                         Telefono = alumno.PhoneNumber ?? "",
                         AusenciasConsecutivas = ausenciasConsecutivas,
-                        UltimaFechaFalta = ultimaFalta
+                        CancelacionesConsecutivas = cancelacionesConsecutivas,
+                        UltimaFechaFalta = fechaUltimoInconveniente
                     });
                 }
             }
 
-            return alertas.OrderByDescending(a => a.AusenciasConsecutivas);
+            return alertas
+                .OrderByDescending(a => a.AusenciasConsecutivas)
+                .ThenByDescending(a => a.CancelacionesConsecutivas);
         }
     }
 }

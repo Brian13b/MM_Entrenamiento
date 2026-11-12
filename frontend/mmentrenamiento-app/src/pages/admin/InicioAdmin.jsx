@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDaysIcon, UsersIcon, ChartBarIcon, CurrencyDollarIcon, MegaphoneIcon, PlusCircleIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { CalendarDaysIcon, UsersIcon, ChartBarIcon, CurrencyDollarIcon, MegaphoneIcon, PlusCircleIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { administracionService } from '../../services/administracionService';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -14,6 +14,9 @@ export const InicioAdmin = () => {
   const [usuarios, setUsuarios] = useState([]);
   const [busquedaPago, setBusquedaPago] = useState('');
   const [modalRegistroAbierto, setModalRegistroAbierto] = useState(false);
+  
+  // ESTADO NUEVO: Para expandir la lista de deudores
+  const [mostrarMasDeudores, setMostrarMasDeudores] = useState(false);
 
   const nombreAdmin = useAuthStore((state) => state.usuario?.nombreCompleto);
 
@@ -104,32 +107,32 @@ export const InicioAdmin = () => {
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 items-start">
-        <section className="lg:col-span-2 bg-mm-surface p-6 rounded-3xl border border-gray-100 shadow-sm overflow-hidden h-full flex flex-col">
+        
+        {/* Gráfico de Ocupación */}
+        <section className="lg:col-span-1 bg-mm-surface p-6 rounded-3xl border border-gray-100 shadow-sm overflow-hidden h-full flex flex-col min-h-87.5">
           <div className="flex items-center justify-between mb-8">
-            <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Ocupación por día · semana en curso</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Ocupación por día</p>
             {errorMetricas && (
               <button onClick={cargarMetricas} className="text-xs font-bold text-mm-purple hover:underline">Reintentar</button>
             )}
           </div>
           {!metricas ? (
-            <p className="text-sm text-gray-400 font-medium pb-4 flex-1">{errorMetricas ? 'No se pudieron cargar los datos.' : 'Cargando...'}</p>
+            <p className="text-sm text-gray-400 font-medium pb-4 flex-1">{errorMetricas ? 'Error en datos.' : 'Cargando...'}</p>
           ) : metricas.ocupacionPorDia.length === 0 ? (
-            <p className="text-sm text-gray-400 font-medium pb-4 flex-1">No hay horarios configurados.</p>
+            <p className="text-sm text-gray-400 font-medium pb-4 flex-1">Sin horarios configurados.</p>
           ) : (
-            <div className="flex items-end justify-between h-65 gap-2 pb-2 mt-auto">
+            <div className="flex items-end justify-between h-48 gap-2 pb-2 mt-auto">
               {metricas.ocupacionPorDia.map((t) => (
                 <div key={t.fecha} className="flex flex-col items-center justify-end h-full w-full group relative">
                   <span className="text-[10px] font-bold text-gray-500 mb-2 transition-opacity">
                     {t.porcentaje}%
                   </span>
-                  
-                  <div className="flex-1 w-full max-w-20 bg-mm-light rounded-t-xl overflow-hidden flex flex-col justify-end">
+                  <div className="flex-1 w-full max-w-10 bg-mm-light rounded-t-xl overflow-hidden flex flex-col justify-end">
                     <div
                       className={`w-full transition-all duration-700 ease-out rounded-t-xl ${t.porcentaje >= 95 ? 'bg-red-500' : 'bg-mm-purple'}`}
                       style={{ height: `${t.porcentaje}%`, minHeight: t.porcentaje > 0 ? '4px' : '0' }}
                     />
                   </div>
-                  
                   <span className="text-[10px] font-bold text-mm-dark mt-3 uppercase tracking-wider">
                     {nombreDiaPorIndice(t.diaSemana).substring(0, 3)}
                   </span>
@@ -139,51 +142,70 @@ export const InicioAdmin = () => {
           )}
         </section>
 
-        <div className="lg:col-span-1 h-full">
-          <PanelRetencion />
+        {/* Paneles de Retención Separados */}
+        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
+          <PanelRetencion tipo="ausencias" titulo="Faltas Consecutivas" />
+          <PanelRetencion tipo="cancelaciones" titulo="Racha de Cancelaciones" />
         </div>
 
       </div>
 
-      {/* SECCIÓN DEUDORES RÁPIDA */}
+      {/* SECCIÓN DEUDORES EXPANDIBLE Y CON SCROLL */}
       <section className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-mm-dark flex items-center gap-2">
-            <CurrencyDollarIcon className="w-5 h-5 text-red-500" />
-            Alumnos que deben el mes
-          </h2>
-          <span className="text-xs font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
-            {deudores.length} pendientes
-          </span>
-        </div>
+        <div className="bg-white rounded-4xl p-6 md:p-8 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-mm-dark flex items-center gap-2">
+              <CurrencyDollarIcon className="w-5 h-5 text-red-500" />
+              Alumnos que deben el mes
+            </h2>
+            <span className="text-xs font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+              {deudores.length} pendientes
+            </span>
+          </div>
 
-        {deudores.length === 0 ? (
-          <div className="bg-mm-surface p-8 rounded-3xl border border-gray-100 text-center shadow-sm">
-            <p className="text-sm font-bold text-gray-400">¡Excelente! Todos los alumnos están al día.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {deudores.map(deudor => (
-              <div key={deudor.id} className="bg-white p-4 rounded-2xl border border-red-100 shadow-sm flex items-center justify-between gap-3 transition-colors hover:border-red-200">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-mm-dark truncate">{deudor.nombreCompleto}</p>
-                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-wider mt-0.5">Falta Pago</p>
-                </div>
-                <button 
-                  onClick={() => irAlPerfilDelAlumno(deudor.id)}
-                  className="shrink-0 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-                >
-                  Cobrar
-                </button>
+          {deudores.length === 0 ? (
+            <div className="bg-gray-50 p-8 rounded-3xl border border-gray-100 text-center">
+              <p className="text-sm font-bold text-gray-400">¡Excelente! Todos los alumnos están al día.</p>
+            </div>
+          ) : (
+            <>
+              <div className={`flex flex-col gap-3 transition-all ${mostrarMasDeudores ? 'max-h-95 overflow-y-auto pr-2' : ''}`}>
+                {deudores
+                  .slice(0, mostrarMasDeudores ? deudores.length : 3)
+                  .map(deudor => (
+                    <div key={deudor.id} className="bg-gray-50 p-4 rounded-2xl border border-gray-100 flex items-center justify-between gap-3 transition-colors hover:border-red-200">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-mm-dark truncate">{deudor.nombreCompleto}</p>
+                        <p className="text-[10px] font-bold text-red-500 uppercase tracking-wider mt-0.5">Falta Pago</p>
+                      </div>
+                      <button 
+                        onClick={() => irAlPerfilDelAlumno(deudor.id)}
+                        className="shrink-0 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors"
+                      >
+                        Cobrar
+                      </button>
+                    </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+
+              {/* Botón de Mostrar Más */}
+              {!mostrarMasDeudores && deudores.length > 3 && (
+                <button 
+                  onClick={() => setMostrarMasDeudores(true)}
+                  className="w-full mt-4 py-3 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  Ver todos los deudores
+                </button>
+              )}
+            </>
+          )}
+        </div>
       </section>
 
-      {/* Accesos Rápidos y Buscador de Pagos */}
+      {/* Accesos Rápidos y Buscador */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Buscador */}
+        
+        {/* Buscador de Cobro Rápido */}
         <div className="lg:col-span-1 bg-mm-dark p-6 rounded-4xl shadow-sm relative flex flex-col">
           <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-4xl">
             <div className="absolute top-0 right-0 p-6 opacity-5">
@@ -202,11 +224,20 @@ export const InicioAdmin = () => {
                 placeholder="Nombre del alumno..."
                 value={busquedaPago}
                 onChange={(e) => setBusquedaPago(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl pl-11 pr-4 py-3.5 text-sm outline-none focus:border-mm-surface transition-colors placeholder:text-gray-500"
+                className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl pl-11 pr-10 py-3.5 text-sm outline-none focus:border-mm-surface transition-colors placeholder:text-gray-500"
               />
+              
+              {busquedaPago && (
+                <button
+                  onClick={() => setBusquedaPago('')}
+                  className="absolute right-4 flex items-center text-gray-500 hover:text-white transition-colors"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              )}
             </div>
 
-            {/* Resultados de la búsqueda */}
+            {/* Resultados */}
             {busquedaPago && (
               <div className="mt-2 bg-white rounded-xl overflow-hidden shadow-lg border border-gray-100 absolute w-full z-20">
                 {usuariosFiltrados.length > 0 ? (
@@ -228,10 +259,8 @@ export const InicioAdmin = () => {
           </div>
         </div>
 
-        {/* BOTONES DE ACCIÓN */}
+        {/* Botones de acción rápida */}
         <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-          {/* Reserva Rápida */}
           <button
             onClick={() => navigate('/admin/horarios')}
             className="bg-mm-surface p-5 rounded-4xl border border-gray-100 shadow-sm hover:shadow-md hover:border-orange-200 transition-all group flex flex-col items-start text-left"
@@ -243,7 +272,6 @@ export const InicioAdmin = () => {
             <p className="text-xs text-gray-500 mt-1 font-medium">Anotá a un alumno en un turno eventual o fijo.</p>
           </button>
 
-          {/* Nuevo Usuario */}
           <button
             onClick={() => setModalRegistroAbierto(true)}
             className="bg-mm-surface p-5 rounded-4xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all group flex flex-col items-start text-left"
@@ -255,7 +283,6 @@ export const InicioAdmin = () => {
             <p className="text-xs text-gray-500 mt-1 font-medium">Registrá rápidamente un alumno o profesor.</p>
           </button>
 
-          {/* Anuncio Global */}
           <button
             onClick={() => navigate('/admin/ajustes')}
             className="bg-mm-surface p-5 rounded-4xl border border-gray-100 shadow-sm hover:shadow-md hover:border-purple-200 transition-all group flex flex-col items-start text-left sm:col-span-2"
@@ -270,9 +297,7 @@ export const InicioAdmin = () => {
               </div>
             </div>
           </button>
-
         </div>
-
       </section>
 
       <ModalNuevoUsuario
@@ -280,7 +305,6 @@ export const InicioAdmin = () => {
         onClose={() => setModalRegistroAbierto(false)}
         onUsuarioCreado={cargarUsuarios}
       />
-
     </div>
   );
 };

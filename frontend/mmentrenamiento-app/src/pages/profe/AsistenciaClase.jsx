@@ -324,7 +324,17 @@ export const AsistenciaClase = () => {
                       } ${!presente ? 'opacity-60 grayscale-30' : ''}`}
                     >
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-sm ${isSelected ? 'bg-purple-100 text-mm-purple' : 'bg-gray-100 text-gray-500'}`}>
-                        {iniciales}
+                        {alumno.fotoPerfilUrl ? (
+                          <img 
+                            src={alumno.fotoPerfilUrl} 
+                            alt={alumno.nombreCompleto} 
+                            className="w-full h-full rounded-full object-cover shadow-sm"
+                          />
+                        ) : (
+                          <span className="flex items-center justify-center w-full h-full">
+                            {iniciales}
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex-1 min-w-0">
