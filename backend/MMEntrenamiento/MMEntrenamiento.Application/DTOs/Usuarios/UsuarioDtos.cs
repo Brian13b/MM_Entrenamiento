@@ -47,6 +47,14 @@ namespace MMEntrenamiento.Application.DTOs.Usuarios
         public string? Lesiones { get; set; }
     }
 
+    public class HistorialClaseDto
+    {
+        public DateOnly Fecha { get; set; }
+        public TimeOnly HoraInicio { get; set; }
+        public string TipoReserva { get; set; } = string.Empty;
+        public string Estado { get; set; } = string.Empty;
+    }
+
     public class ResumenAlumnoDto
     {
         public Guid Id { get; set; }
@@ -57,5 +65,7 @@ namespace MMEntrenamiento.Application.DTOs.Usuarios
         public EstadisticasAlumnoDto Estadisticas { get; set; } = new();
         public PlanAlumnoDto? Plan { get; set; }
         public FichaResumenDto FichaTecnica { get; set; } = new();
+        public bool Deudor { get; set; }
+        public List<HistorialClaseDto> Historial30Dias { get; set; } = new();
     }
 }

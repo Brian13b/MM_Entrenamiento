@@ -388,6 +388,44 @@ export const PerfilAlumno = () => {
             </div>
           </section>
 
+          {/* NUEVA SECCIÓN: HISTORIAL DE CLASES */}
+          <section className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm mt-2 mb-2">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide">Últimas Asistencias</h3>
+              <span className="text-[10px] font-bold text-mm-purple bg-purple-50 px-2 py-1 rounded-md uppercase tracking-wider">
+                30 Días
+              </span>
+            </div>
+            
+            {!resumen.historial30Dias || resumen.historial30Dias.length === 0 ? (
+              <p className="text-sm text-gray-400 font-medium italic p-4 text-center bg-gray-50 rounded-2xl">
+                No hay clases registradas recientemente.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2 max-h-75 overflow-y-auto custom-scrollbar pr-2">
+                {resumen.historial30Dias.map((cls, index) => (
+                  <div key={index} className="flex items-center justify-between bg-white p-3 rounded-2xl border border-gray-100">
+                    <div>
+                      <p className="text-sm font-bold text-mm-dark">
+                        {formatearVencimiento(cls.fecha)}
+                      </p>
+                      <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mt-0.5">
+                        {cls.horaInicio.substring(0, 5)} hs • {cls.tipoReserva}
+                      </p>
+                    </div>
+                    <span className={`text-xs font-bold px-3 py-1 rounded-xl ${
+                      cls.estado === 'Asistio' ? 'bg-green-100 text-green-700' :
+                      cls.estado === 'Ausente' ? 'bg-red-100 text-red-600' :
+                      'bg-gray-100 text-gray-600'
+                    }`}>
+                      {cls.estado === 'Asistio' ? 'Presente' : cls.estado}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
           <section className="bg-mm-surface rounded-3xl p-3 shadow-[0_2px_12px_rgba(31,30,46,0.06)] border border-gray-100">
             <ul className="divide-y divide-gray-50">
               <li onClick={() => setModalPassword(true)} className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer rounded-2xl transition-colors group">

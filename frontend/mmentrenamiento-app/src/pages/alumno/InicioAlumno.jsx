@@ -9,7 +9,7 @@ import { membresiasService } from '../../services/membresiasService';
 import { administracionService } from '../../services/administracionService';
 import { usuarioService } from '../../services/usuarioService';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
-import { etiquetaTurno, etiquetaTipoReserva, diasHasta, esNotFound, claseYaInicio } from '../../utils/fechas';
+import { etiquetaTurno, etiquetaTipoReserva, esNotFound, claseYaInicio } from '../../utils/fechas';
 
 const MENSAJE_SIN_AVISOS = "No hay avisos nuevos por el momento.";
 
@@ -54,7 +54,7 @@ export const InicioAlumno = () => {
         turnosFijosSemana: misTurnos.turnosFijosActivos ?? 0,
         mensajeImportante: anuncio?.mensaje || MENSAJE_SIN_AVISOS,
         plan: resumen.plan,
-        diasVencimientoMembresia: resumen.plan ? diasHasta(resumen.plan.vencimiento) : null,
+        deudor: resumen.deudor,
         proximasClases: misTurnos.proximasClases ?? []
       });
     } catch (error) {
@@ -173,19 +173,39 @@ export const InicioAlumno = () => {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 rounded-2xl px-4 py-4 bg-mm-dark mt-auto">
             {datosDashboard.plan ? (
-              <>
-                <p className="text-sm font-medium text-mm-light text-center">
-                  {datosDashboard.diasVencimientoMembresia === 0 ? (
-                    <>Tu membresía <span className="text-mm-purple font-bold">vence hoy</span>.</>
-                  ) : (
-                    <>Tu membresía vence en <span className="text-mm-purple font-bold">{datosDashboard.diasVencimientoMembresia}</span> {datosDashboard.diasVencimientoMembresia === 1 ? 'día' : 'días'}.</>
-                  )}
-                </p>
-                <span className="h-px w-full sm:h-5 sm:w-px bg-gray-600 my-1 sm:my-0" />
-                <p className="text-sm font-medium text-mm-light text-center">
-                  <span className="text-mm-purple font-bold">Renovala</span> para no perder tus turnos.
-                </p>
-              </>
+              !datosDashboard.deudor ? (
+                <>
+                  <p className="text-sm font-medium text-mm-light text-center">
+                    ¡Gracias por confiar en <span className="text-mm-purple font-bold">MM Entrenamiento</span>!
+                  </p>
+                  <span className="h-px w-full sm:h-5 sm:w-px bg-gray-600 my-1 sm:my-0" />
+                  <p className="text-sm font-medium text-mm-light text-center">
+                    Tu próxima cuota vence el <span className="text-mm-purple font-bold">15 del mes que viene</span>.
+                  </p>
+                </>
+              ) : (
+                new Date().getDate() <= 15 ? (
+                  <>
+                    <p className="text-sm font-medium text-mm-light text-center">
+                      Recordá que el <span className="text-mm-purple font-bold">día 15</span> vence la membresía.
+                    </p>
+                    <span className="h-px w-full sm:h-5 sm:w-px bg-gray-600 my-1 sm:my-0" />
+                    <p className="text-sm font-medium text-mm-light text-center">
+                      No te olvides de <span className="text-mm-purple font-bold">abonarla</span>.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-bold text-red-400 text-center">
+                      Tu membresía se encuentra vencida.
+                    </p>
+                    <span className="h-px w-full sm:h-5 sm:w-px bg-gray-600 my-1 sm:my-0" />
+                    <p className="text-sm font-medium text-mm-light text-center">
+                      Por favor, <span className="text-mm-purple font-bold">regularizá tu situación</span>.
+                    </p>
+                  </>
+                )
+              )
             ) : (
               <p className="text-sm font-medium text-mm-light text-center">
                 Todavía no tenés una membresía asignada. Consultá con administración.

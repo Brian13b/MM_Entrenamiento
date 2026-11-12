@@ -47,27 +47,33 @@ namespace MMEntrenamiento.Application.Services
             if (usuario == null) return null;
 
             var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
+            var hace30Dias = hoy.AddDays(-30);
 
-            // Clases ya resueltas (Asistio/Ausente). Las canceladas y las activas sin cerrar no afectan la racha.
-            var reservasResueltas = (await _unitOfWork.Reservas.FindAsync(
-                r => r.UsuarioId == usuarioId
-                  && (r.Estado == EstadoReserva.Asistio || r.Estado == EstadoReserva.Ausente)
-                  && r.Turno.Fecha <= hoy,
+            var todasLasReservasRecientes = (await _unitOfWork.Reservas.FindAsync(
+                r => r.UsuarioId == usuarioId && r.Turno.Fecha <= hoy && r.Turno.Fecha >= hace30Dias,
                 r => r.Turno!,
                 r => r.Turno.Horario!))
                 .OrderByDescending(r => r.Turno.Fecha)
                 .ThenByDescending(r => r.Turno.Horario.HoraInicio)
                 .ToList();
 
-            // Racha: asistencias consecutivas, se corta en la primera ausencia.
-            var racha = reservasResueltas
-                .TakeWhile(r => r.Estado == EstadoReserva.Asistio)
-                .Count();
-
             var diasDesdeLunes = ((int)hoy.DayOfWeek + 6) % 7;
             var lunes = hoy.AddDays(-diasDesdeLunes);
-            var asistidasSemana = reservasResueltas.Count(r =>
+
+            var asistidasSemana = todasLasReservasRecientes.Count(r =>
                 r.Estado == EstadoReserva.Asistio && r.Turno.Fecha >= lunes && r.Turno.Fecha <= lunes.AddDays(6));
+
+            var historialResuelto = (await _unitOfWork.Reservas.FindAsync(
+                r => r.UsuarioId == usuarioId
+                    && r.Turno.Fecha <= hoy
+                    && (r.Estado == EstadoReserva.Asistio || r.Estado == EstadoReserva.Ausente),
+                r => r.Turno!))
+                .OrderByDescending(r => r.Turno.Fecha)
+                .ToList();
+
+            var rachaHistorica = historialResuelto
+                .TakeWhile(r => r.Estado == EstadoReserva.Asistio)
+                .Count();
 
             PlanAlumnoDto? plan = null;
             if (usuario.MembresiaActual != null)
@@ -77,9 +83,31 @@ namespace MMEntrenamiento.Application.Services
                     Nombre = usuario.MembresiaActual.Nombre,
                     VecesPorSemana = usuario.MembresiaActual.LimiteTurnosFijos,
                     Estado = usuario.EstadoCuenta == EstadoCuenta.Activo ? "Activo" : "Inactivo",
-                    Vencimiento = new DateOnly(hoy.Year, hoy.Month, DateTime.DaysInMonth(hoy.Year, hoy.Month))
+                    Vencimiento = new DateOnly(hoy.Year, hoy.Month, 15)
                 };
             }
+
+            var hoyArgentina = DateTime.UtcNow.AddHours(-3);
+            bool periodoDeGracia = hoyArgentina.Day <= 10;
+            bool esDeudor = false;
+
+            if (usuario.MembresiaActual != null && !periodoDeGracia)
+            {
+                bool pagoEsteMes = await _unitOfWork.Pagos.AnyAsync(p =>
+                    p.UsuarioId == usuarioId &&
+                    p.MesAbonado == hoyArgentina.Month &&
+                    p.AnioAbonado == hoyArgentina.Year);
+
+                esDeudor = !pagoEsteMes;
+            }
+
+            var historialDto = todasLasReservasRecientes.Select(r => new HistorialClaseDto
+            {
+                Fecha = r.Turno.Fecha,
+                HoraInicio = r.Turno.Horario.HoraInicio,
+                TipoReserva = r.Tipo.ToString(),
+                Estado = r.Estado.ToString()
+            }).ToList();
 
             return new ResumenAlumnoDto
             {
@@ -91,14 +119,16 @@ namespace MMEntrenamiento.Application.Services
                 Estadisticas = new EstadisticasAlumnoDto
                 {
                     ClasesAsistidasSemana = asistidasSemana,
-                    RachaActual = racha
+                    RachaActual = rachaHistorica
                 },
                 Plan = plan,
                 FichaTecnica = new FichaResumenDto
                 {
                     Objetivos = usuario.FichaTecnica?.Objetivos,
                     Lesiones = usuario.FichaTecnica?.Lesiones
-                }
+                },
+                Deudor = esDeudor,
+                Historial30Dias = historialDto
             };
         }
 
