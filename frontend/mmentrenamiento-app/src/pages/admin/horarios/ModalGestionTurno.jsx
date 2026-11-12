@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
@@ -13,6 +14,7 @@ export const ModalGestionTurno = ({ isOpen, onClose, turno, fechaOperativa, onRe
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [confirmar, confirmDialog] = useConfirm();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isOpen && usuarios.length === 0) {
@@ -198,6 +200,13 @@ export const ModalGestionTurno = ({ isOpen, onClose, turno, fechaOperativa, onRe
             </button>
           </div>
         </div>
+        
+        <button
+          onClick={() => navigate(`/admin/clase/${turno.horarioId}?fecha=${fechaOperativa}`)}
+          className="w-full bg-mm-purple text-white font-bold rounded-xl py-3 text-sm hover:bg-mm-purple/90 transition-colors shadow-sm mt-4"
+        >
+          Tomar Asistencia
+        </button>
 
       </div>
     </Modal>

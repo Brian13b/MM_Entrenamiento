@@ -65,6 +65,7 @@ export const AppRouter = () => {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<InicioAdmin />} />
             <Route path="horarios" element={<HorariosAdmin />} />
+            <Route path="clase/:turnoId" element={<AsistenciaClase />} />
             <Route path="usuarios">
               <Route index element={<UsuariosAdmin />} />
               <Route path=":id" element={<PerfilUsuario />} />
