@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ArrowLeftIcon, ExclamationTriangleIcon, CheckIcon, XMarkIcon, MagnifyingGlassIcon, PlusIcon, ArrowTopRightOnSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ExclamationTriangleIcon, CheckIcon, XMarkIcon, MagnifyingGlassIcon, PlusIcon, ArrowTopRightOnSquareIcon, TrashIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { asistenciaService } from '../../services/asistenciaService';
 import { seguimientoService } from '../../services/seguimientoService';
 import { administracionService } from '../../services/administracionService';
@@ -9,7 +9,7 @@ import { reservasService } from '../../services/reservasService';
 import { etiquetaTurno, formatearHora, esNotFound } from '../../utils/fechas';
 import { PlanFrame } from '../../components/perfil/PlanFrame';
 import { obtenerUrlEditable } from '../../utils/onedrive';
-import { useConfirm } from '../../hooks/useConfirm'; // IMPORTANTE: Agregado el hook de confirmación
+import { useConfirm } from '../../hooks/useConfirm';
 
 // ==========================================
 // DETALLE Y ASISTENCIA DE LA CLASE
@@ -92,6 +92,9 @@ export const AsistenciaClase = () => {
   const [fichas, setFichas] = useState({});
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null);
 
+  const [claseAnterior, setClaseAnterior] = useState(null);
+  const [claseSiguiente, setClaseSiguiente] = useState(null);
+  
   const [busquedaAlumno, setBusquedaAlumno] = useState('');
   const [usuariosSistema, setUsuariosSistema] = useState([]);
   const [isBuscando, setIsBuscando] = useState(false);
@@ -125,6 +128,26 @@ export const AsistenciaClase = () => {
         mapa[a.usuarioId] = resultados[i].status === 'fulfilled' ? resultados[i].value : null;
       });
       setFichas(mapa);
+
+      try {
+        const grillaDelDia = await reservasService.obtenerGrillaDisponibles(fecha); 
+        
+        const indexActual = grillaDelDia.findIndex(t => t.horarioId.toString() === horarioIdUrl.toString());
+
+        if (indexActual > 0) {
+          setClaseAnterior(grillaDelDia[indexActual - 1]);
+        } else {
+          setClaseAnterior(null);
+        }
+
+        if (indexActual !== -1 && indexActual < grillaDelDia.length - 1) {
+          setClaseSiguiente(grillaDelDia[indexActual + 1]);
+        } else {
+          setClaseSiguiente(null);
+        }
+      } catch (e) {
+        console.error("No se pudo cargar la grilla para los botones de navegación", e);
+      }
       
       if (data.alumnosPresentes.length > 0 && !alumnoSeleccionado) {
         setAlumnoSeleccionado(data.alumnosPresentes[0].reservaId);
@@ -198,6 +221,13 @@ export const AsistenciaClase = () => {
     }
   };
 
+  const navegarAClase = (horarioId, horaInicio) => {
+    const nuevaRuta = window.location.pathname.replace(horarioIdUrl, horarioId);
+    const fechaActual = searchParams.get('fecha');
+    
+    navigate(`${nuevaRuta}?fecha=${fechaActual}&hora=${horaInicio}`);
+  };
+
   const volver = () => navigate(-1);
 
   if (isLoading && !detalle) {
@@ -245,6 +275,28 @@ export const AsistenciaClase = () => {
             Turno de las {formatearHora(detalle.horaInicio)} hs
           </h1>
           <p className="text-sm font-bold text-gray-400 mt-1 uppercase tracking-wider">{etiquetaTurno(detalle.fecha, detalle.horaInicio)}</p>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          {claseAnterior && (
+            <button
+              onClick={() => navegarAClase(claseAnterior.horarioId, claseAnterior.horaInicio)}
+              className="flex items-center gap-1 bg-white border border-gray-200 px-3 py-2 rounded-xl text-sm font-bold text-gray-600 hover:text-mm-purple hover:border-purple-200 transition-colors shadow-sm"
+              title="Ir a la clase anterior"
+            >
+              <ChevronLeftIcon className="w-4 h-4" />
+              <span className="hidden sm:inline">{claseAnterior.horaInicio.substring(0, 5)}</span>
+            </button>
+          )}
+          {claseSiguiente && (
+            <button
+              onClick={() => navegarAClase(claseSiguiente.horarioId, claseSiguiente.horaInicio)}
+              className="flex items-center gap-1 bg-white border border-gray-200 px-3 py-2 rounded-xl text-sm font-bold text-gray-600 hover:text-mm-purple hover:border-purple-200 transition-colors shadow-sm"
+              title="Ir a la clase siguiente"
+            >
+              <span className="hidden sm:inline">{claseSiguiente.horaInicio.substring(0, 5)}</span>
+              <ChevronRightIcon className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
