@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeftIcon, CurrencyDollarIcon, ClipboardDocumentCheckIcon, 
   LinkIcon, NoSymbolIcon, PlusCircleIcon, MinusCircleIcon, 
-  PhoneIcon, StarIcon, CalendarDaysIcon, TrashIcon, PencilSquareIcon, ArrowTopRightOnSquareIcon
+  PhoneIcon, StarIcon, CalendarDaysIcon, TrashIcon, PencilSquareIcon, ArrowTopRightOnSquareIcon, EyeIcon, EyeSlashIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -11,6 +11,7 @@ import { seguimientoService } from '../../services/seguimientoService';
 import { administracionService } from '../../services/administracionService';
 import { membresiasService } from '../../services/membresiasService';
 import { reservasService } from '../../services/reservasService';
+import { usuarioService } from '../../services/usuarioService';
 import { AgregarTurnoUsuario } from '../admin/usuarios/AgregarTurnoUsuario';
 import { useConfirm } from '../../hooks/useConfirm';
 import { etiquetaTurno, formatearHora, nombreDiaSemana, etiquetaTipoReserva, esNotFound } from '../../utils/fechas';
@@ -33,11 +34,13 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [confirmar, confirmDialog] = useConfirm();
   const [usuario, setUsuario] = useState(null);
+  const [resumen, setResumen] = useState(null);
 
   // Estados de Edición
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
-  const [datosEdicion, setDatosEdicion] = useState({ nombreCompleto: '', telefono: '', rol: 'Alumno', email: '' });
+  const [datosEdicion, setDatosEdicion] = useState({ nombreCompleto: '', telefono: '', rol: 'Alumno', email: '', nuevaPassword: '' });
   const [guardandoPerfil, setGuardandoPerfil] = useState(false);
+  const [mostrarPassword, setMostrarPassword] = useState(false);
 
   // Estados de Ficha y Plan
   const [ficha, setFicha] = useState({ objetivos: '', lesiones: '' });
@@ -87,7 +90,8 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
         const promesas = [
           administracionService.getUsuarioById(id),
           seguimientoService.getFichaAlumno(id),
-          cargarTurnos()
+          cargarTurnos(),
+          usuarioService.getResumenPorId(id)
         ];
         
         if (esStaff) {
@@ -95,9 +99,10 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
           promesas.push(administracionService.getPagosUsuario(id));
         }
 
-        const [datosUsuario, datosFicha, datosTurnos, listaMembresias, datosPagos] = await Promise.all(promesas);
+        const [datosUsuario, datosResumen, datosFicha, datosTurnos, listaMembresias, datosPagos] = await Promise.all(promesas);
 
         setUsuario(datosUsuario);
+        setResumen(datosResumen);
         setDatosEdicion({ 
           nombreCompleto: datosUsuario.nombreCompleto || '', 
           telefono: datosUsuario.telefono || '',
@@ -135,6 +140,10 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
     e.preventDefault();
     try {
       setGuardandoPerfil(true);
+      
+      let passwordActualizada = false;
+      const claveNueva = datosEdicion.nuevaPassword.trim();
+
       await administracionService.actualizarPerfilUsuario(id, {
         nombreCompleto: datosEdicion.nombreCompleto.trim(),
         telefono: datosEdicion.telefono.trim() || null,
@@ -145,6 +154,17 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
         await administracionService.cambiarRolUsuario(id, datosEdicion.rol);
       }
 
+      if (claveNueva !== '') {
+        if (claveNueva.length < 6) {
+          toast.error("La contraseña debe tener al menos 6 caracteres.");
+          setGuardandoPerfil(false);
+          return;
+        }
+        // Guardamos la clave en el backend
+        await administracionService.cambiarPasswordAdmin(id, { nuevaContrasena: claveNueva });
+        passwordActualizada = true;
+      }
+
       setUsuario(prev => ({ 
         ...prev, 
         nombreCompleto: datosEdicion.nombreCompleto.trim(), 
@@ -153,8 +173,35 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
         rol: datosEdicion.rol
       }));
       
-      toast.success("Perfil actualizado correctamente.");
       setModalEditarAbierto(false);
+      setDatosEdicion(prev => ({ ...prev, nuevaPassword: '' })); 
+
+      if (passwordActualizada) {
+        const telefonoParaWsp = datosEdicion.telefono ? datosEdicion.telefono.replace(/\D/g, '') : '';
+        const msj = encodeURIComponent(`Hola ${datosEdicion.nombreCompleto}, tu nueva clave para acceder a MM Entrenamiento es: ${claveNueva}.`);
+        
+        toast((t) => (
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-bold text-gray-800">Contraseña actualizada</p>
+            {telefonoParaWsp ? (
+              <a 
+                href={`https://wa.me/${telefonoParaWsp}?text=${msj}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                onClick={() => toast.dismiss(t.id)}
+                className="bg-[#25D366] text-white text-xs font-bold px-3 py-1.5 rounded-lg flex justify-center items-center hover:bg-[#20bd5a] transition-colors"
+              >
+                Avisarle por WhatsApp
+              </a>
+            ) : (
+              <p className="text-xs text-gray-500">El alumno no tiene teléfono para avisarle.</p>
+            )}
+          </div>
+        ), { duration: 6000 });
+      } else {
+        toast.success("Perfil actualizado correctamente.");
+      }
+
     } catch (error) {
       toast.error(error.response?.data?.message || "Error al actualizar el perfil.");
     } finally {
@@ -644,6 +691,48 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
                 )}
               </div>
             </section>
+
+            <section className="bg-mm-surface p-6 rounded-4xl border border-gray-100 shadow-sm">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center shrink-0">
+                    <CalendarDaysIcon className="w-5 h-5 text-mm-purple" />
+                  </div>
+                  <h2 className="text-lg font-bold text-mm-dark">Historial Reciente</h2>
+                </div>
+                <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-md uppercase tracking-wider">
+                  30 Días
+                </span>
+              </div>
+              
+              {!resumen?.historial30Dias || resumen.historial30Dias.length === 0 ? (
+                <p className="text-xs text-gray-400 font-medium italic p-4 text-center bg-gray-50 rounded-xl border border-gray-100">
+                  No hay clases registradas recientemente.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2 max-h-87.5 overflow-y-auto custom-scrollbar pr-2">
+                  {resumen.historial30Dias.map((cls, index) => (
+                    <div key={index} className="flex justify-between items-center bg-white border border-gray-100 p-3 rounded-xl hover:border-purple-100 transition-colors">
+                      <div>
+                        <p className="font-bold text-sm text-mm-dark">
+                          {etiquetaTurno(cls.fecha, cls.horaInicio)} hs
+                        </p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">
+                          {etiquetaTipoReserva(cls.tipoReserva)}
+                        </p>
+                      </div>
+                      <span className={`text-xs font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider ${
+                        cls.estado === 'Asistio' ? 'bg-green-50 text-green-600' :
+                        cls.estado === 'Ausente' ? 'bg-red-50 text-red-500' :
+                        'bg-gray-100 text-gray-500'
+                      }`}>
+                        {cls.estado === 'Asistio' ? 'Presente' : cls.estado}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
           </div>
         )}
       </div>
@@ -675,22 +764,51 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
             />
           </div>
 
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Correo Electrónico</label>
-            <input
-              type="email" required value={datosEdicion.email} placeholder="correo@ejemplo.com"
-              onChange={(e) => setDatosEdicion({ ...datosEdicion, email: e.target.value })}
-              className={inputClase}
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Correo Electrónico</label>
+              <input
+                type="email" required value={datosEdicion.email} placeholder="correo@ejemplo.com"
+                onChange={(e) => setDatosEdicion({ ...datosEdicion, email: e.target.value })}
+                className={inputClase}
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Teléfono (WhatsApp)</label>
+              <input
+                type="tel" value={datosEdicion.telefono} placeholder="Teléfono"
+                onChange={(e) => setDatosEdicion({ ...datosEdicion, telefono: e.target.value })}
+                className={inputClase}
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Teléfono (WhatsApp)</label>
-            <input
-              type="tel" value={datosEdicion.telefono} placeholder="Teléfono"
-              onChange={(e) => setDatosEdicion({ ...datosEdicion, telefono: e.target.value })}
-              className={inputClase}
-            />
+          {/* NUEVO CAMPO: CONTRASEÑA */}
+          <div className="bg-gray-50 p-4 sm:p-5 rounded-2xl border border-gray-200 mt-2 shadow-inner">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
+              Cambiar Contraseña <span className="text-gray-400 normal-case font-medium">(Opcional)</span>
+            </label>
+            <p className="text-[11px] text-gray-500 mb-3">
+              Si escribís algo acá, la contraseña actual del alumno dejará de funcionar y solo podrá entrar con esta nueva.
+            </p>
+            <div className="relative">
+              <input
+                type={mostrarPassword ? "text" : "password"}
+                placeholder="Ej: Mm123456!"
+                value={datosEdicion.nuevaPassword}
+                onChange={(e) => setDatosEdicion({ ...datosEdicion, nuevaPassword: e.target.value })}
+                className="w-full bg-white border border-gray-200 rounded-xl pl-4 pr-12 py-3 text-sm text-mm-dark focus:ring-2 focus:ring-mm-purple outline-none shadow-sm transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setMostrarPassword(!mostrarPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-mm-purple transition-colors p-1 bg-white"
+                title="Mostrar/Ocultar"
+              >
+                {mostrarPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
 
           <button type="submit" disabled={guardandoPerfil} className="w-full bg-mm-purple text-white font-bold rounded-xl py-3.5 text-sm hover:opacity-90 disabled:opacity-70 mt-2">

@@ -335,5 +335,23 @@ namespace MMEntrenamiento.Application.Services
 
             return tokenHandler.WriteToken(token);
         }
+
+        public async Task<(bool Exito, string Mensaje)> CambiarPasswordAdminAsync(Guid usuarioId, string nuevaContrasena)
+        {
+            var usuario = await _userManager.FindByIdAsync(usuarioId.ToString());
+            if (usuario == null)
+                return (false, "El usuario no existe.");
+
+            var resetToken = await _userManager.GeneratePasswordResetTokenAsync(usuario);
+            var result = await _userManager.ResetPasswordAsync(usuario, resetToken, nuevaContrasena);
+
+            if (!result.Succeeded)
+            {
+                var error = result.Errors.FirstOrDefault()?.Description ?? "Error al reiniciar la contraseña.";
+                return (false, error);
+            }
+
+            return (true, "Contraseña actualizada correctamente.");
+        }
     }
 }

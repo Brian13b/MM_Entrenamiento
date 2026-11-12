@@ -11,6 +11,11 @@ export const usuarioService = {
     return response.data;
   },
 
+  getResumenPorId: async (id) => {
+    const response = await api.get(`/usuarios/resumen/${id}`);
+    return response.data;
+  },
+
   actualizarMiPerfil: async ({ nombreCompleto, email, telefono }, foto = null) => {
     if (foto) {
       const formData = new FormData();
@@ -39,5 +44,10 @@ export const usuarioService = {
       }
     });
     return response.data;
-  }
+  }, 
+
+  cambiarPasswordAdmin: async (usuarioId, datos) => {
+    const response = await api.post(`/auth/admin/reset-password/${usuarioId}`, datos);
+    return response.data;
+  },
 };

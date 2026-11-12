@@ -39,6 +39,18 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(resumen);
         }
 
+        [HttpGet("resumen/{id}")]
+        [Authorize(Roles = "Admin, Profe")]
+        public async Task<ActionResult<ResumenAlumnoDto>> GetResumenPorId(Guid id)
+        {
+            var resumen = await _usuarioService.ObtenerResumenAsync(id);
+
+            if (resumen == null)
+                return NotFound(new { message = "Usuario no encontrado." });
+
+            return Ok(resumen);
+        }
+
         // Disponible para cualquier usuario autenticado (Admin, Profe y Alumno).
         [HttpPut("mi-perfil")]
         [Consumes("application/json")]

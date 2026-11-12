@@ -11,5 +11,6 @@ namespace MMEntrenamiento.Application.Interfaces
         Task<(bool Exito, string Mensaje)> CambiarPasswordAsync(Guid usuarioId, CambiarPasswordDto request);
         Task<(bool Exito, string Mensaje)> SolicitarRecuperacionAsync(SolicitarRecuperacionDto request);
         Task<(bool Exito, string Mensaje)> ResetearPasswordAsync(ResetearPasswordDto request);
+        Task<(bool Exito, string Mensaje)> CambiarPasswordAdminAsync(Guid usuarioId, string nuevaContrasena);
     }
 }
