@@ -705,7 +705,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
                 </span>
               </div>
               
-              {!resumen?.historial30Dias || resumen.historial30Dias.length === 0 ? (
+              {(!resumen?.historial30Dias || resumen.historial30Dias.length === 0) ? (
                 <p className="text-xs text-gray-400 font-medium italic p-4 text-center bg-gray-50 rounded-xl border border-gray-100">
                   No hay clases registradas recientemente.
                 </p>
@@ -715,18 +715,18 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
                     <div key={index} className="flex justify-between items-center bg-white border border-gray-100 p-3 rounded-xl hover:border-purple-100 transition-colors">
                       <div>
                         <p className="font-bold text-sm text-mm-dark">
-                          {etiquetaTurno(cls.fecha, cls.horaInicio)} hs
+                          {etiquetaTurno(cls?.fecha, cls?.horaInicio)} hs
                         </p>
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">
-                          {etiquetaTipoReserva(cls.tipoReserva)}
+                          {etiquetaTipoReserva(cls?.tipoReserva)}
                         </p>
                       </div>
                       <span className={`text-xs font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider ${
-                        cls.estado === 'Asistio' ? 'bg-green-50 text-green-600' :
-                        cls.estado === 'Ausente' ? 'bg-red-50 text-red-500' :
+                        cls?.estado === 'Asistio' ? 'bg-green-50 text-green-600' :
+                        cls?.estado === 'Ausente' ? 'bg-red-50 text-red-500' :
                         'bg-gray-100 text-gray-500'
                       }`}>
-                        {cls.estado === 'Asistio' ? 'Presente' : cls.estado}
+                        {cls?.estado === 'Asistio' ? 'Presente' : (cls?.estado || '—')}
                       </span>
                     </div>
                   ))}
