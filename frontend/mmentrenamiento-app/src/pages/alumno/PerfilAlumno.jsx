@@ -397,7 +397,7 @@ export const PerfilAlumno = () => {
               </span>
             </div>
             
-            {!resumen?.historial30Dias || resumen.historial30Dias.length === 0 ? (
+            {(!resumen?.historial30Dias || resumen.historial30Dias.length === 0) ? (
               <p className="text-sm text-gray-400 font-medium italic p-4 text-center bg-gray-50 rounded-2xl">
                 No hay clases registradas recientemente.
               </p>
@@ -407,18 +407,18 @@ export const PerfilAlumno = () => {
                   <div key={index} className="flex items-center justify-between bg-white p-3 rounded-2xl border border-gray-100">
                     <div>
                       <p className="text-sm font-bold text-mm-dark">
-                        {formatearVencimiento(cls.fecha)}
+                        {formatearVencimiento(cls?.fecha)}
                       </p>
                       <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mt-0.5">
-                        {cls.horaInicio.substring(0, 5)} hs • {cls.tipoReserva}
+                        {cls?.horaInicio ? cls.horaInicio.substring(0, 5) : '--:--'} hs • {cls?.tipoReserva || 'Clase'}
                       </p>
                     </div>
                     <span className={`text-xs font-bold px-3 py-1 rounded-xl ${
-                      cls.estado === 'Asistio' ? 'bg-green-100 text-green-700' :
-                      cls.estado === 'Ausente' ? 'bg-red-100 text-red-600' :
+                      cls?.estado === 'Asistio' ? 'bg-green-100 text-green-700' :
+                      cls?.estado === 'Ausente' ? 'bg-red-100 text-red-600' :
                       'bg-gray-100 text-gray-600'
                     }`}>
-                      {cls.estado === 'Asistio' ? 'Presente' : cls.estado}
+                      {cls?.estado === 'Asistio' ? 'Presente' : (cls?.estado || '—')}
                     </span>
                   </div>
                 ))}

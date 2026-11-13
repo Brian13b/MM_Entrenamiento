@@ -132,7 +132,11 @@ export const AsistenciaClase = () => {
       try {
         const grillaDelDia = await reservasService.obtenerGrillaDisponibles(fecha); 
         
-        const indexActual = grillaDelDia.findIndex(t => t.horarioId.toString() === horarioIdUrl.toString());
+        const indexActual = grillaDelDia.findIndex(t => 
+          (t.horarioId && t.horarioId.toString() === horarioIdUrl.toString()) ||
+          (t.id && t.id.toString() === horarioIdUrl.toString()) ||
+          (t.turnoId && t.turnoId.toString() === horarioIdUrl.toString())
+        );
 
         if (indexActual > 0) {
           setClaseAnterior(grillaDelDia[indexActual - 1]);
