@@ -107,7 +107,8 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
           nombreCompleto: datosUsuario.nombreCompleto || '', 
           telefono: datosUsuario.telefono || '',
           rol: datosUsuario.rol || 'Alumno',
-          email: datosUsuario.email || ''
+          email: datosUsuario.email || '',
+          nuevaPassword: ''
         });
         setTurnosData(datosTurnos || TURNOS_VACIOS);
         
@@ -142,7 +143,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
       setGuardandoPerfil(true);
       
       let passwordActualizada = false;
-      const claveNueva = datosEdicion.nuevaPassword.trim();
+      const claveNueva = (datosEdicion.nuevaPassword || '').trim();
 
       await administracionService.actualizarPerfilUsuario(id, {
         nombreCompleto: datosEdicion.nombreCompleto.trim(),
@@ -161,7 +162,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
           return;
         }
         // Guardamos la clave en el backend
-        await administracionService.cambiarPasswordAdmin(id, { nuevaContrasena: claveNueva });
+        await usuarioService.cambiarPasswordAdmin(id, { nuevaContrasena: claveNueva });
         passwordActualizada = true;
       }
 
