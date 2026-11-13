@@ -130,7 +130,7 @@ export const AsistenciaClase = () => {
       setFichas(mapa);
 
       try {
-        const grillaDelDia = await reservasService.obtenerGrillaDisponibles(fecha); 
+        const grillaDelDia = await reservasService.getGrillaPorFecha(fecha); 
         
         const indexActual = grillaDelDia.findIndex(t => 
           (t.horarioId && t.horarioId.toString() === horarioIdUrl.toString()) ||
