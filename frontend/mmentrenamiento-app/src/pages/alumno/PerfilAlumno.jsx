@@ -397,7 +397,7 @@ export const PerfilAlumno = () => {
               </span>
             </div>
             
-            {!resumen.historial30Dias || resumen.historial30Dias.length === 0 ? (
+            {!resumen?.historial30Dias || resumen.historial30Dias.length === 0 ? (
               <p className="text-sm text-gray-400 font-medium italic p-4 text-center bg-gray-50 rounded-2xl">
                 No hay clases registradas recientemente.
               </p>
