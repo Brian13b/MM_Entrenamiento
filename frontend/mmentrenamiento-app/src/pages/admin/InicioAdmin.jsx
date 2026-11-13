@@ -121,10 +121,10 @@ export const InicioAdmin = () => {
           ) : metricas.ocupacionPorDia.length === 0 ? (
             <p className="text-sm text-gray-400 font-medium pb-4 flex-1">Sin horarios configurados.</p>
           ) : (
-            <div className="flex items-end justify-between h-48 gap-2 pb-2 mt-auto">
+            <div className="flex items-end justify-between flex-1 min-h-64 gap-2 pt-2 pb-1">
               {metricas.ocupacionPorDia.map((t) => (
                 <div key={t.fecha} className="flex flex-col items-center justify-end h-full w-full group relative">
-                  <span className="text-[10px] font-bold text-gray-500 mb-2 transition-opacity">
+                  <span className="text-[10px] font-bold text-gray-500 mb-1.5 shrink-0 transition-opacity">
                     {t.porcentaje}%
                   </span>
                   <div className="flex-1 w-full max-w-10 bg-mm-light rounded-t-xl overflow-hidden flex flex-col justify-end">
@@ -133,7 +133,7 @@ export const InicioAdmin = () => {
                       style={{ height: `${t.porcentaje}%`, minHeight: t.porcentaje > 0 ? '4px' : '0' }}
                     />
                   </div>
-                  <span className="text-[10px] font-bold text-mm-dark mt-3 uppercase tracking-wider">
+                  <span className="text-[10px] font-bold text-mm-dark mt-2.5 shrink-0 uppercase tracking-wider">
                     {nombreDiaPorIndice(t.diaSemana).substring(0, 3)}
                   </span>
                 </div>

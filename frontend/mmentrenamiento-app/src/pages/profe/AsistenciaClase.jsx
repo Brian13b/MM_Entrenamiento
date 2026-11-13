@@ -232,7 +232,12 @@ export const AsistenciaClase = () => {
     navigate(`${nuevaRuta}?fecha=${fechaActual}&hora=${horaInicio}`);
   };
 
-  const volver = () => navigate(-1);
+  const volver = () => {
+    const rutaGrilla = window.location.pathname.startsWith('/admin') 
+      ? '/admin/horarios'
+      : '/profe/turnos';
+    navigate(rutaGrilla);
+  };
 
   if (isLoading && !detalle) {
     return (
