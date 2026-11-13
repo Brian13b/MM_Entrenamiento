@@ -191,7 +191,7 @@ export const InicioAlumno = () => {
                         </p>
                         <span className="h-px w-full sm:h-5 sm:w-px bg-gray-600 my-1 sm:my-0" />
                         <p className="text-sm font-medium text-mm-light text-center">
-                          Tu membresía vence en <span className="text-mm-purple font-bold">{diasRestantes} {diasRestantes === 1 ? 'día' : 'días'}</span> (el 15 del mes que viene).
+                          Tu membresía vence en <span className="text-mm-purple font-bold">{diasRestantes} {diasRestantes === 1 ? 'día' : 'días'}</span>.
                         </p>
                       </>
                     );

@@ -183,6 +183,10 @@ namespace MMEntrenamiento.Application.Services
                                 r.Estado == EstadoReserva.Ausente)
                     .ToList() ?? new List<Reserva>();
 
+                bool asistenciaTomada = reservasValidas.Any(
+                    r => r.Estado == EstadoReserva.Asistio || r.Estado == EstadoReserva.Ausente
+                );
+
                 resultado.Add(new TurnoDisponibleDto
                 {
                     TurnoId = turno?.Id,
@@ -191,6 +195,7 @@ namespace MMEntrenamiento.Application.Services
                     HoraFin = horario.HoraFin,
                     CupoMaximo = (reducido != null && horario.CupoMaximo == 0) ? cupoEstandar : horario.CupoMaximo,
                     OcupacionActual = reservasValidas.Count,
+                    AsistenciaTomada = asistenciaTomada,
                     Inscriptos = reservasValidas.Select(r => new AlumnoInscriptoDto
                     {
                         UsuarioId = r.UsuarioId,

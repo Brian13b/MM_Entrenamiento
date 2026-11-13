@@ -17,7 +17,7 @@
         public int CupoMaximo { get; set; }
         public int OcupacionActual { get; set; }
         public bool EstaLleno => OcupacionActual >= CupoMaximo;
-
+        public bool AsistenciaTomada { get; set; }
         public List<AlumnoInscriptoDto> Inscriptos { get; set; } = new();
     }
 

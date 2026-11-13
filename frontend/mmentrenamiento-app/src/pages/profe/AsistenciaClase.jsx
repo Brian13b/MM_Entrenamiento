@@ -264,6 +264,10 @@ export const AsistenciaClase = () => {
   const alumnoActivo = alumnos.find(a => a.reservaId === alumnoSeleccionado);
   const fichaActiva = alumnoActivo ? fichas[alumnoActivo.usuarioId] : null;
 
+  const asistenciaYaGuardada = alumnos.length > 0 && alumnos.some(
+    (a) => a.estado === 'Asistio' || a.estado === 'Ausente'
+  );
+
   const idsPresentes = alumnos.map(a => a.usuarioId);
   const resultadosBusqueda = busquedaAlumno 
     ? usuariosSistema
@@ -280,9 +284,22 @@ export const AsistenciaClase = () => {
           <ArrowLeftIcon className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-2xl md:text-3xl font-display font-black text-mm-dark leading-none">
-            Turno de las {formatearHora(detalle.horaInicio)} hs
-          </h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl md:text-3xl font-display font-black text-mm-dark leading-none">
+              Turno de las {formatearHora(detalle.horaInicio)} hs
+            </h1>
+            
+            {alumnos.length > 0 && (
+              <span className={`text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 ${
+                asistenciaYaGuardada 
+                  ? 'bg-green-100 text-green-700 border border-green-200' 
+                  : 'bg-gray-100 text-gray-500 border border-gray-200'
+              }`}>
+                <span className={`w-2 h-2 rounded-full ${asistenciaYaGuardada ? 'bg-green-500' : 'bg-gray-400'}`} />
+                {asistenciaYaGuardada ? 'Asistencia Guardada' : 'Asistencia sin guardar'}
+              </span>
+            )}
+          </div>
           <p className="text-sm font-bold text-gray-400 mt-1 uppercase tracking-wider">{etiquetaTurno(detalle.fecha, detalle.horaInicio)}</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -293,7 +310,7 @@ export const AsistenciaClase = () => {
               title="Ir a la clase anterior"
             >
               <ChevronLeftIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">{claseAnterior.horaInicio.substring(0, 5)}</span>
+              <span className="hidden sm:inline">Anterior</span>
             </button>
           )}
           {claseSiguiente && (
@@ -302,7 +319,7 @@ export const AsistenciaClase = () => {
               className="flex items-center gap-1 bg-white border border-gray-200 px-3 py-2 rounded-xl text-sm font-bold text-gray-600 hover:text-mm-purple hover:border-purple-200 transition-colors shadow-sm"
               title="Ir a la clase siguiente"
             >
-              <span className="hidden sm:inline">{claseSiguiente.horaInicio.substring(0, 5)}</span>
+              <span className="hidden sm:inline">Siguiente</span>
               <ChevronRightIcon className="w-4 h-4" />
             </button>
           )}

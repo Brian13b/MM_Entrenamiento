@@ -168,15 +168,26 @@ const VistaSemanalOperativa = ({
                       <div key={dia.fechaIso} className="p-2 border-r border-gray-100 last:border-0">
                         <div 
                           onClick={() => abrirModalTurno(turno, dia.fechaIso)}
-                          className={`h-full p-2.5 rounded-xl cursor-pointer transition-all border flex flex-col justify-between group shadow-sm hover:shadow-md ${
+                          className={`relative h-full p-2.5 rounded-xl cursor-pointer transition-all border flex flex-col justify-between group shadow-sm hover:shadow-md ${
                             estaLleno ? 'bg-red-50 border-red-100 hover:border-red-300' : 'bg-white border-gray-200 hover:border-mm-purple'
                           }`}
                         >
                           <div className="flex items-center justify-between mb-1.5">
-                            <UsersIcon className={`w-3.5 h-3.5 ${estaLleno ? 'text-red-500' : 'text-mm-purple'}`} />
-                            <span className={`text-xs font-bold ${estaLleno ? 'text-red-700' : 'text-mm-dark'}`}>
-                              {turno.ocupacionActual}/{turno.cupoMaximo}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <UsersIcon className={`w-3.5 h-3.5 ${estaLleno ? 'text-red-500' : 'text-mm-purple'}`} />
+                              <span className={`text-xs font-bold ${estaLleno ? 'text-red-700' : 'text-mm-dark'}`}>
+                                {turno.ocupacionActual}/{turno.cupoMaximo}
+                              </span>
+                            </div>
+
+                            <span
+                              className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                                turno.asistenciaTomada
+                                  ? 'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]'
+                                  : 'bg-gray-300'
+                              }`}
+                              title={turno.asistenciaTomada ? 'Asistencia guardada' : 'Asistencia sin guardar'}
+                            />
                           </div>
                           
                           <div className="w-full bg-gray-100 rounded-full h-1 overflow-hidden">

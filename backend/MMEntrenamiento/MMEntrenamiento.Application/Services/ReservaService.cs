@@ -420,6 +420,10 @@ namespace MMEntrenamiento.Application.Services
                         TipoReserva = r.Tipo.ToString()
                     }).ToList() ?? new List<AlumnoInscriptoDto>();
 
+                bool asistenciaTomada = turno?.Reservas?.Any(
+                    r => r.Estado == EstadoReserva.Asistio || r.Estado == EstadoReserva.Ausente
+                ) ?? false;
+
                 grilla.Add(new TurnoDisponibleDto
                 {
                     TurnoId = turno?.Id,
@@ -429,6 +433,7 @@ namespace MMEntrenamiento.Application.Services
                     HoraFin = horario.HoraFin,
                     CupoMaximo = (reducido != null && horario.CupoMaximo == 0) ? cupoEstandar : horario.CupoMaximo,
                     OcupacionActual = turno?.OcupacionActual ?? 0,
+                    AsistenciaTomada = asistenciaTomada,
                     Inscriptos = inscriptos
                 });
             }

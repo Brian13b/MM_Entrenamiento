@@ -117,12 +117,21 @@ const VistaDiaria = ({ navigate }) => {
               <button
                 key={turno.horarioId}
                 onClick={() => navigate(`/profe/clase/${turno.horarioId}?fecha=${fecha}&hora=${turno.horaInicio}`)}
-                className={`w-full text-left rounded-2xl p-4 flex items-center gap-4 border transition-all active:scale-[0.99] ${
+                className={`relative w-full text-left rounded-2xl p-4 flex items-center gap-4 border transition-all active:scale-[0.99] ${
                   paso 
-                    ? 'bg-gray-50 border-gray-100 opacity-60 grayscale hover:opacity-80' 
+                    ? 'bg-gray-50 border-gray-100 opacity-60 hover:opacity-80' 
                     : 'bg-mm-surface border-gray-100 shadow-sm hover:shadow-md hover:border-mm-purple'
                 }`}
               >
+                <span
+                  className={`absolute top-3 right-3 w-2.5 h-2.5 rounded-full ${
+                    turno.asistenciaTomada
+                      ? 'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]'
+                      : 'bg-gray-300'
+                  }`}
+                  title={turno.asistenciaTomada ? 'Asistencia guardada' : 'Asistencia sin guardar'}
+                />
+
                 <div className={`shrink-0 w-20 text-center rounded-xl py-2 ${paso ? 'bg-gray-200' : 'bg-mm-light'}`}>
                   <p className="font-sans text-sm font-black text-mm-dark leading-none">{formatearHora(turno.horaInicio)}</p>
                   <p className="text-[10px] text-mm-dark opacity-40 mt-1">a {formatearHora(turno.horaFin)}</p>
@@ -141,8 +150,8 @@ const VistaDiaria = ({ navigate }) => {
                   </div>
                 </div>
 
-                <span className={`shrink-0 text-xs font-bold ${paso ? 'text-gray-400' : 'text-mm-purple'}`}>
-                  {sinInscriptos ? 'Turno vacío' : paso ? 'Ver asistencia' : 'Tomar asistencia'}
+                <span className={`shrink-0 text-xs font-bold pr-2 ${paso ? 'text-gray-400' : 'text-mm-purple'}`}>
+                  {sinInscriptos ? 'Turno vacío' : turno.asistenciaTomada ? 'Asistencia guardada' : paso ? 'Ver asistencia' : 'Tomar asistencia'}
                 </span>
               </button>
             );
@@ -286,19 +295,29 @@ const VistaSemanal = ({ navigate }) => {
                     return (
                       <div key={dia.fechaIso} className="p-2 border-r border-gray-100 last:border-0">
                         <div 
-                          // ¡LA CLAVE ESTÁ ACÁ! Siempre usamos horarioId en la URL
                           onClick={() => navigate(`/profe/clase/${turno.horarioId}?fecha=${dia.fechaIso}&hora=${turno.horaInicio}`)}
-                          className={`h-full p-2.5 rounded-xl cursor-pointer transition-all border flex flex-col justify-between group shadow-sm hover:shadow-md ${
+                          className={`relative h-full p-2.5 rounded-xl cursor-pointer transition-all border flex flex-col justify-between group shadow-sm hover:shadow-md ${
                             paso 
-                              ? 'bg-gray-50 border-gray-100 opacity-60 grayscale' 
+                              ? 'bg-gray-50 border-gray-100 opacity-60' 
                               : estaLleno ? 'bg-red-50 border-red-100 hover:border-red-300' : 'bg-white border-gray-200 hover:border-mm-purple'
                           }`}
                         >
                           <div className="flex items-center justify-between mb-1.5">
-                            <UsersIcon className={`w-3.5 h-3.5 ${estaLleno ? 'text-red-500' : paso ? 'text-gray-400' : 'text-mm-purple'}`} />
-                            <span className={`text-xs font-bold ${estaLleno ? 'text-red-700' : paso ? 'text-gray-500' : 'text-mm-dark'}`}>
-                              {turno.ocupacionActual}/{turno.cupoMaximo}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <UsersIcon className={`w-3.5 h-3.5 ${estaLleno ? 'text-red-500' : paso ? 'text-gray-400' : 'text-mm-purple'}`} />
+                              <span className={`text-xs font-bold ${estaLleno ? 'text-red-700' : paso ? 'text-gray-500' : 'text-mm-dark'}`}>
+                                {turno.ocupacionActual}/{turno.cupoMaximo}
+                              </span>
+                            </div>
+
+                            <span
+                              className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                                turno.asistenciaTomada
+                                  ? 'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]'
+                                  : 'bg-gray-300'
+                              }`}
+                              title={turno.asistenciaTomada ? 'Asistencia guardada' : 'Asistencia sin guardar'}
+                            />
                           </div>
                           
                           <div className={`w-full rounded-full h-1 overflow-hidden ${paso ? 'bg-gray-200' : 'bg-gray-100'}`}>
