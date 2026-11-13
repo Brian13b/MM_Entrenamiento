@@ -183,14 +183,14 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
         
         toast((t) => (
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-bold text-gray-800">Contraseña actualizada</p>
+            <p className="text-sm font-bold text-mm-purple">Contraseña actualizada</p>
             {telefonoParaWsp ? (
               <a 
                 href={`https://wa.me/${telefonoParaWsp}?text=${msj}`} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 onClick={() => toast.dismiss(t.id)}
-                className="bg-[#25D366] text-white text-xs font-bold px-3 py-1.5 rounded-lg flex justify-center items-center hover:bg-[#20bd5a] transition-colors"
+                className="bg-[#15b04e] text-white text-xs font-bold px-3 py-1.5 rounded-lg flex justify-center items-center hover:bg-[#20bd5a] transition-colors"
               >
                 Avisarle por WhatsApp
               </a>

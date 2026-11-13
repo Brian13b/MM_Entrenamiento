@@ -173,39 +173,73 @@ export const InicioAlumno = () => {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 rounded-2xl px-4 py-4 bg-mm-dark mt-auto">
             {datosDashboard.plan ? (
-              !datosDashboard.deudor ? (
-                <>
-                  <p className="text-sm font-medium text-mm-light text-center">
-                    ¡Gracias por confiar en <span className="text-mm-purple font-bold">MM Entrenamiento</span>!
-                  </p>
-                  <span className="h-px w-full sm:h-5 sm:w-px bg-gray-600 my-1 sm:my-0" />
-                  <p className="text-sm font-medium text-mm-light text-center">
-                    Tu próxima cuota vence el <span className="text-mm-purple font-bold">15 del mes que viene</span>.
-                  </p>
-                </>
-              ) : (
-                new Date().getDate() <= 15 ? (
-                  <>
-                    <p className="text-sm font-medium text-mm-light text-center">
-                      Recordá que el <span className="text-mm-purple font-bold">día 15</span> vence la membresía.
-                    </p>
-                    <span className="h-px w-full sm:h-5 sm:w-px bg-gray-600 my-1 sm:my-0" />
-                    <p className="text-sm font-medium text-mm-light text-center">
-                      No te olvides de <span className="text-mm-purple font-bold">abonarla</span>.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm font-bold text-red-400 text-center">
-                      Tu membresía se encuentra vencida.
-                    </p>
-                    <span className="h-px w-full sm:h-5 sm:w-px bg-gray-600 my-1 sm:my-0" />
-                    <p className="text-sm font-medium text-mm-light text-center">
-                      Por favor, <span className="text-mm-purple font-bold">regularizá tu situación</span>.
-                    </p>
-                  </>
-                )
-              )
+              (() => {
+                const hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+                
+                const anioActual = hoy.getFullYear();
+                const mesActual = hoy.getMonth();
+
+                if (!datosDashboard.deudor) {
+                  const fechaVenc = new Date(anioActual, mesActual + 1, 15);
+                  const diasRestantes = Math.ceil((fechaVenc.getTime() - hoy.getTime()) / (1000 * 3600 * 24));
+                  
+                  return (
+                      <>
+                        <p className="text-sm font-medium text-mm-light text-center">
+                          ¡Gracias por confiar en <span className="text-mm-purple font-bold">MM Entrenamiento</span>!
+                        </p>
+                        <span className="h-px w-full sm:h-5 sm:w-px bg-gray-600 my-1 sm:my-0" />
+                        <p className="text-sm font-medium text-mm-light text-center">
+                          Tu membresía vence en <span className="text-mm-purple font-bold">{diasRestantes} {diasRestantes === 1 ? 'día' : 'días'}</span> (el 15 del mes que viene).
+                        </p>
+                      </>
+                    );
+                } else {
+                  const fechaVenc = new Date(anioActual, mesActual, 15);
+                  const diferenciaTiempo = fechaVenc.getTime() - hoy.getTime();
+                  const diasRestantes = Math.ceil(diferenciaTiempo / (1000 * 3600 * 24));
+
+                  if (diasRestantes > 0) {
+                    return (
+                      <>
+                        <p className="text-sm font-medium text-mm-light text-center">
+                          Recordá que el <span className="text-mm-purple font-bold">día 15</span> vence la membresía.
+                        </p>
+                        <span className="h-px w-full sm:h-5 sm:w-px bg-gray-600 my-1 sm:my-0" />
+                        <p className="text-sm font-medium text-mm-light text-center">
+                          Faltan <span className="text-mm-purple font-bold">{diasRestantes} {diasRestantes === 1 ? 'día' : 'días'}</span>, no te olvides de <span className="text-mm-purple font-bold">abonarla</span>.
+                        </p>
+                      </>
+                    );
+                } else if (diasRestantes === 0) {
+                    return (
+                      <>
+                        <p className="text-sm font-bold text-mm-purple text-center">
+                          ¡Tu membresía vence hoy 15!
+                        </p>
+                        <span className="h-px w-full sm:h-5 sm:w-px bg-gray-600 my-1 sm:my-0" />
+                        <p className="text-sm font-medium text-mm-light text-center">
+                          No te olvides de <span className="text-mm-purple font-bold">abonarla</span>.
+                        </p>
+                      </>
+                    );
+                  } else {
+                    const diasVencida = Math.abs(diasRestantes);
+                    return (
+                      <>
+                        <p className="text-sm font-bold text-mm-light text-center">
+                          Tu membresía se encuentra vencida hace {diasVencida} {diasVencida === 1 ? 'día' : 'días'}.
+                        </p>
+                        <span className="h-px w-full sm:h-5 sm:w-px bg-gray-600 my-1 sm:my-0" />
+                        <p className="text-sm font-medium text-mm-light text-center">
+                          Por favor, <span className="text-mm-purple font-bold">regularizá tu situación</span>.
+                        </p>
+                      </>
+                    );
+                  }
+                }
+              })()
             ) : (
               <p className="text-sm font-medium text-mm-light text-center">
                 Todavía no tenés una membresía asignada. Consultá con administración.
