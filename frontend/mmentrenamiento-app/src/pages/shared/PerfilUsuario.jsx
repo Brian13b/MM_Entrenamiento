@@ -99,7 +99,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
           promesas.push(administracionService.getPagosUsuario(id));
         }
 
-        const [datosUsuario, datosResumen, datosFicha, datosTurnos, listaMembresias, datosPagos] = await Promise.all(promesas);
+        const [datosUsuario, datosFicha, datosTurnos, datosResumen, listaMembresias, datosPagos] = await Promise.all(promesas);
 
         setUsuario(datosUsuario);
         setResumen(datosResumen);
@@ -532,7 +532,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
             <div className="flex flex-col gap-5 mt-5">
               <div>
                 <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Suscripciones Fijas</h3>
-                {turnosData.misSuscripcionesFijas.length === 0 ? (
+                {(!turnosData?.misSuscripcionesFijas || turnosData.misSuscripcionesFijas.length === 0) ? (
                   <p className="text-sm text-gray-400 italic bg-gray-50 p-3 rounded-xl border border-gray-100">No tiene turnos fijos.</p>
                 ) : (
                   <div className="flex flex-col gap-2">
@@ -553,7 +553,7 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
 
               <div>
                 <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Próximas Clases</h3>
-                {turnosData.proximasClases.length === 0 ? (
+                {(!turnosData?.proximasClases || turnosData.proximasClases.length === 0) ? (
                   <p className="text-sm text-gray-400 italic bg-gray-50 p-3 rounded-xl border border-gray-100">No tiene reservas próximas.</p>
                 ) : (
                   <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
