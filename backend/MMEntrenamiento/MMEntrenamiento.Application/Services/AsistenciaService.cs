@@ -113,5 +113,25 @@ namespace MMEntrenamiento.Application.Services
             await _unitOfWork.CompleteAsync();
             return (true, "Asistencia guardada correctamente.");
         }
+
+        public async Task<(bool Exito, string Mensaje)> RevertirAsistenciaAsync(int turnoId)
+        {
+            var reservasCerradas = (await _unitOfWork.Reservas.FindAsync(
+                r => r.TurnoId == turnoId &&
+                    (r.Estado == EstadoReserva.Asistio || r.Estado == EstadoReserva.Ausente)
+            )).ToList();
+
+            if (!reservasCerradas.Any())
+                return (false, "No hay asistencias guardadas para revertir en este turno.");
+
+            foreach (var reserva in reservasCerradas)
+            {
+                reserva.Estado = EstadoReserva.Activa;
+                _unitOfWork.Reservas.Update(reserva);
+            }
+
+            await _unitOfWork.CompleteAsync();
+            return (true, "Asistencia revertida. Los alumnos volvieron a estado activo.");
+        }
     }
 }

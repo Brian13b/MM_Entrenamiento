@@ -37,5 +37,14 @@ namespace MMEntrenamiento.Api.Controllers
 
             return Ok(new { message = mensaje });
         }
+
+        [HttpPost("revertir/{turnoId}")]
+        public async Task<IActionResult> RevertirAsistencia(int turnoId)
+        {
+            var (exito, mensaje) = await _asistenciaService.RevertirAsistenciaAsync(turnoId);
+            if (!exito) return BadRequest(new { message = mensaje });
+
+            return Ok(new { message = mensaje });
+        }
     }
 }

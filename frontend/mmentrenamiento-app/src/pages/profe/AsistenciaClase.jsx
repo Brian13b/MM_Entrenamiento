@@ -207,6 +207,29 @@ export const AsistenciaClase = () => {
     }
   };
 
+  const handleRevertir = async () => {
+    const ok = await confirmar({
+      title: '¿Borrar asistencia guardada?',
+      message: 'Los alumnos volverán a figurar con reserva activa (sin asistencia tomada) y podrán gestionar su turno normalmente.',
+      confirmText: 'Sí, revertir',
+      confirmButtonColor: 'bg-red-500 hover:bg-red-600'
+    });
+
+    if (!ok) return;
+
+    try {
+      setIsSaving(true);
+      const idReal = detalle.turnoId || horarioIdUrl;
+      const respuesta = await asistenciaService.revertirAsistencia(Number(idReal));
+      toast.success(respuesta?.message || 'Asistencia borrada correctamente.');
+      await cargar();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'No se pudo revertir la asistencia.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const anotarAlumnoRapido = async (usuarioId, nombre) => {
     try {
       setIsBuscando(true);
@@ -506,14 +529,25 @@ export const AsistenciaClase = () => {
           )}
 
           {alumnos.length > 0 && (
-             <div className="mt-6 pb-6">
-               <button
-                onClick={handleGuardar} disabled={isSaving}
+            <div className="mt-6 pb-6 flex flex-col gap-2.5">
+              <button
+                onClick={handleGuardar}
+                disabled={isSaving}
                 className="w-full bg-mm-purple text-white font-bold rounded-2xl py-4 text-sm shadow-sm disabled:opacity-70 active:scale-95 transition-all hover:bg-mm-purple/80"
               >
-                {isSaving ? 'Guardando...' : 'Guardar asistencia'}
+                {isSaving ? 'Procesando...' : 'Guardar asistencia'}
               </button>
-             </div>
+
+              {asistenciaYaGuardada && (
+                <button
+                  onClick={handleRevertir}
+                  disabled={isSaving}
+                  className="w-full bg-white border border-red-200 text-red-500 font-bold rounded-2xl py-3 text-xs uppercase tracking-wider shadow-sm disabled:opacity-70 active:scale-95 transition-all hover:bg-red-50"
+                >
+                  Borrar asistencia
+                </button>
+              )}
+            </div>
           )}
         </div>
 

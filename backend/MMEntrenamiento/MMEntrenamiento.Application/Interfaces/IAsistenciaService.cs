@@ -6,5 +6,6 @@ namespace MMEntrenamiento.Application.Interfaces
     {
         Task<DetalleClaseDto?> ObtenerDetalleClaseAsync(int horarioId, DateTime fecha);
         Task<(bool Exito, string Mensaje)> GuardarAsistenciaAsync(GuardarAsistenciaDto request);
+        Task<(bool Exito, string Mensaje)> RevertirAsistenciaAsync(int turnoId);
     }
 }

@@ -9,5 +9,9 @@ export const asistenciaService = {
   guardarAsistencia: async (datosAsistencia) => {
     const response = await api.post('/asistencia/clase/guardar', datosAsistencia);
     return response.data;
-  }
+  },
+  revertirAsistencia: async (turnoId) => {
+    const response = await api.post(`/asistencia/revertir/${turnoId}`);
+    return response.data;
+  },
 };
