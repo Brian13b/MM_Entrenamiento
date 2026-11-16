@@ -321,6 +321,25 @@ namespace MMEntrenamiento.Application.Services
                 });
         }
 
+        public async Task<IEnumerable<PagoDto>> ObtenerHistorialPagosAsync()
+        {
+            var pagos = await _unitOfWork.Pagos.FindWithIncludesAsync(p => true, "Usuario");
+
+            return pagos
+                .OrderByDescending(p => p.FechaPago)
+                .Select(p => new PagoDto
+                {
+                    Id = p.Id,
+                    UsuarioId = p.UsuarioId,
+                    NombreUsuario = p.Usuario?.NombreCompleto ?? "Usuario eliminado",
+                    Monto = p.Monto,
+                    MesAbonado = p.MesAbonado,
+                    AnioAbonado = p.AnioAbonado,
+                    MetodoPago = p.MetodoPago,
+                    FechaPago = p.FechaPago
+                });
+        }
+
         public async Task<(bool Exito, string Mensaje)> CambiarEstadoBloqueoAsync(Guid usuarioId, bool suspender)
         {
             var usuario = await _unitOfWork.Usuarios.GetByIdAsync(usuarioId);

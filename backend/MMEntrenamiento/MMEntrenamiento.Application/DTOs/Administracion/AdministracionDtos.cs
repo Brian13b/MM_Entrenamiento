@@ -57,6 +57,8 @@
     public class PagoDto
     {
         public int Id { get; set; }
+        public Guid UsuarioId { get; set; }
+        public string NombreUsuario { get; set; } = string.Empty;
         public decimal Monto { get; set; }
         public int MesAbonado { get; set; }
         public int AnioAbonado { get; set; }

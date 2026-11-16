@@ -1,11 +1,12 @@
-import { HomeIcon, CalendarDaysIcon, UsersIcon, Cog8ToothIcon } from '@heroicons/react/24/outline';
-import { HomeIcon as HomeSolid, CalendarDaysIcon as CalendarSolid, UsersIcon as UsersSolid, Cog8ToothIcon as CogSolid } from '@heroicons/react/24/solid';
+import { HomeIcon, CalendarDaysIcon, UsersIcon, Cog8ToothIcon, BanknotesIcon } from '@heroicons/react/24/outline';
+import { HomeIcon as HomeSolid, CalendarDaysIcon as CalendarSolid, UsersIcon as UsersSolid, Cog8ToothIcon as CogSolid, BanknotesIcon as BanknotesSolid } from '@heroicons/react/24/solid';
 import { PanelLayout } from './PanelLayout';
 
 const ITEMS = [
   { to: '/admin', label: 'Panel', labelCorto: 'Inicio', Outline: HomeIcon, Solid: HomeSolid, exact: true },
   { to: '/admin/horarios', label: 'Horarios', Outline: CalendarDaysIcon, Solid: CalendarSolid },
   { to: '/admin/usuarios', label: 'Usuarios', Outline: UsersIcon, Solid: UsersSolid },
+  { to: '/admin/pagos', label: 'Pagos', Outline: BanknotesIcon, Solid: BanknotesSolid },
   { to: '/admin/ajustes', label: 'Ajustes', Outline: Cog8ToothIcon, Solid: CogSolid },
 ];
 

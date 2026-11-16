@@ -150,6 +150,14 @@ namespace MMEntrenamiento.Api.Controllers
         }
 
         [Authorize(Roles = "Admin,Profe")]
+        [HttpGet("pagos")]
+        public async Task<IActionResult> ObtenerHistorialPagos()
+        {
+            var pagos = await _adminService.ObtenerHistorialPagosAsync();
+            return Ok(pagos);
+        }
+
+        [Authorize(Roles = "Admin,Profe")]
         [HttpPut("usuarios/{usuarioId}/perfil")]
         public async Task<IActionResult> ActualizarPerfilUsuario(Guid usuarioId, [FromBody] ActualizarPerfilDto request)
         {

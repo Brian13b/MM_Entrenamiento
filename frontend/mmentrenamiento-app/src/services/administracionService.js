@@ -33,6 +33,10 @@ export const administracionService = {
     const response = await api.get(`/administracion/pagos/${usuarioId}`);
     return response.data;
   },
+  getHistorialPagos: async () => {
+    const response = await api.get('/administracion/pagos');
+    return response.data;
+  },
   actualizarPerfilUsuario: async (usuarioId, datos) => {
     const response = await api.put(`/administracion/usuarios/${usuarioId}/perfil`, datos);
     return response.data;
