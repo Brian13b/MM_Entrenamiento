@@ -17,6 +17,22 @@ namespace MMEntrenamiento.Api.Workers
         {
             _logger.LogInformation("TurnosWorker iniciado.");
 
+            // 1. AUTO-CATCH-UP AL INICIAR: Verifica y rellena cualquier bache en los próximos 28 días
+            try
+            {
+                using (var scope = _serviceProvider.CreateScope())
+                {
+                    var reservaService = scope.ServiceProvider.GetRequiredService<IReservaService>();
+                    await reservaService.ExtenderTurnosFijosVentanaCompletaAsync();
+                    _logger.LogInformation("Ventana de 28 días verificada y auto-corregida al iniciar la aplicación.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en la verificación inicial de TurnosWorker.");
+            }
+
+            // 2. LOOP DIARIO NORMAL
             while (!stoppingToken.IsCancellationRequested)
             {
                 try

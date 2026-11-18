@@ -203,13 +203,16 @@ namespace MMEntrenamiento.Application.Services
             return (true, "Turno fijo establecido y 4 semanas reservadas con éxito.");
         }
 
-        public async Task ExtenderTurnosFijosDiarioAsync()
+        // Método base robusto que procesa una fecha específica respetando feriados, cancelaciones y excepciones
+        public async Task ExtenderTurnosFijosParaFechaAsync(DateOnly fechaObjetivo)
         {
-            // 1. Apuntamos exactamente a 4 semanas en el futuro
-            var fechaObjetivo = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(28);
+            // 1. Si es feriado u horario reducido, no se generan turnos fijos automáticos
+            var reducido = await DisponibilidadHorarios.ObtenerReducidoAsync(_unitOfWork, fechaObjetivo);
+            if (reducido != null) return;
+
             var diaSemanaObjetivo = fechaObjetivo.DayOfWeek;
 
-            // 2. Traemos SOLO los turnos fijos activos que caen en ese día de la semana
+            // 2. Traer SOLO los turnos fijos activos que caen en ese día de la semana
             var turnosFijos = await _unitOfWork.TurnosFijos.FindAsync(
                 tf => tf.Activo && tf.Horario!.DiaSemana == diaSemanaObjetivo,
                 tf => tf.Horario!
@@ -217,31 +220,41 @@ namespace MMEntrenamiento.Application.Services
 
             if (!turnosFijos.Any()) return;
 
-            // En fechas con horario reducido/feriado no se generan reservas fijas automáticas.
-            if (await DisponibilidadHorarios.ObtenerReducidoAsync(_unitOfWork, fechaObjetivo) != null) return;
-
             var alumnosAsignados = new HashSet<Guid>();
 
             foreach (var turnoFijo in turnosFijos)
             {
-                // Una reserva vigente por día: si ya tiene otra ese día (o se le asignó una en esta misma corrida), se omite.
+                // 3. Validar si ya tiene reserva vigente o si canceló / tiene excepción previa
                 if (alumnosAsignados.Contains(turnoFijo.UsuarioId)
                     || await TieneReservaVigenteEnFechaAsync(turnoFijo.UsuarioId, fechaObjetivo))
                     continue;
 
+                var yaCancelo = await _unitOfWork.Reservas.AnyAsync(r =>
+                    r.UsuarioId == turnoFijo.UsuarioId
+                    && r.Turno.Fecha == fechaObjetivo
+                    && r.Turno.HorarioId == turnoFijo.HorarioId
+                    && r.Estado == EstadoReserva.Cancelada);
+
+                var tieneExcepcion = await _unitOfWork.ExcepcionesTurnosFijos.AnyAsync(e =>
+                    e.UsuarioId == turnoFijo.UsuarioId
+                    && e.HorarioId == turnoFijo.HorarioId
+                    && e.FechaAusencia == fechaObjetivo);
+
+                if (yaCancelo || tieneExcepcion) continue;
+
                 var mes = fechaObjetivo.Month;
                 var anio = fechaObjetivo.Year;
 
-                // 3. Asegurar billetera y saldo
+                // 4. Asegurar billetera y saldo
                 await _membresiaService.RenovarCreditosMesAsync(turnoFijo.UsuarioId, mes, anio);
 
                 var creditoMes = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
                     c => c.UsuarioId == turnoFijo.UsuarioId && c.Anio == anio && c.Mes == mes);
 
                 if (creditoMes == null || creditoMes.CreditosUsados >= creditoMes.CreditosBase)
-                    continue; // Si se quedó sin créditos, este mes no se le genera el lugar (podés notificarlo después)
+                    continue;
 
-                // 4. Buscar o crear la instancia del Turno
+                // 5. Buscar o crear la instancia del Turno
                 var turno = await _unitOfWork.Turnos.FirstOrDefaultAsync(
                     t => t.HorarioId == turnoFijo.HorarioId && t.Fecha == fechaObjetivo,
                     t => t.Reservas
@@ -253,8 +266,8 @@ namespace MMEntrenamiento.Application.Services
                     await _unitOfWork.Turnos.AddAsync(turno);
                 }
 
-                // 5. Verificar idempotencia y cupo
-                bool yaTieneReserva = turno.Reservas.Any(r => r.UsuarioId == turnoFijo.UsuarioId);
+                // 6. Verificar idempotencia y cupo
+                bool yaTieneReserva = turno.Reservas.Any(r => r.UsuarioId == turnoFijo.UsuarioId && r.Estado == EstadoReserva.Activa);
 
                 if (!yaTieneReserva && turno.OcupacionActual < turnoFijo.Horario.CupoMaximo)
                 {
@@ -277,6 +290,22 @@ namespace MMEntrenamiento.Application.Services
             }
 
             await _unitOfWork.CompleteAsync();
+        }
+
+        public async Task ExtenderTurnosFijosDiarioAsync()
+        {
+            var fechaObjetivo = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(28);
+            await ExtenderTurnosFijosParaFechaAsync(fechaObjetivo);
+        }
+
+        public async Task ExtenderTurnosFijosVentanaCompletaAsync()
+        {
+            var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
+            for (int i = 0; i <= 28; i++)
+            {
+                var fecha = hoy.AddDays(i);
+                await ExtenderTurnosFijosParaFechaAsync(fecha);
+            }
         }
 
         public async Task<(bool Exito, string Mensaje)> CancelarClaseAsync(CancelarClaseDto request)
@@ -452,7 +481,7 @@ namespace MMEntrenamiento.Application.Services
             var reservas = await _unitOfWork.Reservas.FindAsync(
                 r => r.UsuarioId == usuarioId && r.Estado == EstadoReserva.Activa && r.Turno.Fecha >= fechaHoy,
                 r => r.Turno!,
-                r => r.Turno.Horario! 
+                r => r.Turno.Horario!
             );
 
             // 2. Buscar sus turnos fijos activos

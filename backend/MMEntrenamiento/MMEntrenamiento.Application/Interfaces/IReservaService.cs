@@ -7,6 +7,8 @@ namespace MMEntrenamiento.Application.Interfaces
         Task<(bool Exito, string Mensaje)> ReservarTurnoEventualAsync(CrearReservaDto request);
         Task<(bool Exito, string Mensaje)> AsignarTurnoFijoAsync(AsignarTurnoFijoDto request);
         Task ExtenderTurnosFijosDiarioAsync();
+        Task ExtenderTurnosFijosParaFechaAsync(DateOnly fechaObjetivo);
+        Task ExtenderTurnosFijosVentanaCompletaAsync();
         Task<(bool Exito, string Mensaje)> CancelarClaseAsync(CancelarClaseDto request);
         Task<(bool Exito, string Mensaje)> DarDeBajaTurnoFijoAsync(BajaTurnoFijoDto request);
         Task<IEnumerable<TurnoDisponibleDto>> ObtenerGrillaPorFechaAsync(DateOnly fecha);
