@@ -297,6 +297,25 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
     }
   };
 
+  const handleEliminarPago = async (id, monto) => {
+    const ok = await confirmar({
+      title: '¿Eliminar pago?',
+      message: `¿Estás seguro de eliminar el registro de pago por $${monto}?`,
+      confirmText: 'Sí, eliminar',
+      variant: 'danger'
+    });
+    if (!ok) return;
+
+    try {
+      await administracionService.eliminarPago(id);
+      setHistorialPagos(prevPagos => prevPagos.filter(p => p.id !== id));
+      toast.success("Pago eliminado correctamente.");
+      await recargarUsuario();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Error al eliminar el pago.");
+    }
+  };
+
   const handleOtorgarCreditos = async (cantidad) => {
     if (cantidad === 0) return;
 
@@ -678,14 +697,24 @@ export const PerfilUsuario = ({ basePath = '/admin/usuarios' }) => {
                 ) : (
                   <div className="flex flex-col gap-2">
                     {historialPagos.slice(0, 5).map((hp) => (
-                      <div key={hp.id} className="flex justify-between items-center bg-gray-50 border border-gray-100 p-3 rounded-xl">
+                      <div key={hp.id} className="flex justify-between items-center bg-gray-50 border border-gray-100 p-3 rounded-xl group">
                         <div>
                           <p className="font-bold text-sm text-mm-dark">${hp.monto}</p>
                           <p className="text-[10px] text-gray-500 font-medium">{new Date(hp.fechaPago).toLocaleDateString('es-AR')} {hp.metodoPago}</p>
                         </div>
-                        <span className="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded-md uppercase tracking-wider">
-                          {new Date(hp.anioAbonado, hp.mesAbonado - 1).toLocaleString('es', { month: 'long' })} {hp.anioAbonado}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded-md uppercase tracking-wider">
+                            {new Date(hp.anioAbonado, hp.mesAbonado - 1).toLocaleString('es', { month: 'long' })} {hp.anioAbonado}
+                          </span>
+                          
+                          <button
+                            onClick={() => handleEliminarPago(hp.id, hp.monto)}
+                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Eliminar pago"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>

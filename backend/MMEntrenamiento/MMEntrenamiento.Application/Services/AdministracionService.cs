@@ -210,6 +210,18 @@ namespace MMEntrenamiento.Application.Services
             return (true, $"Pago de ${request.MontoAbonado} registrado contablemente.");
         }
 
+        public async Task<(bool Exito, string Mensaje)> EliminarPagoAsync(Guid id)
+        {
+            var pago = await _unitOfWork.Pagos.GetByIdAsync(id);
+            if (pago == null)
+                return (false, "El pago no fue encontrado.");
+
+            _unitOfWork.Pagos.Delete(pago);
+            await _unitOfWork.CompleteAsync();
+
+            return (true, "Pago eliminado correctamente.");
+        }
+
         public async Task<MetricasDto> ObtenerMetricasAsync()
         {
             var hoy = DateOnly.FromDateTime(DateTime.UtcNow);

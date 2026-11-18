@@ -61,6 +61,10 @@ export const administracionService = {
     const response = await api.post('/administracion/pagos', datos);
     return response.data;
   },
+  eliminarPago: async (id) => {
+    const response = await api.delete(`/administracion/pagos/${id}`);
+    return response.data;
+  },
   cambiarEstadoBloqueo: async (usuarioId, suspender) => {
     const response = await api.put(`/administracion/usuarios/${usuarioId}/bloqueo`, null, {
       params: { suspender }
