@@ -13,7 +13,7 @@ namespace MMEntrenamiento.Application.Interfaces
         Task<(bool Exito, string Mensaje)> EliminarMembresiaAsync(int id);
         Task<IEnumerable<MembresiaDto>> ObtenerMembresiasActivasAsync();
         Task<(bool Exito, string Mensaje)> RegistrarPagoManualAsync(RegistrarPagoDto request);
-        Task<(bool Exito, string Mensaje)> EliminarPagoAsync(Guid id);
+        Task<(bool Exito, string Mensaje)> EliminarPagoAsync(int id);
         Task<IEnumerable<PagoDto>> ObtenerPagosUsuarioAsync(Guid usuarioId);
         Task<IEnumerable<PagoDto>> ObtenerHistorialPagosAsync();
         Task<MetricasDto> ObtenerMetricasAsync();

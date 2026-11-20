@@ -116,16 +116,16 @@ namespace MMEntrenamiento.Api.Controllers
             return Ok(new { message = mensaje });
         }
 
-        [HttpDelete("{id:guid}")]
+        [HttpDelete("pagos/{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> EliminarPago(Guid id)
+        public async Task<IActionResult> EliminarPago(int id)
         {
             var (exito, mensaje) = await _adminService.EliminarPagoAsync(id);
 
             if (!exito)
-                return NotFound(new { mensaje });
+                return NotFound(new { message = mensaje });
 
-            return Ok(new { exito, mensaje });
+            return Ok(new { message = mensaje });
         }
 
         [AllowAnonymous]

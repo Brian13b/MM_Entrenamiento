@@ -210,7 +210,7 @@ namespace MMEntrenamiento.Application.Services
             return (true, $"Pago de ${request.MontoAbonado} registrado contablemente.");
         }
 
-        public async Task<(bool Exito, string Mensaje)> EliminarPagoAsync(Guid id)
+        public async Task<(bool Exito, string Mensaje)> EliminarPagoAsync(int id)
         {
             var pago = await _unitOfWork.Pagos.GetByIdAsync(id);
             if (pago == null)
