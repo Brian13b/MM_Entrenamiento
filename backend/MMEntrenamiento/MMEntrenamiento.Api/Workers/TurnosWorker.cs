@@ -1,4 +1,5 @@
 ﻿using MMEntrenamiento.Application.Interfaces;
+using MMEntrenamiento.Application.Services;
 
 namespace MMEntrenamiento.Api.Workers
 {
@@ -17,22 +18,8 @@ namespace MMEntrenamiento.Api.Workers
         {
             _logger.LogInformation("TurnosWorker iniciado.");
 
-            // 1. AUTO-CATCH-UP AL INICIAR: Verifica y rellena cualquier bache en los próximos 28 días
-            try
-            {
-                using (var scope = _serviceProvider.CreateScope())
-                {
-                    var reservaService = scope.ServiceProvider.GetRequiredService<IReservaService>();
-                    await reservaService.ExtenderTurnosFijosVentanaCompletaAsync();
-                    _logger.LogInformation("Ventana de 28 días verificada y auto-corregida al iniciar la aplicación.");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error en la verificación inicial de TurnosWorker.");
-            }
-
-            // 2. LOOP DIARIO NORMAL
+            // La primera vuelta corre al arrancar (auto-catch-up tras un reinicio); después, solo de madrugada
+            // (hora de Argentina). Cada corrida revisa de forma idempotente toda la ventana de 28 días.
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
@@ -40,9 +27,7 @@ namespace MMEntrenamiento.Api.Workers
                     using (var scope = _serviceProvider.CreateScope())
                     {
                         var reservaService = scope.ServiceProvider.GetRequiredService<IReservaService>();
-
                         await reservaService.ExtenderTurnosFijosDiarioAsync();
-                        _logger.LogInformation("Turnos fijos extendidos correctamente a 4 semanas.");
                     }
                 }
                 catch (Exception ex)
@@ -50,11 +35,11 @@ namespace MMEntrenamiento.Api.Workers
                     _logger.LogError(ex, "Error al extender los turnos fijos.");
                 }
 
-                var ahora = DateTime.Now;
-                var proximaEjecucion = ahora.Date.AddDays(1).AddHours(1);
+                var ahora = FechaArgentina.Ahora();
+                var proximaEjecucion = ProgramacionBarridoFijos.ProximaEjecucion(ahora);
                 var tiempoEspera = proximaEjecucion - ahora;
 
-                _logger.LogInformation($"TurnosWorker durmiendo. Próxima ejecución en {tiempoEspera.TotalHours:F2} horas.");
+                _logger.LogInformation("TurnosWorker durmiendo. Próxima ejecución (hora Argentina): {Proxima:dd/MM HH:mm}.", proximaEjecucion);
 
                 await Task.Delay(tiempoEspera, stoppingToken);
             }

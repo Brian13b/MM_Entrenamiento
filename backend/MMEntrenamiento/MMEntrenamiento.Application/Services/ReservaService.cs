@@ -4,6 +4,8 @@ using MMEntrenamiento.Application.Interfaces;
 using MMEntrenamiento.Application.Interfaces.Repositories;
 using MMEntrenamiento.Domain.Entities;
 using MMEntrenamiento.Domain.Enums;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MMEntrenamiento.Application.Services
 {
@@ -11,11 +13,13 @@ namespace MMEntrenamiento.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMembresiaService _membresiaService;
+        private readonly ILogger<ReservaService> _logger;
 
-        public ReservaService(IUnitOfWork unitOfWork, IMembresiaService membresiaService)
+        public ReservaService(IUnitOfWork unitOfWork, IMembresiaService membresiaService, ILogger<ReservaService>? logger = null)
         {
             _unitOfWork = unitOfWork;
             _membresiaService = membresiaService;
+            _logger = logger ?? NullLogger<ReservaService>.Instance;
         }
 
         private const string MensajeYaTieneTurnoEnElDia = "Ya tenés un turno activo para este día. Solo podés tener una reserva activa por día.";
@@ -104,11 +108,20 @@ namespace MMEntrenamiento.Application.Services
 
         public async Task<(bool Exito, string Mensaje)> AsignarTurnoFijoAsync(AsignarTurnoFijoDto request)
         {
-            var fechaHoy = DateOnly.FromDateTime(DateTime.UtcNow);
+            var ahoraArgentina = FechaArgentina.Ahora();
+            var fechaHoy = DateOnly.FromDateTime(ahoraArgentina);
             if (request.FechaInicio < fechaHoy) return (false, "La fecha de inicio no puede ser en el pasado.");
 
             var horario = await _unitOfWork.Horarios.GetByIdAsync(request.HorarioId);
             if (horario == null) return (false, "El horario seleccionado no existe.");
+
+            // El turno fijo es semanal: la primera fecha tiene que caer en el día de la semana del horario.
+            // Si no coincide, se corre hacia adelante al próximo día correcto. Si es hoy y la clase ya
+            // comenzó, arranca la semana que viene.
+            var fechaInicio = AlinearAlDiaDelHorario(request.FechaInicio, horario.DiaSemana);
+            if (fechaInicio == fechaHoy && horario.HoraInicio <= TimeOnly.FromDateTime(ahoraArgentina))
+                fechaInicio = fechaInicio.AddDays(7);
+            bool fechaAjustada = fechaInicio != request.FechaInicio;
 
             var usuario = await _unitOfWork.Usuarios.FirstOrDefaultAsync(u => u.Id == request.UsuarioId, u => u.MembresiaActual!);
             if (usuario != null && usuario.EstadoCuenta != EstadoCuenta.Activo)
@@ -123,7 +136,7 @@ namespace MMEntrenamiento.Application.Services
             var fechasAProyectar = new List<DateOnly>();
             for (int i = 0; i < 4; i++)
             {
-                var fechaCandidata = request.FechaInicio.AddDays(i * 7);
+                var fechaCandidata = fechaInicio.AddDays(i * 7);
                 var reducido = await DisponibilidadHorarios.ObtenerReducidoAsync(_unitOfWork, fechaCandidata);
 
                 // En fechas con horario reducido/feriado los turnos fijos no se reservan solos:
@@ -200,11 +213,25 @@ namespace MMEntrenamiento.Application.Services
                 return (false, "El alumno ya tiene un turno activo en alguna de las fechas a reservar. Solo puede tener una reserva activa por día.");
             }
 
-            return (true, "Turno fijo establecido y 4 semanas reservadas con éxito.");
+            var mensajeExito = "Turno fijo establecido y 4 semanas reservadas con éxito.";
+            if (fechaAjustada)
+                mensajeExito += $" La fecha de inicio se ajustó al {fechaInicio:dd/MM/yyyy} para coincidir con el día del horario.";
+
+            return (true, mensajeExito);
         }
 
-        // Método base robusto que procesa una fecha específica respetando feriados, cancelaciones y excepciones
-        public async Task ExtenderTurnosFijosParaFechaAsync(DateOnly fechaObjetivo)
+        private static DateOnly AlinearAlDiaDelHorario(DateOnly fecha, DayOfWeek diaHorario)
+        {
+            int diasHastaElDia = ((int)diaHorario - (int)fecha.DayOfWeek + 7) % 7;
+            return fecha.AddDays(diasHastaElDia);
+        }
+
+        // Procesa una fecha específica respetando feriados, cancelaciones y excepciones.
+        // Cada alumno se guarda por separado: un conflicto o error de uno no arrastra a los demás.
+        public Task ExtenderTurnosFijosParaFechaAsync(DateOnly fechaObjetivo) =>
+            ProcesarFechaAsync(fechaObjetivo, new ResumenBarridoFijos());
+
+        private async Task ProcesarFechaAsync(DateOnly fechaObjetivo, ResumenBarridoFijos resumen)
         {
             // 1. Si es feriado u horario reducido, no se generan turnos fijos automáticos
             var reducido = await DisponibilidadHorarios.ObtenerReducidoAsync(_unitOfWork, fechaObjetivo);
@@ -213,98 +240,212 @@ namespace MMEntrenamiento.Application.Services
             var diaSemanaObjetivo = fechaObjetivo.DayOfWeek;
 
             // 2. Traer SOLO los turnos fijos activos que caen en ese día de la semana
-            var turnosFijos = await _unitOfWork.TurnosFijos.FindAsync(
+            //    (orden determinista para que, si falta cupo, el criterio no cambie entre corridas)
+            var turnosFijos = (await _unitOfWork.TurnosFijos.FindAsync(
                 tf => tf.Activo && tf.Horario!.DiaSemana == diaSemanaObjetivo,
-                tf => tf.Horario!
-            );
+                tf => tf.Horario!,
+                tf => tf.Usuario!
+            )).OrderBy(tf => tf.Id).ToList();
 
-            if (!turnosFijos.Any()) return;
+            if (turnosFijos.Count == 0) return;
 
             var alumnosAsignados = new HashSet<Guid>();
 
             foreach (var turnoFijo in turnosFijos)
             {
-                // 3. Validar si ya tiene reserva vigente o si canceló / tiene excepción previa
-                if (alumnosAsignados.Contains(turnoFijo.UsuarioId)
-                    || await TieneReservaVigenteEnFechaAsync(turnoFijo.UsuarioId, fechaObjetivo))
-                    continue;
+                await GenerarReservaFijaAsync(turnoFijo, fechaObjetivo, alumnosAsignados, resumen);
+            }
+        }
 
-                var yaCancelo = await _unitOfWork.Reservas.AnyAsync(r =>
-                    r.UsuarioId == turnoFijo.UsuarioId
-                    && r.Turno.Fecha == fechaObjetivo
-                    && r.Turno.HorarioId == turnoFijo.HorarioId
-                    && r.Estado == EstadoReserva.Cancelada);
+        private async Task GenerarReservaFijaAsync(
+            TurnoFijo turnoFijo, DateOnly fecha, HashSet<Guid> alumnosAsignados, ResumenBarridoFijos resumen)
+        {
+            var usuarioId = turnoFijo.UsuarioId;
+            var horarioId = turnoFijo.HorarioId;
+
+            try
+            {
+                // 3. Cuenta bloqueada/inactiva: no se generan reservas nuevas (se omite antes de tocar créditos).
+                //    Los turnos fijos siguen activos: si se reactiva la cuenta, el próximo barrido los completa.
+                if (turnoFijo.Usuario == null)
+                {
+                    resumen.Omitir(MotivoOmisionFijo.Error, usuarioId);
+                    _logger.LogError(
+                        "Turno fijo NO generado: no se pudo cargar el usuario. Fecha={Fecha} HorarioId={HorarioId} UsuarioId={UsuarioId}",
+                        fecha, horarioId, usuarioId);
+                    return;
+                }
+
+                if (turnoFijo.Usuario.EstadoCuenta != EstadoCuenta.Activo)
+                {
+                    resumen.Omitir(MotivoOmisionFijo.CuentaNoActiva, usuarioId);
+                    _logger.LogDebug(
+                        "Turno fijo no generado: cuenta {Estado}. Fecha={Fecha} HorarioId={HorarioId} UsuarioId={UsuarioId}",
+                        turnoFijo.Usuario.EstadoCuenta, fecha, horarioId, usuarioId);
+                    return;
+                }
+
+                // 4. Hoy: si la clase ya comenzó, no se reserva (evita crear/consumir crédito de una clase pasada).
+                var ahoraArgentina = FechaArgentina.Ahora();
+                if (fecha == DateOnly.FromDateTime(ahoraArgentina)
+                    && turnoFijo.Horario.HoraInicio <= TimeOnly.FromDateTime(ahoraArgentina))
+                {
+                    _logger.LogDebug(
+                        "Turno fijo no generado: la clase de hoy ya comenzó. Fecha={Fecha} HorarioId={HorarioId} UsuarioId={UsuarioId}",
+                        fecha, horarioId, usuarioId);
+                    return;
+                }
+
+                // 5. Reserva vigente, falta registrada o excepción previa.
+                //    Ojo: una reserva "Cancelada" NO frena la generación por sí sola. Cuando el alumno cancela una
+                //    clase fija se crea una excepción (eso es lo que respeta el barrido); la baja del turno fijo,
+                //    en cambio, cancela reservas sin excepción y no debe bloquear una reasignación posterior.
+                if (alumnosAsignados.Contains(usuarioId)
+                    || await TieneReservaVigenteEnFechaAsync(usuarioId, fecha))
+                    return;
+
+                var yaFalto = await _unitOfWork.Reservas.AnyAsync(r =>
+                    r.UsuarioId == usuarioId
+                    && r.Turno.Fecha == fecha
+                    && r.Turno.HorarioId == horarioId
+                    && r.Estado == EstadoReserva.Ausente);
 
                 var tieneExcepcion = await _unitOfWork.ExcepcionesTurnosFijos.AnyAsync(e =>
-                    e.UsuarioId == turnoFijo.UsuarioId
-                    && e.HorarioId == turnoFijo.HorarioId
-                    && e.FechaAusencia == fechaObjetivo);
+                    e.UsuarioId == usuarioId
+                    && e.HorarioId == horarioId
+                    && e.FechaAusencia == fecha);
 
-                if (yaCancelo || tieneExcepcion) continue;
+                if (yaFalto || tieneExcepcion)
+                {
+                    _logger.LogDebug(
+                        "Turno fijo no generado (falta registrada o aviso del alumno). Fecha={Fecha} HorarioId={HorarioId} UsuarioId={UsuarioId}",
+                        fecha, horarioId, usuarioId);
+                    return;
+                }
 
-                var mes = fechaObjetivo.Month;
-                var anio = fechaObjetivo.Year;
+                var mes = fecha.Month;
+                var anio = fecha.Year;
 
-                // 4. Asegurar billetera y saldo
-                await _membresiaService.RenovarCreditosMesAsync(turnoFijo.UsuarioId, mes, anio);
+                // 6. Asegurar billetera y saldo (esta llamada guarda por su cuenta; acá no hay nada pendiente)
+                var (hayMembresia, mensajeMembresia) = await _membresiaService.RenovarCreditosMesAsync(usuarioId, mes, anio);
 
                 var creditoMes = await _unitOfWork.CreditosMes.FirstOrDefaultAsync(
-                    c => c.UsuarioId == turnoFijo.UsuarioId && c.Anio == anio && c.Mes == mes);
+                    c => c.UsuarioId == usuarioId && c.Anio == anio && c.Mes == mes);
 
-                if (creditoMes == null || creditoMes.CreditosUsados >= creditoMes.CreditosBase)
-                    continue;
+                if (creditoMes == null)
+                {
+                    resumen.Omitir(MotivoOmisionFijo.SinMembresia, usuarioId);
+                    _logger.LogWarning(
+                        "Turno fijo NO generado: sin membresía/billetera. Fecha={Fecha} HorarioId={HorarioId} UsuarioId={UsuarioId} Detalle={Detalle}",
+                        fecha, horarioId, usuarioId, hayMembresia ? "billetera inexistente" : mensajeMembresia);
+                    return;
+                }
 
-                // 5. Buscar o crear la instancia del Turno
+                if (creditoMes.CreditosUsados >= creditoMes.CreditosBase)
+                {
+                    // Regla de negocio: sin créditos no se reserva; el admin decide si otorga más.
+                    resumen.Omitir(MotivoOmisionFijo.SinCreditos, usuarioId);
+                    _logger.LogWarning(
+                        "Turno fijo NO generado: sin créditos en {Mes}/{Anio} ({Usados}/{Base}). Fecha={Fecha} HorarioId={HorarioId} UsuarioId={UsuarioId}",
+                        mes, anio, creditoMes.CreditosUsados, creditoMes.CreditosBase, fecha, horarioId, usuarioId);
+                    return;
+                }
+
+                // 7. Buscar o crear la instancia del Turno
                 var turno = await _unitOfWork.Turnos.FirstOrDefaultAsync(
-                    t => t.HorarioId == turnoFijo.HorarioId && t.Fecha == fechaObjetivo,
+                    t => t.HorarioId == horarioId && t.Fecha == fecha,
                     t => t.Reservas
                 );
 
                 if (turno == null)
                 {
-                    turno = new Turno { HorarioId = turnoFijo.HorarioId, Fecha = fechaObjetivo, OcupacionActual = 0, EsFeriado = false, Reservas = new List<Reserva>() };
+                    turno = new Turno { HorarioId = horarioId, Fecha = fecha, OcupacionActual = 0, EsFeriado = false, Reservas = new List<Reserva>() };
                     await _unitOfWork.Turnos.AddAsync(turno);
                 }
 
-                // 6. Verificar idempotencia y cupo
-                bool yaTieneReserva = turno.Reservas.Any(r => r.UsuarioId == turnoFijo.UsuarioId && r.Estado == EstadoReserva.Activa);
+                // 8. Verificar idempotencia y cupo
+                if (turno.Reservas.Any(r => r.UsuarioId == usuarioId && r.Estado == EstadoReserva.Activa))
+                    return;
 
-                if (!yaTieneReserva && turno.OcupacionActual < turnoFijo.Horario.CupoMaximo)
+                if (turno.OcupacionActual >= turnoFijo.Horario.CupoMaximo)
                 {
-                    var nuevaReserva = new Reserva
-                    {
-                        Turno = turno,
-                        Fecha = fechaObjetivo,
-                        UsuarioId = turnoFijo.UsuarioId,
-                        Tipo = TipoReserva.Fija,
-                        Estado = EstadoReserva.Activa,
-                        FechaOperacion = DateTime.UtcNow
-                    };
-
-                    await _unitOfWork.Reservas.AddAsync(nuevaReserva);
-                    turno.OcupacionActual++;
-                    creditoMes.CreditosUsados++;
-                    _unitOfWork.CreditosMes.Update(creditoMes);
-                    alumnosAsignados.Add(turnoFijo.UsuarioId);
+                    _unitOfWork.LimpiarCambiosPendientes();
+                    resumen.Omitir(MotivoOmisionFijo.TurnoLleno, usuarioId);
+                    _logger.LogWarning(
+                        "Turno fijo NO generado: turno lleno ({Ocupacion}/{Cupo}). Fecha={Fecha} HorarioId={HorarioId} UsuarioId={UsuarioId}",
+                        turno.OcupacionActual, turnoFijo.Horario.CupoMaximo, fecha, horarioId, usuarioId);
+                    return;
                 }
+
+                await _unitOfWork.Reservas.AddAsync(new Reserva
+                {
+                    Turno = turno,
+                    Fecha = fecha,
+                    UsuarioId = usuarioId,
+                    Tipo = TipoReserva.Fija,
+                    Estado = EstadoReserva.Activa,
+                    FechaOperacion = DateTime.UtcNow
+                });
+                turno.OcupacionActual++;
+                creditoMes.CreditosUsados++;
+                _unitOfWork.CreditosMes.Update(creditoMes);
+
+                // 9. Guardado atómico por alumno
+                await _unitOfWork.CompleteAsync();
+                alumnosAsignados.Add(usuarioId);
+                resumen.Creadas++;
             }
-
-            await _unitOfWork.CompleteAsync();
+            catch (ConflictoReservaException ex)
+            {
+                _unitOfWork.LimpiarCambiosPendientes();
+                resumen.Omitir(MotivoOmisionFijo.Conflicto, usuarioId);
+                _logger.LogWarning(ex,
+                    "Turno fijo NO generado: conflicto de reserva (ya tiene un turno ese día). Fecha={Fecha} HorarioId={HorarioId} UsuarioId={UsuarioId}",
+                    fecha, horarioId, usuarioId);
+            }
+            catch (Exception ex)
+            {
+                _unitOfWork.LimpiarCambiosPendientes();
+                resumen.Omitir(MotivoOmisionFijo.Error, usuarioId);
+                _logger.LogError(ex,
+                    "Turno fijo NO generado: error al guardar. Fecha={Fecha} HorarioId={HorarioId} UsuarioId={UsuarioId}",
+                    fecha, horarioId, usuarioId);
+            }
         }
 
-        public async Task ExtenderTurnosFijosDiarioAsync()
-        {
-            var fechaObjetivo = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(28);
-            await ExtenderTurnosFijosParaFechaAsync(fechaObjetivo);
-        }
+        // Barrido idempotente de la ventana completa (hoy..+28): completa huecos de corridas fallidas,
+        // reinicios o cupos liberados. Es el único camino que usa el worker.
+        public Task ExtenderTurnosFijosDiarioAsync() => ExtenderTurnosFijosVentanaCompletaAsync();
 
         public async Task ExtenderTurnosFijosVentanaCompletaAsync()
         {
-            var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
+            var hoy = FechaArgentina.Hoy();
+            var resumen = new ResumenBarridoFijos();
+
             for (int i = 0; i <= 28; i++)
             {
                 var fecha = hoy.AddDays(i);
-                await ExtenderTurnosFijosParaFechaAsync(fecha);
+                try
+                {
+                    await ProcesarFechaAsync(fecha, resumen);
+                }
+                catch (Exception ex)
+                {
+                    _unitOfWork.LimpiarCambiosPendientes();
+                    resumen.FechasConError++;
+                    _logger.LogError(ex, "Error al extender turnos fijos para la fecha {Fecha}; se continúa con las siguientes.", fecha);
+                }
+            }
+
+            _logger.LogInformation(
+                "Barrido de turnos fijos finalizado ({Desde:dd/MM}–{Hasta:dd/MM}): {Resumen}",
+                hoy, hoy.AddDays(28), resumen.Describir());
+
+            if (resumen.AlumnosSinCreditos.Count > 0)
+            {
+                _logger.LogWarning(
+                    "Alumnos con turnos fijos omitidos por falta de créditos ({Cantidad}): {Alumnos}",
+                    resumen.AlumnosSinCreditos.Count, string.Join(", ", resumen.AlumnosSinCreditos));
             }
         }
 

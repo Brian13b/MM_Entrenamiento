@@ -23,5 +23,8 @@ namespace MMEntrenamiento.Application.Interfaces.Repositories
         IGenericRepository<RefreshToken> RefreshTokens { get; }
 
         Task<int> CompleteAsync();
+
+        /// <summary>Descarta los cambios pendientes en memoria (entidades nuevas/modificadas sin guardar).</summary>
+        void LimpiarCambiosPendientes();
     }
 }

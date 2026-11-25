@@ -59,6 +59,8 @@ namespace MMEntrenamiento.Infrastructure.Repositories
             }
         }
 
+        public void LimpiarCambiosPendientes() => _context.ChangeTracker.Clear();
+
         public void Dispose() => _context.Dispose();
     }
 }
